@@ -1,0 +1,65 @@
+buildscript {
+    repositories {
+        jcenter()
+        mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath group: 'gradle.plugin.us.ihmc.gradle', name: 'ihmc-build', version:'0.0.16'
+    }
+}
+
+apply plugin: "us.ihmc.gradle.ihmc-build"
+
+sourceCompatibility = 1.7
+version = '1.0'
+
+repositories ihmc.ihmcDefaultArtifactProxies()
+
+repositories {
+   maven {
+       url "https://bengal.ihmc.us/nexus/content/repositories/thirdparty/"
+   }
+
+   mavenLocal()
+   jcenter()
+   mavenCentral()
+}
+
+dependencies {
+        testCompile group: 'junit', name: 'junit', version: '4.11'
+        compile group: 'javax.vecmath', name: 'vecmath', version: '1.5.2'
+
+    compile group: 'commons-net', name: 'commons-net', version: '3.3'
+        compile group: 'org.ejml', name: 'all', version: '0.28'
+        compile group: 'org.yaml', name: 'snakeyaml', version: '1.13' //1.11
+        compile group: 'us.ihmc', name: 'IHMCRealtime', version: '1.1.2'
+
+        compile ihmc.getProjectDependency(":CommonWalkingControlModules")
+        compile ihmc.getProjectDependency(":IHMCCommunication")
+        compile ihmc.getProjectDependency(":IHMCHumanoidRobotics")
+
+        compile ihmc.getProjectDependency(":Atlas")
+        compile ihmc.getProjectDependency(":SDFLoader")
+        compile ihmc.getProjectDependency(":SensorProcessing")
+        compile ihmc.getProjectDependency(":SimulationConstructionSet")
+        compile ihmc.getProjectDependency(":IHMCJavaToolkit")
+        compile ihmc.getProjectDependency(":IHMCRoboticsToolkit")
+        testCompile ihmc.getProjectDependency(":IHMCUnitTesting")
+}
+jar {
+    manifest {
+        attributes(
+                "Created-By": "IHMC Gradle Build Script",
+                "Implementation-Title": project.name,
+                "Implementation-Version": project.version,
+                "Implementation-Vendor": "IHMC",
+
+                "Bundle-Name": project.name,
+                "Bundle-Version": project.version,
+                "Bundle-License": "IHMC Proprietary",
+                "Bundle-Vendor": "IHMC")
+    }
+}
