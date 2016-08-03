@@ -1,10 +1,9 @@
 package ihmc.us.comControllers;
 
+import ihmc.us.comControllers.model.SphereRobot;
+import ihmc.us.comControllers.model.SphereRobotModel;
 import us.ihmc.graphics3DAdapter.GroundProfile3D;
-import us.ihmc.simulationconstructionset.GroundContactModel;
-import us.ihmc.simulationconstructionset.Robot;
-import us.ihmc.simulationconstructionset.SimulationConstructionSet;
-import us.ihmc.simulationconstructionset.SimulationConstructionSetParameters;
+import us.ihmc.simulationconstructionset.*;
 import us.ihmc.simulationconstructionset.util.LinearGroundContactModel;
 import us.ihmc.simulationconstructionset.util.ground.RollingGroundProfile;
 
@@ -12,14 +11,18 @@ import javax.vecmath.Vector3d;
 
 public class SphereSimulation
 {
-   SimulationConstructionSet sim;
+   private final static double controlDT = 0.001;
+   private final SimulationConstructionSet sim;
 
    public SphereSimulation()
    {
       Vector3d initialPosition = new Vector3d(0.0, 0.0, 1.0);
-      SphereRobot sphereRobot = new SphereRobot("SphereRobot", initialPosition);
+      SphereRobotModel sphereRobotModel = new SphereRobotModel();
+      RobotTools.SCSRobotFromInverseDynamicsRobotModel sphereRobot = SphereRobot.createSphereRobot("SphereRobot", initialPosition, sphereRobotModel.getElevator());
 
-      SphereController controller = new SphereController(sphereRobot);
+      ExternalForcePoint externalForcePoint = sphereRobot.getAllExternalForcePoints().get(0);
+
+      SphereController controller = new SphereController(sphereRobot, sphereRobotModel, externalForcePoint, controlDT);
       sphereRobot.setController(controller);
 
       setupGroundContactModel(sphereRobot);
@@ -28,7 +31,7 @@ public class SphereSimulation
       parameters.setDataBufferSize(16000);
       sim = new SimulationConstructionSet(sphereRobot, parameters);
 
-      sim.setDT(0.001, 1);
+      sim.setDT(controlDT, 1);
 
       sim.setCameraPosition(-1.5, -2.5, 0.5);
       sim.setCameraFix(0.0, 0.0, 0.4);

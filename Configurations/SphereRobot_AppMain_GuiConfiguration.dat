@@ -12,6 +12,18 @@
 			<MinScaling>0.0</MinScaling>
 		</GraphConfig>
 	</Graph>
+	<Graph>
+		<Variables>root.SphereRobot.SphereController.BasicHeightController.centerOfMassZ</Variables>
+		<GraphConfiguration>
+			<Name>config2</Name>
+			<ScalingMethod>1</ScalingMethod>
+			<PlotType>100</PlotType>
+			<ShowBaseLines>true</ShowBaseLines>
+			<BaseLines>0.0,</BaseLines>
+			<MaxScaling>1.0</MaxScaling>
+			<MinScaling>0.0</MinScaling>
+		</GraphConfig>
+	</Graph>
 </GraphGroup>
 <Entry Boxes Tab Pane>
 </Entry Boxes Tab Pane>
@@ -31,9 +43,9 @@
 
 <Current View>Normal View</Current View>
  <Canvas 1> 
- <Camera X>-1.5</Camera X>
- <Camera Y>-2.5</Camera Y>
- <Camera Z>0.5</Camera Z>
+ <Camera X>1.0400679429337578</Camera X>
+ <Camera Y>-0.08334762543674677</Camera Y>
+ <Camera Z>0.4103010235730265</Camera Z>
  <Dolly data> 
  <Position X>2.0</Position X>
  <Position Y>12.0</Position Y>
