@@ -3,6 +3,7 @@ package ihmc.us.comControllers.controllers;
 import us.ihmc.SdfLoader.models.FullRobotModel;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.BipedSupportPolygons;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.YoPlaneContactState;
+import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerParameters;
 import us.ihmc.commonWalkingControlModules.controllers.Updatable;
 import us.ihmc.commonWalkingControlModules.desiredFootStep.footstepGenerator.FootstepTestHelper;
 import us.ihmc.commonWalkingControlModules.momentumBasedController.CapturePointCalculator;
@@ -12,6 +13,7 @@ import us.ihmc.graphics3DAdapter.graphics.appearances.YoAppearance;
 import us.ihmc.humanoidRobotics.footstep.FootSpoof;
 import us.ihmc.humanoidRobotics.footstep.Footstep;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
+import us.ihmc.robotics.dataStructures.variable.BooleanYoVariable;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.robotics.geometry.*;
 import us.ihmc.robotics.math.frames.*;
@@ -42,6 +44,15 @@ public class SphereControlToolbox
    private static final double footWidthForControl = 0.12;
    private static final double toeWidthForControl = 0.12;
 
+   private static final double initialTransferDuration = 1.0;
+   private static final double singleSupportDuration = 0.6; /// 0.7;
+   private static final double doubleSupportDuration = 0.05; // 0.4; //0.25;
+   private static final double doubleSupportSplitFraction = 0.5;
+   private static final boolean useTwoCMPs = true;
+
+   private static final double maxDurationForSmoothingEntryToExitCMPSwitch = 0.5;
+   private static final double timeSpentOnExitCMPInPercentOfStepTime = 0.5; // singleSupportDuration
+
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
 
    private final YoFramePoint eCMP = new YoFramePoint("eCMP", worldFrame, registry);
@@ -55,6 +66,8 @@ public class SphereControlToolbox
    private final YoFrameVector yoCenterOfMassVelocity = new YoFrameVector("centerOfMassVelocity", worldFrame, registry);
    private final YoFramePoint2d yoCenterOfMass2d = new YoFramePoint2d("centerOfMass2d", worldFrame, registry);
    private final YoFrameVector2d yoCenterOfMassVelocity2d = new YoFrameVector2d("centerOfMassVelocity2d", worldFrame, registry);
+
+   private final BooleanYoVariable sendFootsteps = new BooleanYoVariable("sendFootsteps", registry);
 
    private final DoubleYoVariable omega0 = new DoubleYoVariable("omega0", registry);
 
@@ -76,6 +89,7 @@ public class SphereControlToolbox
    private BipedSupportPolygons bipedSupportPolygons;
 
    private final ArrayList<Updatable> updatables = new ArrayList<>();
+   private final ArrayList<Footstep> footsteps = new ArrayList<>();
 
    private final YoFramePose yoNextFootstepPose = new YoFramePose("nextFootstepPose", worldFrame, registry);
    private final YoFramePose yoNextNextFootstepPose = new YoFramePose("nextNextFootstepPose", worldFrame, registry);
@@ -95,6 +109,8 @@ public class SphereControlToolbox
 
    private FootstepTestHelper footstepTestHelper;
    private final YoGraphicsListRegistry yoGraphicsListRegistry;
+
+   private CapturePointPlannerParameters capturePointPlannerParameters;
 
    private DoubleYoVariable yoTime;
 
@@ -150,6 +166,8 @@ public class SphereControlToolbox
 
       twistCalculator = new TwistCalculator(worldFrame, sphereRobotModel.getRootJoint().getSuccessor());
       centerOfMassJacobian = new CenterOfMassJacobian(elevator);
+
+      capturePointPlannerParameters = createICPPlannerParameters();
 
       parentRegistry.addChild(registry);
    }
@@ -262,6 +280,31 @@ public class SphereControlToolbox
       return yoGraphicsListRegistry;
    }
 
+   public BipedSupportPolygons getBipedSupportPolygons()
+   {
+      return bipedSupportPolygons;
+   }
+
+   public SideDependentList<FootSpoof> getContactableFeet()
+   {
+      return contactableFeet;
+   }
+
+   public CapturePointPlannerParameters getCapturePointPlannerParameters()
+   {
+      return capturePointPlannerParameters;
+   }
+
+   public double getDoubleSupportDuration()
+   {
+      return doubleSupportDuration;
+   }
+
+   public double getSingleSupportDuration()
+   {
+      return singleSupportDuration;
+   }
+
    public void update()
    {
       centerOfMassFrame.update();
@@ -274,6 +317,14 @@ public class SphereControlToolbox
       updateFootViz();
       computeCenterOfMass();
       computeCapturePoint();
+
+      if (sendFootsteps.getBooleanValue())
+      {
+         for (Footstep footstep : footstepTestHelper.createFootsteps(0.25, 0.2, 20))
+            footsteps.add(footstep);
+
+         sendFootsteps.set(false);
+      }
    }
 
    private void updateFootViz()
@@ -291,6 +342,21 @@ public class SphereControlToolbox
             currentFootPoses.get(robotSide).setToNaN();
          }
       }
+   }
+
+   public double getNumberOfSteps()
+   {
+      return footsteps.size();
+   }
+
+   public Footstep getFootstep(int i)
+   {
+      return footsteps.remove(i);
+   }
+
+   public Footstep peekAtFootstep(int i)
+   {
+      return footsteps.get(i);
    }
 
    private final FrameConvexPolygon2d footstepPolygon = new FrameConvexPolygon2d();
@@ -403,5 +469,103 @@ public class SphereControlToolbox
 
       capturePoint2d.changeFrame(icp.getReferenceFrame());
       icp.setXY(capturePoint2d);
+   }
+
+   private CapturePointPlannerParameters createICPPlannerParameters()
+   {
+      return new CapturePointPlannerParameters()
+      {
+
+         @Override
+         public double getDoubleSupportInitialTransferDuration()
+         {
+            return initialTransferDuration;
+         }
+
+         @Override
+         public double getDoubleSupportSplitFraction()
+         {
+            return doubleSupportSplitFraction;
+         }
+
+         @Override
+         public double getEntryCMPInsideOffset()
+         {
+            return -0.005; // 0.006;
+         }
+
+         @Override
+         public double getExitCMPInsideOffset()
+         {
+            return 0.025;
+         }
+
+         @Override
+         public double getEntryCMPForwardOffset()
+         {
+            return 0.0;
+         }
+
+         @Override
+         public double getExitCMPForwardOffset()
+         {
+            return 0.0;
+         }
+
+         @Override
+         public boolean useTwoCMPsPerSupport()
+         {
+            return useTwoCMPs;
+         }
+
+         @Override
+         public double getTimeSpentOnExitCMPInPercentOfStepTime()
+         {
+            return timeSpentOnExitCMPInPercentOfStepTime;
+         }
+
+         @Override
+         public double getMaxEntryCMPForwardOffset()
+         {
+            return 0.03;
+         }
+
+         @Override
+         public double getMinEntryCMPForwardOffset()
+         {
+            return -0.05;
+         }
+
+         @Override
+         public double getMaxExitCMPForwardOffset()
+         {
+            return 0.15;
+         }
+
+         @Override
+         public double getMinExitCMPForwardOffset()
+         {
+            return -0.04;
+         }
+
+         @Override
+         public double getCMPSafeDistanceAwayFromSupportEdges()
+         {
+            return 0.001;
+         }
+
+         @Override
+         public double getMaxDurationForSmoothingEntryToExitCMPSwitch()
+         {
+            return maxDurationForSmoothingEntryToExitCMPSwitch;
+         }
+
+         /** {@inheritDoc} */
+         @Override
+         public boolean useExitCMPOnToesForSteppingDown()
+         {
+            return true;
+         }
+      };
    }
 }
