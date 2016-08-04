@@ -12,11 +12,11 @@ import us.ihmc.robotics.screwTheory.CenterOfMassJacobian;
 
 public class BasicHeightController
 {
-   private static final double desiredHeight = 1.0;
+   private static final double desiredHeight = 0.75;
 
    private static final double kp = 100.0;
    private static final double ki = 0.0;
-   private static final double kd = 3.0;
+   private static final double kd = 10.0;
 
    private static final ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
 
@@ -51,7 +51,7 @@ public class BasicHeightController
       centerOfMassFrame = robotModel.getCenterOfMassFrame();
       centerOfMassJacobian = robotModel.getCenterOfMassJacobian();
 
-      yoDesiredHeight.set(1.0);
+      yoDesiredHeight.set(desiredHeight);
 
       heightKp.set(kp);
       heightKd.set(kd);

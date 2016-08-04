@@ -1,11 +1,14 @@
 package ihmc.us.comControllers;
 
 import ihmc.us.comControllers.controllers.BasicHeightController;
+import ihmc.us.comControllers.controllers.BasicPlanarController;
 import ihmc.us.comControllers.model.SphereRobotModel;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.simulationconstructionset.ExternalForcePoint;
 import us.ihmc.simulationconstructionset.RobotTools;
 import us.ihmc.simulationconstructionset.robotController.RobotController;
+
+import javax.vecmath.Point2d;
 
 public class SphereController implements RobotController
 {
@@ -14,6 +17,7 @@ public class SphereController implements RobotController
    private final YoVariableRegistry registry = new YoVariableRegistry("SphereController");
 
    private final BasicHeightController heightController;
+   private final BasicPlanarController planarController;
 
    private final RobotTools.SCSRobotFromInverseDynamicsRobotModel scsRobot;
    private final SphereRobotModel robot;
@@ -26,9 +30,10 @@ public class SphereController implements RobotController
       this.externalForcePoint = externalForcePoint;
 
       heightController = new BasicHeightController(robot, controlDT, registry);
+      planarController = new BasicPlanarController(robot, controlDT, registry);
    }
-   
 
+   private final Point2d planarForces = new Point2d();
    public void doControl()
    {
       scsRobot.updateJointPositions_SCS_to_ID();
@@ -36,8 +41,10 @@ public class SphereController implements RobotController
       robot.update();
 
       heightController.doControl();
+      planarController.doControl();
+      planarController.getPlanarForces(planarForces);
 
-      externalForcePoint.setForce(0.0, 0.0, heightController.getVerticalForce());
+      externalForcePoint.setForce(planarForces.getX(), planarForces.getY(), heightController.getVerticalForce());
 
       scsRobot.updateJointPositions_ID_to_SCS();
       scsRobot.updateJointVelocities_ID_to_SCS();
