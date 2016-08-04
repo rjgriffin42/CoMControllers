@@ -1,6 +1,5 @@
 package ihmc.us.comControllers.controllers;
 
-import ihmc.us.comControllers.model.SphereRobotModel;
 import us.ihmc.SdfLoader.models.FullRobotModel;
 import us.ihmc.robotics.controllers.PIDController;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
@@ -13,8 +12,6 @@ import us.ihmc.robotics.screwTheory.CenterOfMassJacobian;
 
 public class BasicHeightController
 {
-   private static final double desiredHeight = 0.75;
-
    private static final double kp = 100.0;
    private static final double ki = 0.0;
    private static final double kd = 10.0;
@@ -52,7 +49,7 @@ public class BasicHeightController
       centerOfMassFrame = controlToolbox.getCenterOfMassFrame();
       centerOfMassJacobian = controlToolbox.getCenterOfMassJacobian();
 
-      yoDesiredHeight.set(desiredHeight);
+      yoDesiredHeight.set(controlToolbox.getDesiredHeight());
 
       heightKp.set(kp);
       heightKd.set(kd);

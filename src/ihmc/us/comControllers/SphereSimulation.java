@@ -7,23 +7,30 @@ import us.ihmc.graphics3DAdapter.GroundProfile3D;
 import us.ihmc.simulationconstructionset.*;
 import us.ihmc.simulationconstructionset.util.LinearGroundContactModel;
 import us.ihmc.simulationconstructionset.util.ground.RollingGroundProfile;
+import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicsListRegistry;
 
 import javax.vecmath.Vector3d;
 
 public class SphereSimulation
 {
+   private final static double desiredHeight = 0.75;
    private final static double controlDT = 0.001;
+   private final static double gravity = 9.81;
+
    private final SimulationConstructionSet sim;
 
    public SphereSimulation()
    {
       Vector3d initialPosition = new Vector3d(0.0, 0.0, 1.0);
       SphereRobotModel sphereRobotModel = new SphereRobotModel();
-      RobotTools.SCSRobotFromInverseDynamicsRobotModel sphereRobot = SphereRobot.createSphereRobot("SphereRobot", initialPosition, sphereRobotModel.getElevator());
+      YoGraphicsListRegistry yoGraphicsListRegistry = new YoGraphicsListRegistry();
+      RobotTools.SCSRobotFromInverseDynamicsRobotModel sphereRobot = SphereRobot.createSphereRobot("SphereRobot", initialPosition,
+            sphereRobotModel.getElevator(), yoGraphicsListRegistry, gravity);
 
       ExternalForcePoint externalForcePoint = sphereRobot.getAllExternalForcePoints().get(0);
 
-      SphereControlToolbox sphereControlToolbox = new SphereControlToolbox(sphereRobotModel, controlDT);
+      SphereControlToolbox sphereControlToolbox = new SphereControlToolbox(sphereRobotModel, controlDT, desiredHeight, gravity, sphereRobot.getYoTime(),
+            sphereRobot.getRobotsYoVariableRegistry(), yoGraphicsListRegistry);
       SphereController controller = new SphereController(sphereRobot, sphereControlToolbox, externalForcePoint);
       sphereRobot.setController(controller);
 

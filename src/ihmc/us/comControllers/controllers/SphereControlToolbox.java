@@ -1,18 +1,62 @@
 package ihmc.us.comControllers.controllers;
 
-import ihmc.us.comControllers.model.SphereRobotModel;
 import us.ihmc.SdfLoader.models.FullRobotModel;
+import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.BipedSupportPolygons;
+import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.YoPlaneContactState;
+import us.ihmc.commonWalkingControlModules.controllers.Updatable;
+import us.ihmc.commonWalkingControlModules.desiredFootStep.footstepGenerator.FootstepTestHelper;
+import us.ihmc.commonWalkingControlModules.momentumBasedController.CapturePointCalculator;
+import us.ihmc.graphics3DAdapter.graphics.Graphics3DObject;
+import us.ihmc.graphics3DAdapter.graphics.appearances.AppearanceDefinition;
+import us.ihmc.graphics3DAdapter.graphics.appearances.YoAppearance;
+import us.ihmc.humanoidRobotics.footstep.FootSpoof;
+import us.ihmc.humanoidRobotics.footstep.Footstep;
+import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
+import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
+import us.ihmc.robotics.geometry.*;
+import us.ihmc.robotics.math.frames.*;
 import us.ihmc.robotics.referenceFrames.CenterOfMassReferenceFrame;
+import us.ihmc.robotics.referenceFrames.MidFrameZUpFrame;
 import us.ihmc.robotics.referenceFrames.ReferenceFrame;
+import us.ihmc.robotics.referenceFrames.ZUpFrame;
+import us.ihmc.robotics.robotSide.RobotSide;
+import us.ihmc.robotics.robotSide.SideDependentList;
 import us.ihmc.robotics.screwTheory.CenterOfMassJacobian;
 import us.ihmc.robotics.screwTheory.RigidBody;
 import us.ihmc.robotics.screwTheory.TwistCalculator;
+import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicPosition;
+import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicPosition.GraphicType;
+import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicShape;
+import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicsListRegistry;
+import us.ihmc.simulationconstructionset.yoUtilities.graphics.plotting.YoArtifactPolygon;
 
-import javax.naming.Reference;
+import javax.vecmath.Point2d;
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SphereControlToolbox
 {
    private static final ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
+   private static final double footLengthForControl = 0.25;
+   private static final double footWidthForControl = 0.12;
+   private static final double toeWidthForControl = 0.12;
+
+   private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
+
+   private final YoFramePoint eCMP = new YoFramePoint("eCMP", worldFrame, registry);
+   private final YoFramePoint desiredICP = new YoFramePoint("desiredICP", worldFrame, registry);
+   private final YoFrameVector desiredICPVelocity = new YoFrameVector("desiredICPVelocity", worldFrame, registry);
+   private final YoFramePoint2d desiredCMP = new YoFramePoint2d("desiredCMP", worldFrame, registry);
+
+   private final YoFramePoint icp = new YoFramePoint("icp", worldFrame, registry);
+
+   private final YoFramePoint yoCenterOfMass = new YoFramePoint("centerOfMass", worldFrame, registry);
+   private final YoFrameVector yoCenterOfMassVelocity = new YoFrameVector("centerOfMassVelocity", worldFrame, registry);
+   private final YoFramePoint2d yoCenterOfMass2d = new YoFramePoint2d("centerOfMass2d", worldFrame, registry);
+   private final YoFrameVector2d yoCenterOfMassVelocity2d = new YoFrameVector2d("centerOfMassVelocity2d", worldFrame, registry);
+
+   private final DoubleYoVariable omega0 = new DoubleYoVariable("omega0", registry);
 
    private final ReferenceFrame centerOfMassFrame;
 
@@ -22,19 +66,150 @@ public class SphereControlToolbox
    private final TwistCalculator twistCalculator;
    private final CenterOfMassJacobian centerOfMassJacobian;
 
-   private final double controlDT;
+   public static final Color defaultLeftColor = new Color(0.85f, 0.35f, 0.65f, 1.0f);
+   public static final Color defaultRightColor = new Color(0.15f, 0.8f, 0.15f, 1.0f);
 
-   public SphereControlToolbox(FullRobotModel sphereRobotModel, double controlDT)
+   private final SideDependentList<FramePose> footPosesAtTouchdown = new SideDependentList<FramePose>(new FramePose(), new FramePose());
+   private final SideDependentList<YoFramePose> currentFootPoses = new SideDependentList<>();
+   private final SideDependentList<YoPlaneContactState> contactStates = new SideDependentList<>();
+
+   private BipedSupportPolygons bipedSupportPolygons;
+
+   private final ArrayList<Updatable> updatables = new ArrayList<>();
+
+   private final YoFramePose yoNextFootstepPose = new YoFramePose("nextFootstepPose", worldFrame, registry);
+   private final YoFramePose yoNextNextFootstepPose = new YoFramePose("nextNextFootstepPose", worldFrame, registry);
+   private final YoFramePose yoNextNextNextFootstepPose = new YoFramePose("nextNextNextFootstepPose", worldFrame, registry);
+   private final YoFrameConvexPolygon2d yoNextFootstepPolygon = new YoFrameConvexPolygon2d("nextFootstep", "", worldFrame, 4, registry);
+   private final YoFrameConvexPolygon2d yoNextNextFootstepPolygon = new YoFrameConvexPolygon2d("nextNextFootstep", "", worldFrame, 4, registry);
+   private final YoFrameConvexPolygon2d yoNextNextNextFootstepPolygon = new YoFrameConvexPolygon2d("nextNextNextFootstep", "", worldFrame, 4, registry);
+
+   private final double controlDT;
+   private final double desiredHeight;
+
+   private final SideDependentList<FootSpoof> contactableFeet = new SideDependentList<>();
+   private final SideDependentList<ReferenceFrame> soleFrames = new SideDependentList<>();
+   private final SideDependentList<ReferenceFrame> ankleFrames = new SideDependentList<>();
+   private final SideDependentList<ReferenceFrame> ankleZUpFrames = new SideDependentList<>();
+   private ReferenceFrame midFeetZUpFrame;
+
+   private FootstepTestHelper footstepTestHelper;
+   private final YoGraphicsListRegistry yoGraphicsListRegistry;
+
+   private DoubleYoVariable yoTime;
+
+   public SphereControlToolbox(FullRobotModel sphereRobotModel, double controlDT, double desiredHeight, double gravity, DoubleYoVariable yoTime,
+         YoVariableRegistry parentRegistry, YoGraphicsListRegistry yoGraphicsListRegistry)
    {
       this.fullRobotModel = sphereRobotModel;
       this.controlDT = controlDT;
+      this.desiredHeight = desiredHeight;
+      this.yoTime = yoTime;
+      this.yoGraphicsListRegistry = yoGraphicsListRegistry;
 
       elevator = sphereRobotModel.getElevator();
+
+      double omega = Math.sqrt(desiredHeight / gravity);
+      omega0.set(omega);
+
+      setupFeetFrames(yoGraphicsListRegistry);
+
+      yoGraphicsListRegistry.registerArtifact("Desired CMP", new YoGraphicPosition("Desired CMP", desiredCMP, 0.012, YoAppearance.Purple(), GraphicType.CROSS).createArtifact());
+      yoGraphicsListRegistry.registerArtifact("Desired Capture Point", new YoGraphicPosition("Desired Capture Point", desiredICP, 0.01, YoAppearance.Yellow(), GraphicType.ROTATED_CROSS).createArtifact());
+      yoGraphicsListRegistry.registerArtifact("Capture Point", new YoGraphicPosition("Capture Point", desiredICP, 0.01, YoAppearance.Red(), GraphicType.ROTATED_CROSS).createArtifact());
+      yoGraphicsListRegistry.registerArtifact("Center of Mass", new YoGraphicPosition("Center Of Mass", yoCenterOfMass, 0.01, YoAppearance.Grey(), GraphicType.ROTATED_CROSS).createArtifact());
+
+      yoGraphicsListRegistry.registerArtifact("upcomingFootsteps", new YoArtifactPolygon("nextFootstep", yoNextFootstepPolygon, Color.blue, false));
+      yoGraphicsListRegistry.registerArtifact("upcomingFootsteps", new YoArtifactPolygon("nextNextFootstep", yoNextNextFootstepPolygon, Color.blue, false));
+      yoGraphicsListRegistry.registerArtifact("upcomingFootsteps", new YoArtifactPolygon("nextNextNextFootstep", yoNextNextNextFootstepPolygon, Color.blue, false));
+
+      Graphics3DObject footstepGraphics = new Graphics3DObject();
+      List<Point2d> contactPoints = new ArrayList<>();
+      for (FramePoint2d point : contactableFeet.get(RobotSide.LEFT).getContactPoints2d())
+         contactPoints.add(point.getPointCopy());
+      footstepGraphics.addExtrudedPolygon(contactPoints, 0.02, YoAppearance.Color(Color.blue));
+      yoGraphicsListRegistry.registerYoGraphic("upcomingFootsteps", new YoGraphicShape("nextFootstep", footstepGraphics, yoNextFootstepPose, 1.0));
+      yoGraphicsListRegistry.registerYoGraphic("upcomingFootsteps", new YoGraphicShape("nextNextFootstep", footstepGraphics, yoNextNextFootstepPose, 1.0));
+      yoGraphicsListRegistry.registerYoGraphic("upcomingFootsteps", new YoGraphicShape("nextNextNextFootstep", footstepGraphics, yoNextNextNextFootstepPose, 1.0));
+
+      updatables.add(new Updatable()
+      {
+         @Override
+         public void update(double time)
+         {
+            for (RobotSide robotSide : RobotSide.values)
+            {
+               soleFrames.get(robotSide).update();
+               ankleZUpFrames.get(robotSide).update();
+            }
+            midFeetZUpFrame.update();
+         }
+      });
 
       centerOfMassFrame = new CenterOfMassReferenceFrame("centerOfMass", worldFrame, elevator);
 
       twistCalculator = new TwistCalculator(worldFrame, sphereRobotModel.getRootJoint().getSuccessor());
       centerOfMassJacobian = new CenterOfMassJacobian(elevator);
+
+      parentRegistry.addChild(registry);
+   }
+
+   private void setupFeetFrames(YoGraphicsListRegistry yoGraphicsListRegistry)
+   {
+      for (RobotSide robotSide : RobotSide.values)
+      {
+         String sidePrefix = robotSide.getCamelCaseNameForStartOfExpression();
+         double xToAnkle = 0.0;
+         double yToAnkle = 0.0;
+         double zToAnkle = 0.084;
+         List<Point2d> contactPointsInSoleFrame = new ArrayList<>();
+         contactPointsInSoleFrame.add(new Point2d(footLengthForControl / 2.0, toeWidthForControl / 2.0));
+         contactPointsInSoleFrame.add(new Point2d(footLengthForControl / 2.0, -toeWidthForControl / 2.0));
+         contactPointsInSoleFrame.add(new Point2d(-footLengthForControl / 2.0, -footWidthForControl / 2.0));
+         contactPointsInSoleFrame.add(new Point2d(-footLengthForControl / 2.0, footWidthForControl / 2.0));
+         FootSpoof contactableFoot = new FootSpoof(sidePrefix + "Foot", xToAnkle, yToAnkle, zToAnkle, contactPointsInSoleFrame, 0.0);
+         FramePose startingPose = footPosesAtTouchdown.get(robotSide);
+         startingPose.setToZero(worldFrame);
+         startingPose.setY(robotSide.negateIfRightSide(0.15));
+         contactableFoot.setSoleFrame(startingPose);
+         contactableFeet.put(robotSide, contactableFoot);
+
+         currentFootPoses.put(robotSide, new YoFramePose(sidePrefix + "FootPose", worldFrame, registry));
+
+         Graphics3DObject footGraphics = new Graphics3DObject();
+         AppearanceDefinition footColor = robotSide == RobotSide.LEFT ? YoAppearance.Color(defaultLeftColor) : YoAppearance.Color(defaultRightColor);
+         footGraphics.addExtrudedPolygon(contactPointsInSoleFrame, 0.02, footColor);
+         yoGraphicsListRegistry.registerYoGraphic("FootViz", new YoGraphicShape(sidePrefix + "FootViz", footGraphics, currentFootPoses.get(robotSide), 1.0));
+      }
+
+      for (RobotSide robotSide : RobotSide.values)
+      {
+         String sidePrefix = robotSide.getCamelCaseNameForStartOfExpression();
+         FootSpoof contactableFoot = contactableFeet.get(robotSide);
+         RigidBody foot = contactableFoot.getRigidBody();
+         ReferenceFrame soleFrame = contactableFoot.getSoleFrame();
+         List<FramePoint2d> contactFramePoints = contactableFoot.getContactPoints2d();
+         double coefficientOfFriction = contactableFoot.getCoefficientOfFriction();
+         YoPlaneContactState yoPlaneContactState = new YoPlaneContactState(sidePrefix + "Foot", foot, soleFrame, contactFramePoints, coefficientOfFriction, registry);
+         yoPlaneContactState.setFullyConstrained();
+         contactStates.put(robotSide, yoPlaneContactState);
+      }
+
+      for (RobotSide robotSide : RobotSide.values)
+      {
+         FootSpoof contactableFoot = contactableFeet.get(robotSide);
+         ReferenceFrame ankleFrame = contactableFoot.getFrameAfterParentJoint();
+         ankleFrames.put(robotSide, ankleFrame);
+         ankleZUpFrames.put(robotSide, new ZUpFrame(worldFrame, ankleFrame, robotSide.getCamelCaseNameForStartOfExpression() + "ZUp"));
+         soleFrames.put(robotSide, contactableFoot.getSoleFrame());
+      }
+
+      midFeetZUpFrame = new MidFrameZUpFrame("midFeetZupFrame", worldFrame, ankleZUpFrames.get(RobotSide.LEFT), ankleZUpFrames.get(RobotSide.RIGHT));
+      midFeetZUpFrame.update();
+      bipedSupportPolygons = new BipedSupportPolygons(ankleZUpFrames, midFeetZUpFrame, ankleZUpFrames, registry, yoGraphicsListRegistry);
+
+      footstepTestHelper = new FootstepTestHelper(contactableFeet, ankleFrames);
+
    }
 
    public FullRobotModel getFullRobotModel()
@@ -45,6 +220,16 @@ public class SphereControlToolbox
    public double getControlDT()
    {
       return controlDT;
+   }
+
+   public double getDesiredHeight()
+   {
+      return desiredHeight;
+   }
+
+   public double getOmega0()
+   {
+      return omega0.getDoubleValue();
    }
 
    public TwistCalculator getTwistCalculator()
@@ -62,11 +247,161 @@ public class SphereControlToolbox
       return centerOfMassFrame;
    }
 
+   public YoFramePoint getCenterOfMass()
+   {
+      return yoCenterOfMass;
+   }
+
+   public YoFrameVector getCenterOfMassVelocity()
+   {
+      return yoCenterOfMassVelocity;
+   }
+
+   public YoGraphicsListRegistry getYoGraphicsListRegistry()
+   {
+      return yoGraphicsListRegistry;
+   }
+
    public void update()
    {
       centerOfMassFrame.update();
 
       twistCalculator.compute();
       centerOfMassJacobian.compute();
+      bipedSupportPolygons.updateUsingContactStates(contactStates);
+
+      callUpdatables();
+      updateFootViz();
+      computeCenterOfMass();
+      computeCapturePoint();
+   }
+
+   private void updateFootViz()
+   {
+      for (RobotSide robotSide : RobotSide.values)
+      {
+         if (contactStates.get(robotSide).inContact())
+         {
+            FramePose footPose = new FramePose(contactableFeet.get(robotSide).getSoleFrame());
+            footPose.changeFrame(worldFrame);
+            currentFootPoses.get(robotSide).set(footPose);
+         }
+         else
+         {
+            currentFootPoses.get(robotSide).setToNaN();
+         }
+      }
+   }
+
+   private final FrameConvexPolygon2d footstepPolygon = new FrameConvexPolygon2d();
+   private final FrameConvexPolygon2d tempFootstepPolygonForShrinking = new FrameConvexPolygon2d();
+   private final ConvexPolygonShrinker convexPolygonShrinker = new ConvexPolygonShrinker();
+
+   private void updateUpcomingFootstepsViz(Footstep nextFootstep, Footstep nextNextFootstep, Footstep nextNextNextFootstep)
+   {
+      if (nextFootstep == null)
+      {
+         yoNextFootstepPose.setToNaN();
+         yoNextNextFootstepPose.setToNaN();
+         yoNextNextNextFootstepPose.setToNaN();
+         yoNextFootstepPolygon.hide();
+         yoNextNextFootstepPolygon.hide();
+         yoNextNextNextFootstepPolygon.hide();
+         return;
+      }
+
+      if (nextFootstep.getPredictedContactPoints() == null)
+         nextFootstep.setPredictedContactPointsFromFramePoint2ds(contactableFeet.get(nextFootstep.getRobotSide()).getContactPoints2d());
+
+      double polygonShrinkAmount = 0.005;
+
+      tempFootstepPolygonForShrinking.setIncludingFrameAndUpdate(nextFootstep.getSoleReferenceFrame(), nextFootstep.getPredictedContactPoints());
+      convexPolygonShrinker.shrinkConstantDistanceInto(tempFootstepPolygonForShrinking, polygonShrinkAmount, footstepPolygon);
+
+      footstepPolygon.changeFrameAndProjectToXYPlane(worldFrame);
+      yoNextFootstepPolygon.setFrameConvexPolygon2d(footstepPolygon);
+
+      FramePose nextFootstepPose = new FramePose(nextFootstep.getSoleReferenceFrame());
+      yoNextFootstepPose.setAndMatchFrame(nextFootstepPose);
+
+      if (nextNextFootstep == null)
+      {
+         yoNextNextFootstepPose.setToNaN();
+         yoNextNextNextFootstepPose.setToNaN();
+         yoNextNextFootstepPolygon.hide();
+         yoNextNextNextFootstepPolygon.hide();
+         return;
+      }
+
+      if (nextNextFootstep.getPredictedContactPoints() == null)
+         nextNextFootstep.setPredictedContactPointsFromFramePoint2ds(contactableFeet.get(nextNextFootstep.getRobotSide()).getContactPoints2d());
+
+      tempFootstepPolygonForShrinking.setIncludingFrameAndUpdate(nextNextFootstep.getSoleReferenceFrame(), nextNextFootstep.getPredictedContactPoints());
+      convexPolygonShrinker.shrinkConstantDistanceInto(tempFootstepPolygonForShrinking, polygonShrinkAmount, footstepPolygon);
+
+      footstepPolygon.changeFrameAndProjectToXYPlane(worldFrame);
+      yoNextNextFootstepPolygon.setFrameConvexPolygon2d(footstepPolygon);
+
+      FramePose nextNextFootstepPose = new FramePose(nextNextFootstep.getSoleReferenceFrame());
+      yoNextNextFootstepPose.setAndMatchFrame(nextNextFootstepPose);
+
+      if (nextNextNextFootstep == null)
+      {
+         yoNextNextNextFootstepPose.setToNaN();
+         yoNextNextNextFootstepPolygon.hide();
+         return;
+      }
+
+      if (nextNextNextFootstep.getPredictedContactPoints() == null)
+         nextNextNextFootstep.setPredictedContactPointsFromFramePoint2ds(contactableFeet.get(nextNextNextFootstep.getRobotSide()).getContactPoints2d());
+
+      tempFootstepPolygonForShrinking.setIncludingFrameAndUpdate(nextNextNextFootstep.getSoleReferenceFrame(), nextNextNextFootstep.getPredictedContactPoints());
+      convexPolygonShrinker.shrinkConstantDistanceInto(tempFootstepPolygonForShrinking, polygonShrinkAmount, footstepPolygon);
+
+      footstepPolygon.changeFrameAndProjectToXYPlane(worldFrame);
+      yoNextNextNextFootstepPolygon.setFrameConvexPolygon2d(footstepPolygon);
+
+      FramePose nextNextNextFootstepPose = new FramePose(nextNextNextFootstep.getSoleReferenceFrame());
+      yoNextNextNextFootstepPose.setAndMatchFrame(nextNextNextFootstepPose);
+   }
+
+   private void callUpdatables()
+   {
+      for (Updatable updatable : updatables)
+         updatable.update(yoTime.getDoubleValue());
+   }
+
+
+   private final FramePoint centerOfMass = new FramePoint();
+   private final FrameVector centerOfMassVelocity = new FrameVector();
+   private final FramePoint2d centerOfMass2d = new FramePoint2d();
+   private final FrameVector2d centerOfMassVelocity2d = new FrameVector2d();
+   public void computeCenterOfMass()
+   {
+      centerOfMass.changeFrame(worldFrame);
+      centerOfMassVelocity.changeFrame(worldFrame);
+
+      centerOfMass2d.setByProjectionOntoXYPlaneIncludingFrame(centerOfMass);
+      centerOfMassVelocity2d.setByProjectionOntoXYPlaneIncludingFrame(centerOfMassVelocity);
+
+      yoCenterOfMass.set(centerOfMass);
+      yoCenterOfMassVelocity.set(centerOfMassVelocity);
+
+      yoCenterOfMass2d.set(centerOfMass2d);
+      yoCenterOfMassVelocity2d.set(centerOfMassVelocity2d);
+   }
+
+   private final FramePoint2d capturePoint2d = new FramePoint2d();
+
+   public void computeCapturePoint()
+   {
+      centerOfMass.setToZero(centerOfMassFrame);
+      centerOfMassJacobian.getCenterOfMassVelocity(centerOfMassVelocity);
+
+
+      CapturePointCalculator.computeCapturePoint(capturePoint2d, centerOfMass2d, centerOfMassVelocity2d, omega0.getDoubleValue());
+
+      capturePoint2d.changeFrame(icp.getReferenceFrame());
+      icp.setXY(capturePoint2d);
    }
 }

@@ -13,10 +13,10 @@ import javax.vecmath.Vector3d;
 
 public class SphereRobot
 {
-   private static final double gravity = 9.81;
    private static final double radius = 0.1;
 
-   public static RobotTools.SCSRobotFromInverseDynamicsRobotModel createSphereRobot(String name, Vector3d initialPosition, RigidBody elevator)
+   public static RobotTools.SCSRobotFromInverseDynamicsRobotModel createSphereRobot(String name, Vector3d initialPosition, RigidBody elevator,
+         YoGraphicsListRegistry yoGraphicsListRegistry, double gravity)
    {
       RobotTools.SCSRobotFromInverseDynamicsRobotModel scsRobot = new RobotTools.SCSRobotFromInverseDynamicsRobotModel(name, elevator.getChildrenJoints().get(0));
 
@@ -27,8 +27,6 @@ public class SphereRobot
       Graphics3DObject linkGraphics = new Graphics3DObject();
       linkGraphics.addSphere(radius/2.0, YoAppearance.EarthTexture());
       floatingJoint.getLink().setLinkGraphics(linkGraphics);
-
-      YoGraphicsListRegistry yoGraphicsListRegistry = new YoGraphicsListRegistry();
 
       String gcName = "gc";
       GroundContactPoint gc = new GroundContactPoint(gcName, new Vector3d(0.0, 0.0, 0.0), scsRobot);

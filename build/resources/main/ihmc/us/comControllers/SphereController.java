@@ -42,6 +42,7 @@ public class SphereController implements RobotController
    {
       scsRobot.updateJointPositions_SCS_to_ID();
       scsRobot.updateJointVelocities_SCS_to_ID();
+
       robot.updateFrames();
       controlToolbox.update();
 
