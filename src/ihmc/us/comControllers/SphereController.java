@@ -1,8 +1,6 @@
 package ihmc.us.comControllers;
 
-import ihmc.us.comControllers.controllers.BasicHeightController;
-import ihmc.us.comControllers.controllers.BasicPlanarController;
-import ihmc.us.comControllers.controllers.SphereControlToolbox;
+import ihmc.us.comControllers.controllers.*;
 import ihmc.us.comControllers.model.SphereRobotModel;
 import us.ihmc.SdfLoader.models.FullRobotModel;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
@@ -11,15 +9,17 @@ import us.ihmc.simulationconstructionset.RobotTools;
 import us.ihmc.simulationconstructionset.robotController.RobotController;
 
 import javax.vecmath.Point2d;
+import javax.vecmath.Vector3d;
 
 public class SphereController implements RobotController
 {
-   private static final long serialVersionUID = -6115066729570319285L;
+   private enum SphereControllerEnum {BASIC, ICP}
+
+   private static final SphereControllerEnum controllerType = SphereControllerEnum.BASIC;
 
    private final YoVariableRegistry registry = new YoVariableRegistry("SphereController");
 
-   private final BasicHeightController heightController;
-   private final BasicPlanarController planarController;
+   private final GenericSphereController sphereController;
 
    private final RobotTools.SCSRobotFromInverseDynamicsRobotModel scsRobot;
    private final FullRobotModel robot;
@@ -33,11 +33,17 @@ public class SphereController implements RobotController
       this.robot = controlToolbox.getFullRobotModel();
       this.externalForcePoint = externalForcePoint;
 
-      heightController = new BasicHeightController(controlToolbox, registry);
-      planarController = new BasicPlanarController(controlToolbox, registry);
+      switch(controllerType)
+      {
+      case BASIC:
+         sphereController = new BasicSphereController(controlToolbox, registry);
+         break;
+      default:
+         sphereController = new BasicSphereController(controlToolbox, registry);
+         break;
+      }
    }
 
-   private final Point2d planarForces = new Point2d();
    public void doControl()
    {
       scsRobot.updateJointPositions_SCS_to_ID();
@@ -46,11 +52,9 @@ public class SphereController implements RobotController
       robot.updateFrames();
       controlToolbox.update();
 
-      heightController.doControl();
-      planarController.doControl();
-      planarController.getPlanarForces(planarForces);
+      sphereController.doControl();
 
-      externalForcePoint.setForce(planarForces.getX(), planarForces.getY(), heightController.getVerticalForce());
+      externalForcePoint.setForce(sphereController.getForces());
 
       scsRobot.updateJointPositions_ID_to_SCS();
       scsRobot.updateJointVelocities_ID_to_SCS();
