@@ -290,6 +290,11 @@ public class SphereControlToolbox
       return contactableFeet;
    }
 
+   public SideDependentList<YoPlaneContactState> getContactStates()
+   {
+      return contactStates;
+   }
+
    public CapturePointPlannerParameters getCapturePointPlannerParameters()
    {
       return capturePointPlannerParameters;
@@ -303,6 +308,11 @@ public class SphereControlToolbox
    public double getSingleSupportDuration()
    {
       return singleSupportDuration;
+   }
+
+   public DoubleYoVariable getYoTime()
+   {
+      return yoTime;
    }
 
    public void update()
@@ -344,7 +354,12 @@ public class SphereControlToolbox
       }
    }
 
-   public double getNumberOfSteps()
+   public boolean hasFootsteps()
+   {
+      return footsteps.size() > 0;
+   }
+
+   public int getNumberOfSteps()
    {
       return footsteps.size();
    }
@@ -363,7 +378,7 @@ public class SphereControlToolbox
    private final FrameConvexPolygon2d tempFootstepPolygonForShrinking = new FrameConvexPolygon2d();
    private final ConvexPolygonShrinker convexPolygonShrinker = new ConvexPolygonShrinker();
 
-   private void updateUpcomingFootstepsViz(Footstep nextFootstep, Footstep nextNextFootstep, Footstep nextNextNextFootstep)
+   public void updateUpcomingFootstepsViz(Footstep nextFootstep, Footstep nextNextFootstep, Footstep nextNextNextFootstep)
    {
       if (nextFootstep == null)
       {
