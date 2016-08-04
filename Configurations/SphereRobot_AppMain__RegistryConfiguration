@@ -2,4 +2,5 @@ root*false*false
 root.SphereRobot*false*false
 root.SphereRobot.SphereController*false*false
 root.SphereRobot.SphereController.BasicHeightController*false*false
+root.SphereRobot.SphereController.BasicPlanarController*false*false
 root.SphereRobot.LinearGroundContactModel*false*false

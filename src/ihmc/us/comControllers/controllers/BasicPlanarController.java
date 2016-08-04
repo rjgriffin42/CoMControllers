@@ -1,6 +1,7 @@
 package ihmc.us.comControllers.controllers;
 
 import ihmc.us.comControllers.model.SphereRobotModel;
+import us.ihmc.SdfLoader.models.FullRobotModel;
 import us.ihmc.robotics.controllers.PIDController;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
@@ -26,7 +27,7 @@ public class BasicPlanarController
 
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
 
-   private final SphereRobotModel robotModel;
+   private final FullRobotModel robotModel;
 
    private final ReferenceFrame centerOfMassFrame;
 
@@ -52,13 +53,13 @@ public class BasicPlanarController
    private final double controlDT;
    private final CenterOfMassJacobian centerOfMassJacobian;
 
-   public BasicPlanarController(SphereRobotModel robotModel, double controlDT, YoVariableRegistry parentRegistry)
+   public BasicPlanarController(SphereControlToolbox controlToolbox, YoVariableRegistry parentRegistry)
    {
-      this.robotModel = robotModel;
-      this.controlDT = controlDT;
+      this.robotModel = controlToolbox.getFullRobotModel();
+      this.controlDT = controlToolbox.getControlDT();
 
-      centerOfMassFrame = robotModel.getCenterOfMassFrame();
-      centerOfMassJacobian = robotModel.getCenterOfMassJacobian();
+      centerOfMassFrame = controlToolbox.getCenterOfMassFrame();
+      centerOfMassJacobian = controlToolbox.getCenterOfMassJacobian();
 
       yoDesiredX.set(desiredX);
       yoDesiredY.set(desiredY);

@@ -2,7 +2,9 @@ package ihmc.us.comControllers;
 
 import ihmc.us.comControllers.controllers.BasicHeightController;
 import ihmc.us.comControllers.controllers.BasicPlanarController;
+import ihmc.us.comControllers.controllers.SphereControlToolbox;
 import ihmc.us.comControllers.model.SphereRobotModel;
+import us.ihmc.SdfLoader.models.FullRobotModel;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.simulationconstructionset.ExternalForcePoint;
 import us.ihmc.simulationconstructionset.RobotTools;
@@ -20,17 +22,19 @@ public class SphereController implements RobotController
    private final BasicPlanarController planarController;
 
    private final RobotTools.SCSRobotFromInverseDynamicsRobotModel scsRobot;
-   private final SphereRobotModel robot;
+   private final FullRobotModel robot;
+   private final SphereControlToolbox controlToolbox;
    private final ExternalForcePoint externalForcePoint;
 
-   public SphereController(RobotTools.SCSRobotFromInverseDynamicsRobotModel scsRobot, SphereRobotModel robot, ExternalForcePoint externalForcePoint, double controlDT)
+   public SphereController(RobotTools.SCSRobotFromInverseDynamicsRobotModel scsRobot, SphereControlToolbox controlToolbox, ExternalForcePoint externalForcePoint)
    {
       this.scsRobot = scsRobot;
-      this.robot = robot;
+      this.controlToolbox = controlToolbox;
+      this.robot = controlToolbox.getFullRobotModel();
       this.externalForcePoint = externalForcePoint;
 
-      heightController = new BasicHeightController(robot, controlDT, registry);
-      planarController = new BasicPlanarController(robot, controlDT, registry);
+      heightController = new BasicHeightController(controlToolbox, registry);
+      planarController = new BasicPlanarController(controlToolbox, registry);
    }
 
    private final Point2d planarForces = new Point2d();
@@ -38,7 +42,8 @@ public class SphereController implements RobotController
    {
       scsRobot.updateJointPositions_SCS_to_ID();
       scsRobot.updateJointVelocities_SCS_to_ID();
-      robot.update();
+      robot.updateFrames();
+      controlToolbox.update();
 
       heightController.doControl();
       planarController.doControl();

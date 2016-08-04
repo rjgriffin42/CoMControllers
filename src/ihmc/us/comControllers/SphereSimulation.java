@@ -1,5 +1,6 @@
 package ihmc.us.comControllers;
 
+import ihmc.us.comControllers.controllers.SphereControlToolbox;
 import ihmc.us.comControllers.model.SphereRobot;
 import ihmc.us.comControllers.model.SphereRobotModel;
 import us.ihmc.graphics3DAdapter.GroundProfile3D;
@@ -22,7 +23,8 @@ public class SphereSimulation
 
       ExternalForcePoint externalForcePoint = sphereRobot.getAllExternalForcePoints().get(0);
 
-      SphereController controller = new SphereController(sphereRobot, sphereRobotModel, externalForcePoint, controlDT);
+      SphereControlToolbox sphereControlToolbox = new SphereControlToolbox(sphereRobotModel, controlDT);
+      SphereController controller = new SphereController(sphereRobot, sphereControlToolbox, externalForcePoint);
       sphereRobot.setController(controller);
 
       setupGroundContactModel(sphereRobot);

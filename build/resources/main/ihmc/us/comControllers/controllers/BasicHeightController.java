@@ -1,6 +1,7 @@
 package ihmc.us.comControllers.controllers;
 
 import ihmc.us.comControllers.model.SphereRobotModel;
+import us.ihmc.SdfLoader.models.FullRobotModel;
 import us.ihmc.robotics.controllers.PIDController;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
@@ -16,13 +17,13 @@ public class BasicHeightController
 
    private static final double kp = 100.0;
    private static final double ki = 0.0;
-   private static final double kd = 3.0;
+   private static final double kd = 10.0;
 
    private static final ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
 
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
 
-   private final SphereRobotModel robotModel;
+   private final FullRobotModel robotModel;
 
    private final ReferenceFrame centerOfMassFrame;
 
@@ -43,13 +44,13 @@ public class BasicHeightController
    private final double controlDT;
    private final CenterOfMassJacobian centerOfMassJacobian;
 
-   public BasicHeightController(SphereRobotModel robotModel, double controlDT, YoVariableRegistry parentRegistry)
+   public BasicHeightController(SphereControlToolbox controlToolbox, YoVariableRegistry parentRegistry)
    {
-      this.robotModel = robotModel;
-      this.controlDT = controlDT;
+      this.robotModel = controlToolbox.getFullRobotModel();
+      this.controlDT = controlToolbox.getControlDT();
 
-      centerOfMassFrame = robotModel.getCenterOfMassFrame();
-      centerOfMassJacobian = robotModel.getCenterOfMassJacobian();
+      centerOfMassFrame = controlToolbox.getCenterOfMassFrame();
+      centerOfMassJacobian = controlToolbox.getCenterOfMassJacobian();
 
       yoDesiredHeight.set(desiredHeight);
 

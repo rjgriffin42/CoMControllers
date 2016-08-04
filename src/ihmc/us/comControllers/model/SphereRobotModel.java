@@ -35,7 +35,6 @@ public class SphereRobotModel implements FullRobotModel
    private final ReferenceFrame elevatorFrame;
    private final ReferenceFrame centerOfMassFrame;
 
-   private final TwistCalculator twistCalculator;
    private final CenterOfMassJacobian centerOfMassJacobian;
 
    public SphereRobotModel()
@@ -49,8 +48,6 @@ public class SphereRobotModel implements FullRobotModel
       body = ScrewTools.addRigidBody("body", floatingJoint, inertia, mass, new Vector3d());
 
       centerOfMassFrame = new CenterOfMassReferenceFrame("centerOfMass", worldFrame, elevator);
-
-      twistCalculator = new TwistCalculator(worldFrame, body);
 
       centerOfMassJacobian = new CenterOfMassJacobian(elevator);
 
@@ -67,11 +64,6 @@ public class SphereRobotModel implements FullRobotModel
       return elevatorFrame;
    }
 
-   public ReferenceFrame getCenterOfMassFrame()
-   {
-      return centerOfMassFrame;
-   }
-
    public RigidBody getElevator()
    {
       return elevator;
@@ -80,29 +72,6 @@ public class SphereRobotModel implements FullRobotModel
    public SixDoFJoint getRootJoint()
    {
       return floatingJoint;
-   }
-
-   public RigidBody getBody()
-   {
-      return body;
-   }
-
-   public TwistCalculator getTwistCalculator()
-   {
-      return twistCalculator;
-   }
-
-   public CenterOfMassJacobian getCenterOfMassJacobian()
-   {
-      return centerOfMassJacobian;
-   }
-
-   public void update()
-   {
-      updateFrames();
-
-      twistCalculator.compute();
-      centerOfMassJacobian.compute();
    }
 
    public void updateFrames()
