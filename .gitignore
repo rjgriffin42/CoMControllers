@@ -1,0 +1,24 @@
+# Top level directories to ignore
+/build
+/classes
+/bin
+/out
+/target
+
+# Top level directories in sub-projects
+*/classes
+*/bin
+*/out
+*/target
+*/build
+
+# directories to always ignore
+**/.gradle
+**/.project
+**/.classpath
+**/.git
+**/.settings
+**/.idea
+**/.metadata
+**/.DS_Store
+
