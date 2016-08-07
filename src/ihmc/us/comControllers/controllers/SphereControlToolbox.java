@@ -295,6 +295,11 @@ public class SphereControlToolbox
       return contactStates;
    }
 
+   public SideDependentList<FramePose> getFootPosesAtTouchdown()
+   {
+      return footPosesAtTouchdown;
+   }
+
    public CapturePointPlannerParameters getCapturePointPlannerParameters()
    {
       return capturePointPlannerParameters;
@@ -313,6 +318,21 @@ public class SphereControlToolbox
    public DoubleYoVariable getYoTime()
    {
       return yoTime;
+   }
+
+   public YoFramePoint getDesiredICP()
+   {
+      return desiredICP;
+   }
+
+   public YoFrameVector getDesiredICPVelocity()
+   {
+      return desiredICPVelocity;
+   }
+
+   public FramePoint2d getCapturePoint2d()
+   {
+      return capturePoint2d;
    }
 
    public void update()
@@ -478,7 +498,6 @@ public class SphereControlToolbox
    {
       centerOfMass.setToZero(centerOfMassFrame);
       centerOfMassJacobian.getCenterOfMassVelocity(centerOfMassVelocity);
-
 
       CapturePointCalculator.computeCapturePoint(capturePoint2d, centerOfMass2d, centerOfMassVelocity2d, omega0.getDoubleValue());
 

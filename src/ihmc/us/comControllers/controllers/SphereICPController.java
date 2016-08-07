@@ -1,17 +1,26 @@
 package ihmc.us.comControllers.controllers;
 
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.YoPlaneContactState;
-import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerParameters;
+import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ICPControlGains;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ICPPlanner;
+import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ICPProportionalController;
+import us.ihmc.commonWalkingControlModules.wrenchDistribution.WrenchDistributorTools;
+import us.ihmc.humanoidRobotics.bipedSupportPolygons.ContactablePlaneBody;
 import us.ihmc.humanoidRobotics.footstep.FootSpoof;
 import us.ihmc.humanoidRobotics.footstep.Footstep;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.BooleanYoVariable;
-import us.ihmc.robotics.geometry.FramePoint2d;
-import us.ihmc.robotics.geometry.FrameVector2d;
+import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
+import us.ihmc.robotics.geometry.*;
+import us.ihmc.robotics.math.frames.YoFramePoint;
+import us.ihmc.robotics.math.frames.YoFramePoint2d;
+import us.ihmc.robotics.math.frames.YoFrameVector;
+import us.ihmc.robotics.random.RandomTools;
 import us.ihmc.robotics.referenceFrames.ReferenceFrame;
 import us.ihmc.robotics.robotSide.RobotSide;
 import us.ihmc.robotics.robotSide.SideDependentList;
+import us.ihmc.robotics.screwTheory.ScrewTools;
+import us.ihmc.robotics.screwTheory.TotalMassCalculator;
 import us.ihmc.robotics.stateMachines.State;
 import us.ihmc.robotics.stateMachines.StateMachine;
 import us.ihmc.robotics.stateMachines.StateTransition;
@@ -21,10 +30,13 @@ import javax.vecmath.Vector3d;
 
 public class SphereICPController implements GenericSphereController
 {
+   private static final ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
+
    private enum SupportState {STANDING, DOUBLE, SINGLE}
 
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getName());
 
+   private final YoFramePoint2d planarForces = new YoFramePoint2d("planarICPForces", worldFrame, registry);
    private final BooleanYoVariable isInDoubleSupport = new BooleanYoVariable("isInDoubleSupport", registry);
 
    private final SphereControlToolbox controlToolbox;
@@ -33,7 +45,22 @@ public class SphereICPController implements GenericSphereController
    private final StateMachine<SupportState> stateMachine;
 
    private final ICPPlanner icpPlanner;
+
+   private final ReferenceFrame centerOfMassFrame;
+
    private final SideDependentList<YoPlaneContactState> contactStates;
+   private final SideDependentList<FootSpoof> contactableFeet;
+   private final SideDependentList<FramePose> footPosesAtTouchdown;
+
+   private final YoFramePoint desiredICP;
+   private final YoFrameVector desiredICPVelocity;
+
+   private final ICPProportionalController icpController;
+   private final ICPControlGains icpGains;
+   private final double omega0;
+   private final double totalMass;
+
+   private final DoubleYoVariable yoTime;
 
    public SphereICPController(SphereControlToolbox controlToolbox, YoVariableRegistry parentRegistry)
    {
@@ -41,14 +68,28 @@ public class SphereICPController implements GenericSphereController
 
       isInDoubleSupport.set(true);
       contactStates = controlToolbox.getContactStates();
+      contactableFeet = controlToolbox.getContactableFeet();
+      desiredICP = controlToolbox.getDesiredICP();
+      desiredICPVelocity = controlToolbox.getDesiredICPVelocity();
+      yoTime = controlToolbox.getYoTime();
+      footPosesAtTouchdown = controlToolbox.getFootPosesAtTouchdown();
+      centerOfMassFrame = controlToolbox.getCenterOfMassFrame();
+      totalMass = TotalMassCalculator.computeSubTreeMass(controlToolbox.getFullRobotModel().getElevator());
 
+      omega0 = controlToolbox.getOmega0();
       heightController = new BasicHeightController(controlToolbox, registry);
       icpPlanner = new ICPPlanner(controlToolbox.getBipedSupportPolygons(), controlToolbox.getContactableFeet(),
             controlToolbox.getCapturePointPlannerParameters(), registry, controlToolbox.getYoGraphicsListRegistry());
       icpPlanner.setDoubleSupportTime(controlToolbox.getDoubleSupportDuration());
       icpPlanner.setSingleSupportTime(controlToolbox.getSingleSupportDuration());
-      icpPlanner.setOmega0(controlToolbox.getOmega0());
+      icpPlanner.setOmega0(omega0);
       icpPlanner.setDesiredCapturePointState(new FramePoint2d(ReferenceFrame.getWorldFrame()), new FrameVector2d(ReferenceFrame.getWorldFrame()));
+
+      icpGains = new ICPControlGains("CoMController", registry);
+      icpGains.setKpOrthogonalToMotion(3.0);
+      icpGains.setKpParallelToMotion(2.0);
+
+      icpController = new ICPProportionalController(icpGains, controlToolbox.getControlDT(), registry);
 
       stateMachine = new StateMachine<>("supportStateMachine", "supportStateTime", SupportState.class, controlToolbox.getYoTime(), registry);
       StandingState standingState = new StandingState();
@@ -65,18 +106,63 @@ public class SphereICPController implements GenericSphereController
       parentRegistry.addChild(registry);
    }
 
+   private final FramePoint2d capturePoint2d = new FramePoint2d();
+   private final FramePoint desiredCapturePoint = new FramePoint();
+   private final FrameVector desiredCapturePointVelocity = new FrameVector();
+   private final FramePoint2d desiredCapturePoint2d = new FramePoint2d();
+   private final FrameVector2d desiredCapturePointVelocity2d = new FrameVector2d();
+
    public void doControl()
    {
       stateMachine.checkTransitionConditions();
       stateMachine.doAction();
+
+      heightController.doControl();
+
+      controlToolbox.computeCapturePoint();
+      capturePoint2d.set(controlToolbox.getCapturePoint2d());
+
+      icpPlanner.getDesiredCapturePointPositionAndVelocity(desiredCapturePoint, desiredCapturePointVelocity, yoTime.getDoubleValue());
+      desiredICP.set(desiredCapturePoint);
+      desiredCapturePointVelocity.set(desiredCapturePointVelocity);
+
+      desiredCapturePoint2d.setByProjectionOntoXYPlane(desiredCapturePoint);
+      desiredCapturePointVelocity2d.setByProjectionOntoXYPlane(desiredCapturePointVelocity);
+
+      FramePoint2d desiredCMP = icpController.doProportionalControl(null, capturePoint2d, desiredCapturePoint2d, desiredCapturePoint2d,
+            desiredCapturePointVelocity2d, null, omega0);
+
+      double fZ = heightController.getVerticalForce();
+      FrameVector reactionForces = computeGroundReactionForce(desiredCMP, fZ);
+      planarForces.setByProjectionOntoXYPlane(reactionForces);
    }
 
    private final Vector3d forces = new Vector3d();
    public Vector3d getForces()
    {
+      forces.setX(planarForces.getX());
+      forces.setY(planarForces.getY());
+      forces.setZ(heightController.getVerticalForce());
+
       return forces;
    }
 
+   private final FramePoint cmp3d = new FramePoint();
+   private final FrameVector groundReactionForce = new FrameVector();
+   private final FramePoint centerOfMass = new FramePoint();
+   private FrameVector computeGroundReactionForce(FramePoint2d cmp2d, double fZ)
+   {
+      centerOfMass.setToZero(centerOfMassFrame);
+      WrenchDistributorTools.computePseudoCMP3d(cmp3d, centerOfMass, cmp2d, fZ, totalMass, omega0);
+
+      centerOfMass.setToZero(centerOfMassFrame);
+      WrenchDistributorTools.computeForce(groundReactionForce, centerOfMass, cmp3d, fZ);
+      groundReactionForce.changeFrame(centerOfMassFrame);
+
+      return groundReactionForce;
+   }
+
+   private Footstep nextFootstep;
    private class StandingState extends State<SupportState>
    {
       public StandingState()
@@ -92,7 +178,9 @@ public class SphereICPController implements GenericSphereController
 
       @Override public void doTransitionIntoAction()
       {
+         icpPlanner.clearPlan();
          icpPlanner.initializeForStanding(controlToolbox.getYoTime().getDoubleValue());
+         icpPlanner.setDesiredCapturePointState(desiredICP, desiredICPVelocity);
 
          for (RobotSide robotSide : RobotSide.values)
             contactStates.get(robotSide).setFullyConstrained();
@@ -118,6 +206,24 @@ public class SphereICPController implements GenericSphereController
 
       @Override public void doTransitionIntoAction()
       {
+         icpPlanner.clearPlan();
+
+         Footstep nextNextFootstep = controlToolbox.peekAtFootstep(0);
+         Footstep nextNextNextFootstep = controlToolbox.peekAtFootstep(1);
+
+         icpPlanner.addFootstepToPlan(nextFootstep);
+         icpPlanner.addFootstepToPlan(nextNextFootstep);
+         icpPlanner.addFootstepToPlan(nextNextNextFootstep);
+
+         RobotSide supportSide = nextFootstep.getRobotSide().getOppositeSide();
+         icpPlanner.setSupportLeg(supportSide);
+         icpPlanner.initializeForSingleSupport(yoTime.getDoubleValue());
+
+         FootSpoof footSpoof = contactableFeet.get(supportSide.getOppositeSide());
+         FramePose nextSupportPose = footPosesAtTouchdown.get(supportSide.getOppositeSide());
+         nextSupportPose.setToZero(nextFootstep.getSoleReferenceFrame());
+         nextSupportPose.changeFrame(ReferenceFrame.getWorldFrame());
+         footSpoof.setSoleFrame(nextSupportPose);
       }
 
       @Override public void doTransitionOutOfAction()
@@ -143,7 +249,7 @@ public class SphereICPController implements GenericSphereController
          for (RobotSide robotSide : RobotSide.values)
             contactStates.get(robotSide).setFullyConstrained();
 
-         Footstep nextFootstep = controlToolbox.getFootstep(0);
+         nextFootstep = controlToolbox.getFootstep(0);
          Footstep nextNextFootstep = controlToolbox.peekAtFootstep(0);
          Footstep nextNextNextFootstep = controlToolbox.peekAtFootstep(1);
 
@@ -152,6 +258,8 @@ public class SphereICPController implements GenericSphereController
          icpPlanner.addFootstepToPlan(nextFootstep);
          icpPlanner.addFootstepToPlan(nextNextFootstep);
          icpPlanner.addFootstepToPlan(nextNextNextFootstep);
+
+         icpPlanner.setDesiredCapturePointState(desiredICP, desiredICPVelocity);
 
          RobotSide transferToSide = nextFootstep.getRobotSide().getOppositeSide();
 
