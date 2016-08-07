@@ -1,4 +1,0 @@
-root*false*false
-root.comRobot*false*false
-root.comRobot.CoMRobotController*false*false
-root.comRobot.CoMRobotController.LinearGroundContactModel*false*false

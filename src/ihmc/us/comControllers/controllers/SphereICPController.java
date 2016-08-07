@@ -34,7 +34,7 @@ public class SphereICPController implements GenericSphereController
 
    private enum SupportState {STANDING, DOUBLE, SINGLE}
 
-   private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getName());
+   private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
 
    private final YoFramePoint2d planarForces = new YoFramePoint2d("planarICPForces", worldFrame, registry);
    private final BooleanYoVariable isInDoubleSupport = new BooleanYoVariable("isInDoubleSupport", registry);
@@ -86,8 +86,8 @@ public class SphereICPController implements GenericSphereController
       icpPlanner.setDesiredCapturePointState(new FramePoint2d(ReferenceFrame.getWorldFrame()), new FrameVector2d(ReferenceFrame.getWorldFrame()));
 
       icpGains = new ICPControlGains("CoMController", registry);
-      icpGains.setKpOrthogonalToMotion(3.0);
-      icpGains.setKpParallelToMotion(2.0);
+      //icpGains.setKpOrthogonalToMotion(3.0);
+      //icpGains.setKpParallelToMotion(2.0);
 
       icpController = new ICPProportionalController(icpGains, controlToolbox.getControlDT(), registry);
 
@@ -102,6 +102,10 @@ public class SphereICPController implements GenericSphereController
             new TransitionToDoubleSupportCondition()));
       singleSupportState.addStateTransition(new StateTransition<>(SupportState.STANDING, controlToolbox.getYoTime(),
             new TransitionToStandingCondition()));
+      stateMachine.addState(standingState);
+      stateMachine.addState(doubleSupportState);
+      stateMachine.addState(singleSupportState);
+      stateMachine.setCurrentState(SupportState.STANDING);
 
       parentRegistry.addChild(registry);
    }
@@ -134,14 +138,17 @@ public class SphereICPController implements GenericSphereController
 
       double fZ = heightController.getVerticalForce();
       FrameVector reactionForces = computeGroundReactionForce(desiredCMP, fZ);
+      reactionForces.changeFrame(worldFrame);
       planarForces.setByProjectionOntoXYPlane(reactionForces);
    }
 
    private final Vector3d forces = new Vector3d();
    public Vector3d getForces()
    {
-      forces.setX(planarForces.getX());
-      forces.setY(planarForces.getY());
+      //forces.setX(planarForces.getX());
+      //forces.setY(planarForces.getY());
+      forces.setX(0.0);
+      forces.setY(0.0);
       forces.setZ(heightController.getVerticalForce());
 
       return forces;

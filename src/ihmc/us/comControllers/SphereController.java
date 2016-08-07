@@ -15,7 +15,7 @@ public class SphereController implements RobotController
 {
    private enum SphereControllerEnum {BASIC, ICP}
 
-   private static final SphereControllerEnum controllerType = SphereControllerEnum.BASIC;
+   private static final SphereControllerEnum controllerType = SphereControllerEnum.ICP;
 
    private final YoVariableRegistry registry = new YoVariableRegistry("SphereController");
 
@@ -37,6 +37,9 @@ public class SphereController implements RobotController
       {
       case BASIC:
          sphereController = new BasicSphereController(controlToolbox, registry);
+         break;
+      case ICP:
+         sphereController = new SphereICPController(controlToolbox, registry);
          break;
       default:
          sphereController = new BasicSphereController(controlToolbox, registry);
