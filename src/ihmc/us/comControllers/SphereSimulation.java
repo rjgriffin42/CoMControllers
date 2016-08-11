@@ -5,6 +5,7 @@ import ihmc.us.comControllers.model.SphereRobot;
 import ihmc.us.comControllers.model.SphereRobotModel;
 import us.ihmc.graphics3DAdapter.GroundProfile3D;
 import us.ihmc.simulationconstructionset.*;
+import us.ihmc.simulationconstructionset.gui.tools.VisualizerUtils;
 import us.ihmc.simulationconstructionset.util.LinearGroundContactModel;
 import us.ihmc.simulationconstructionset.util.ground.RollingGroundProfile;
 import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicsListRegistry;
@@ -17,7 +18,7 @@ public class SphereSimulation
    private final static double controlDT = 0.001;
    private final static double gravity = 9.81;
 
-   private final SimulationConstructionSet sim;
+   private final SimulationConstructionSet scs;
 
    public SphereSimulation()
    {
@@ -38,37 +39,39 @@ public class SphereSimulation
 
       SimulationConstructionSetParameters parameters = new SimulationConstructionSetParameters();
       parameters.setDataBufferSize(16000);
-      sim = new SimulationConstructionSet(sphereRobot, parameters);
+      scs = new SimulationConstructionSet(sphereRobot, parameters);
 
-      sim.setDT(controlDT, 1);
+      scs.setDT(controlDT, 1);
 
-      sim.setCameraPosition(-1.5, -2.5, 0.5);
-      sim.setCameraFix(0.0, 0.0, 0.4);
+      scs.setCameraPosition(-1.5, -2.5, 0.5);
+      scs.setCameraFix(0.0, 0.0, 0.4);
 
-      sim.setCameraTracking(false, true, true, false);
-      sim.setCameraDolly(false, true, true, false);
+      scs.setCameraTracking(false, true, true, false);
+      scs.setCameraDolly(false, true, true, false);
+
+      VisualizerUtils.createOverheadPlotter(scs, true, yoGraphicsListRegistry);
 
       // Set up some graphs:
 
       /*
-      sim.setupGraph("qd_x");
-      sim.setupGraph("qd_y");
-      sim.setupGraph("qd_z");
+      scs.setupGraph("qd_x");
+      scs.setupGraph("qd_y");
+      scs.setupGraph("qd_z");
 
-      sim.setupGraph("qd_wx");
-      sim.setupGraph("qd_wy");
-      sim.setupGraph("qd_wz");
+      scs.setupGraph("qd_wx");
+      scs.setupGraph("qd_wy");
+      scs.setupGraph("qd_wz");
 
-      sim.setupEntryBox("qd_x");
-      sim.setupEntryBox("qd_y");
-      sim.setupEntryBox("qd_z");
+      scs.setupEntryBox("qd_x");
+      scs.setupEntryBox("qd_y");
+      scs.setupEntryBox("qd_z");
 
-      sim.setupEntryBox("qd_wx");
-      sim.setupEntryBox("qd_wy");
-      sim.setupEntryBox("qd_wz");
+      scs.setupEntryBox("qd_wx");
+      scs.setupEntryBox("qd_wy");
+      scs.setupEntryBox("qd_wz");
       */
 
-      sim.startOnAThread();
+      scs.startOnAThread();
 
    }
 

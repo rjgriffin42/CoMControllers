@@ -55,6 +55,8 @@ public class SphereICPController implements GenericSphereController
    private final YoFramePoint desiredICP;
    private final YoFrameVector desiredICPVelocity;
 
+   private final YoFramePoint2d yoDesiredCMP;
+
    private final ICPProportionalController icpController;
    private final ICPControlGains icpGains;
    private final double omega0;
@@ -69,12 +71,15 @@ public class SphereICPController implements GenericSphereController
       isInDoubleSupport.set(true);
       contactStates = controlToolbox.getContactStates();
       contactableFeet = controlToolbox.getContactableFeet();
-      desiredICP = controlToolbox.getDesiredICP();
-      desiredICPVelocity = controlToolbox.getDesiredICPVelocity();
       yoTime = controlToolbox.getYoTime();
       footPosesAtTouchdown = controlToolbox.getFootPosesAtTouchdown();
       centerOfMassFrame = controlToolbox.getCenterOfMassFrame();
       totalMass = TotalMassCalculator.computeSubTreeMass(controlToolbox.getFullRobotModel().getElevator());
+
+      desiredICP = controlToolbox.getDesiredICP();
+      desiredICPVelocity = controlToolbox.getDesiredICPVelocity();
+
+      yoDesiredCMP = controlToolbox.getDesiredCMP();
 
       omega0 = controlToolbox.getOmega0();
       heightController = new BasicHeightController(controlToolbox, registry);
@@ -86,8 +91,8 @@ public class SphereICPController implements GenericSphereController
       icpPlanner.setDesiredCapturePointState(new FramePoint2d(ReferenceFrame.getWorldFrame()), new FrameVector2d(ReferenceFrame.getWorldFrame()));
 
       icpGains = new ICPControlGains("CoMController", registry);
-      //icpGains.setKpOrthogonalToMotion(3.0);
-      //icpGains.setKpParallelToMotion(2.0);
+      icpGains.setKpOrthogonalToMotion(3.0);
+      icpGains.setKpParallelToMotion(2.0);
 
       icpController = new ICPProportionalController(icpGains, controlToolbox.getControlDT(), registry);
 
@@ -140,15 +145,16 @@ public class SphereICPController implements GenericSphereController
       FrameVector reactionForces = computeGroundReactionForce(desiredCMP, fZ);
       reactionForces.changeFrame(worldFrame);
       planarForces.setByProjectionOntoXYPlane(reactionForces);
+
+      desiredCMP.changeFrame(worldFrame);
+      yoDesiredCMP.set(desiredCMP);
    }
 
    private final Vector3d forces = new Vector3d();
    public Vector3d getForces()
    {
-      //forces.setX(planarForces.getX());
-      //forces.setY(planarForces.getY());
-      forces.setX(0.0);
-      forces.setY(0.0);
+      forces.setX(planarForces.getX());
+      forces.setY(planarForces.getY());
       forces.setZ(heightController.getVerticalForce());
 
       return forces;
@@ -185,7 +191,10 @@ public class SphereICPController implements GenericSphereController
 
       @Override public void doTransitionIntoAction()
       {
+         desiredICP.getFrameTuple(desiredCapturePoint);
+
          icpPlanner.clearPlan();
+         icpPlanner.holdCurrentICP(yoTime.getDoubleValue(), desiredCapturePoint);
          icpPlanner.initializeForStanding(controlToolbox.getYoTime().getDoubleValue());
          icpPlanner.setDesiredCapturePointState(desiredICP, desiredICPVelocity);
 
