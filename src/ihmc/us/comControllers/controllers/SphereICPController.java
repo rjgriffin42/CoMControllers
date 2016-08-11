@@ -52,6 +52,7 @@ public class SphereICPController implements GenericSphereController
    private final SideDependentList<FootSpoof> contactableFeet;
    private final SideDependentList<FramePose> footPosesAtTouchdown;
 
+   private final YoFramePoint icp;
    private final YoFramePoint desiredICP;
    private final YoFrameVector desiredICPVelocity;
 
@@ -76,6 +77,7 @@ public class SphereICPController implements GenericSphereController
       centerOfMassFrame = controlToolbox.getCenterOfMassFrame();
       totalMass = TotalMassCalculator.computeSubTreeMass(controlToolbox.getFullRobotModel().getElevator());
 
+      icp = controlToolbox.getICP();
       desiredICP = controlToolbox.getDesiredICP();
       desiredICPVelocity = controlToolbox.getDesiredICPVelocity();
 
@@ -103,10 +105,10 @@ public class SphereICPController implements GenericSphereController
 
       standingState.setDefaultNextState(doubleSupportState.getStateEnum());
       doubleSupportState.setDefaultNextState(singleSupportState.getStateEnum());
-      singleSupportState.addStateTransition(new StateTransition<>(SupportState.DOUBLE, controlToolbox.getYoTime(),
-            new TransitionToDoubleSupportCondition()));
-      singleSupportState.addStateTransition(new StateTransition<>(SupportState.STANDING, controlToolbox.getYoTime(),
-            new TransitionToStandingCondition()));
+
+      singleSupportState.addStateTransition(new StateTransition<>(doubleSupportState.getStateEnum(), new TransitionToDoubleSupportCondition()));
+      singleSupportState.addStateTransition(new StateTransition<>(standingState.getStateEnum(), new TransitionToStandingCondition()));
+
       stateMachine.addState(standingState);
       stateMachine.addState(doubleSupportState);
       stateMachine.addState(singleSupportState);
@@ -117,8 +119,10 @@ public class SphereICPController implements GenericSphereController
 
    private final FramePoint2d capturePoint2d = new FramePoint2d();
    private final FramePoint desiredCapturePoint = new FramePoint();
+   private final FramePoint finalDesiredCapturePoint = new FramePoint();
    private final FrameVector desiredCapturePointVelocity = new FrameVector();
    private final FramePoint2d desiredCapturePoint2d = new FramePoint2d();
+   private final FramePoint2d finalDesiredCapturePoint2d = new FramePoint2d();
    private final FrameVector2d desiredCapturePointVelocity2d = new FrameVector2d();
 
    public void doControl()
@@ -128,17 +132,19 @@ public class SphereICPController implements GenericSphereController
 
       heightController.doControl();
 
-      controlToolbox.computeCapturePoint();
-      capturePoint2d.set(controlToolbox.getCapturePoint2d());
+      controlToolbox.update();
 
+      icp.getFrameTuple2d(capturePoint2d);
       icpPlanner.getDesiredCapturePointPositionAndVelocity(desiredCapturePoint, desiredCapturePointVelocity, yoTime.getDoubleValue());
+      icpPlanner.getFinalDesiredCapturePointPosition(finalDesiredCapturePoint);
       desiredICP.set(desiredCapturePoint);
       desiredCapturePointVelocity.set(desiredCapturePointVelocity);
 
       desiredCapturePoint2d.setByProjectionOntoXYPlane(desiredCapturePoint);
       desiredCapturePointVelocity2d.setByProjectionOntoXYPlane(desiredCapturePointVelocity);
+      finalDesiredCapturePoint2d.setByProjectionOntoXYPlane(finalDesiredCapturePoint);
 
-      FramePoint2d desiredCMP = icpController.doProportionalControl(null, capturePoint2d, desiredCapturePoint2d, desiredCapturePoint2d,
+      FramePoint2d desiredCMP = icpController.doProportionalControl(null, capturePoint2d, desiredCapturePoint2d, finalDesiredCapturePoint2d,
             desiredCapturePointVelocity2d, null, omega0);
 
       double fZ = heightController.getVerticalForce();
@@ -217,7 +223,6 @@ public class SphereICPController implements GenericSphereController
 
       @Override public void doAction()
       {
-
       }
 
       @Override public void doTransitionIntoAction()
@@ -257,7 +262,8 @@ public class SphereICPController implements GenericSphereController
 
       @Override public void doAction()
       {
-
+         if (icpPlanner.isDone(yoTime.getDoubleValue()))
+            transitionToDefaultNextState();
       }
 
       @Override public void doTransitionIntoAction()
@@ -280,7 +286,7 @@ public class SphereICPController implements GenericSphereController
          RobotSide transferToSide = nextFootstep.getRobotSide().getOppositeSide();
 
          icpPlanner.setTransferFromSide(transferToSide);
-         icpPlanner.initializeForTransfer(controlToolbox.getYoTime().getDoubleValue());
+         icpPlanner.initializeForTransfer(yoTime.getDoubleValue());
       }
 
       @Override public void doTransitionOutOfAction()
@@ -293,7 +299,10 @@ public class SphereICPController implements GenericSphereController
    {
       public boolean checkCondition()
       {
-         return !controlToolbox.hasFootsteps();
+         if (icpPlanner.isDone(yoTime.getDoubleValue()))
+            return !controlToolbox.hasFootsteps();
+
+         return false;
       }
    }
 
@@ -301,7 +310,10 @@ public class SphereICPController implements GenericSphereController
    {
       public boolean checkCondition()
       {
-         return controlToolbox.hasFootsteps();
+         if (icpPlanner.isDone(yoTime.getDoubleValue()))
+            return controlToolbox.hasFootsteps();
+
+         return false;
       }
    }
 }

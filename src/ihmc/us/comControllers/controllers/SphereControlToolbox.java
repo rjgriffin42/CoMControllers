@@ -15,6 +15,7 @@ import us.ihmc.humanoidRobotics.footstep.Footstep;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.BooleanYoVariable;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
+import us.ihmc.robotics.dataStructures.variable.IntegerYoVariable;
 import us.ihmc.robotics.geometry.*;
 import us.ihmc.robotics.math.frames.*;
 import us.ihmc.robotics.referenceFrames.CenterOfMassReferenceFrame;
@@ -68,6 +69,8 @@ public class SphereControlToolbox
    private final YoFrameVector2d yoCenterOfMassVelocity2d = new YoFrameVector2d("centerOfMassVelocity2d", worldFrame, registry);
 
    private final BooleanYoVariable sendFootsteps = new BooleanYoVariable("sendFootsteps", registry);
+   private final BooleanYoVariable hasFootsteps = new BooleanYoVariable("hasFootsteps", registry);
+   private final IntegerYoVariable numberOfFootsteps = new IntegerYoVariable("numberOfFootsteps", registry);
 
    private final DoubleYoVariable omega0 = new DoubleYoVariable("omega0", registry);
 
@@ -346,6 +349,11 @@ public class SphereControlToolbox
       return desiredICPVelocity;
    }
 
+   public YoFramePoint getICP()
+   {
+      return icp;
+   }
+
    public FramePoint2d getCapturePoint2d()
    {
       return capturePoint2d;
@@ -371,6 +379,9 @@ public class SphereControlToolbox
 
          sendFootsteps.set(false);
       }
+
+      hasFootsteps.set(footsteps.size() > 0);
+      numberOfFootsteps.set(footsteps.size());
    }
 
    private void updateFootViz()
@@ -392,12 +403,12 @@ public class SphereControlToolbox
 
    public boolean hasFootsteps()
    {
-      return footsteps.size() > 0;
+      return hasFootsteps.getBooleanValue();
    }
 
    public int getNumberOfSteps()
    {
-      return footsteps.size();
+      return numberOfFootsteps.getIntegerValue();
    }
 
    public Footstep getFootstep(int i)
