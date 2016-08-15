@@ -45,14 +45,14 @@ public class SphereControlToolbox
    private static final double footWidthForControl = 0.12;
    private static final double toeWidthForControl = 0.12;
 
-   private static final double initialTransferDuration = 1.0;
-   private static final double singleSupportDuration = 0.6; /// 0.7;
-   private static final double doubleSupportDuration = 0.05; // 0.4; //0.25;
+   private static final double initialTransferDuration = 2.0;
+   private static final double singleSupportDuration = 2.0; /// 0.7;
+   private static final double doubleSupportDuration = 1.0; // 0.4; //0.25;
    private static final double doubleSupportSplitFraction = 0.5;
    private static final boolean useTwoCMPs = true;
 
-   private static final double maxDurationForSmoothingEntryToExitCMPSwitch = 0.5;
-   private static final double timeSpentOnExitCMPInPercentOfStepTime = 0.5; // singleSupportDuration
+   private static final double maxDurationForSmoothingEntryToExitCMPSwitch = 1.0;
+   private static final double timeSpentOnExitCMPInPercentOfStepTime = 1.0; // singleSupportDuration
 
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
 

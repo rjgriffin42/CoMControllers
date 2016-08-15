@@ -181,7 +181,6 @@ public class SphereICPController implements GenericSphereController
       return groundReactionForce;
    }
 
-   private Footstep nextFootstep;
    private class StandingState extends State<SupportState>
    {
       public StandingState()
@@ -229,8 +228,11 @@ public class SphereICPController implements GenericSphereController
       {
          icpPlanner.clearPlan();
 
+         Footstep nextFootstep = controlToolbox.getFootstep(0);
          Footstep nextNextFootstep = controlToolbox.peekAtFootstep(0);
          Footstep nextNextNextFootstep = controlToolbox.peekAtFootstep(1);
+
+         controlToolbox.updateUpcomingFootstepsViz(nextFootstep, nextNextFootstep, nextNextNextFootstep);
 
          icpPlanner.addFootstepToPlan(nextFootstep);
          icpPlanner.addFootstepToPlan(nextNextFootstep);
@@ -271,9 +273,9 @@ public class SphereICPController implements GenericSphereController
          for (RobotSide robotSide : RobotSide.values)
             contactStates.get(robotSide).setFullyConstrained();
 
-         nextFootstep = controlToolbox.getFootstep(0);
-         Footstep nextNextFootstep = controlToolbox.peekAtFootstep(0);
-         Footstep nextNextNextFootstep = controlToolbox.peekAtFootstep(1);
+         Footstep nextFootstep = controlToolbox.peekAtFootstep(0);
+         Footstep nextNextFootstep = controlToolbox.peekAtFootstep(1);
+         Footstep nextNextNextFootstep = controlToolbox.peekAtFootstep(2);
 
          controlToolbox.updateUpcomingFootstepsViz(nextFootstep, nextNextFootstep, nextNextNextFootstep);
 
@@ -281,11 +283,9 @@ public class SphereICPController implements GenericSphereController
          icpPlanner.addFootstepToPlan(nextNextFootstep);
          icpPlanner.addFootstepToPlan(nextNextNextFootstep);
 
-         icpPlanner.setDesiredCapturePointState(desiredICP, desiredICPVelocity);
-
          RobotSide transferToSide = nextFootstep.getRobotSide().getOppositeSide();
 
-         icpPlanner.setTransferFromSide(transferToSide);
+         icpPlanner.setTransferToSide(transferToSide);
          icpPlanner.initializeForTransfer(yoTime.getDoubleValue());
       }
 

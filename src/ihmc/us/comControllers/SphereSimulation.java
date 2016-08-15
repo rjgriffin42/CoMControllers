@@ -7,6 +7,7 @@ import us.ihmc.graphics3DAdapter.GroundProfile3D;
 import us.ihmc.simulationconstructionset.*;
 import us.ihmc.simulationconstructionset.gui.tools.VisualizerUtils;
 import us.ihmc.simulationconstructionset.util.LinearGroundContactModel;
+import us.ihmc.simulationconstructionset.util.ground.FlatGroundProfile;
 import us.ihmc.simulationconstructionset.util.ground.RollingGroundProfile;
 import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicsListRegistry;
 
@@ -83,10 +84,7 @@ public class SphereSimulation
       double bZ = 50.0; //1000.0;
       GroundContactModel groundContactModel = new LinearGroundContactModel(robot, kXY, bXY, kZ, bZ, robot.getRobotsYoVariableRegistry());
 
-      double amplitude = 0.1;
-      double frequency = 0.3;
-      double offset = 0.5;
-      GroundProfile3D groundProfile = new RollingGroundProfile(amplitude, frequency, offset);
+      GroundProfile3D groundProfile = new FlatGroundProfile();
       groundContactModel.setGroundProfile3D(groundProfile);
       robot.setGroundContactModel(groundContactModel);
 
