@@ -455,8 +455,7 @@ public class SphereControlToolbox
       yoNextFootstepPolygon.setFrameConvexPolygon2d(footstepPolygon);
 
       FramePose nextFootstepPose = new FramePose(nextFootstep.getSoleReferenceFrame());
-      nextFootstepPose.changeFrame(worldFrame);
-      yoNextFootstepPose.set(nextFootstepPose);
+      yoNextFootstepPose.setAndMatchFrame(nextFootstepPose);
 
       if (nextNextFootstep == null)
       {
@@ -477,8 +476,7 @@ public class SphereControlToolbox
       yoNextNextFootstepPolygon.setFrameConvexPolygon2d(footstepPolygon);
 
       FramePose nextNextFootstepPose = new FramePose(nextNextFootstep.getSoleReferenceFrame());
-      nextNextFootstepPose.changeFrame(worldFrame);
-      yoNextNextFootstepPose.set(nextNextFootstepPose);
+      yoNextNextFootstepPose.setAndMatchFrame(nextNextFootstepPose);
 
       if (nextNextNextFootstep == null)
       {
@@ -497,8 +495,7 @@ public class SphereControlToolbox
       yoNextNextNextFootstepPolygon.setFrameConvexPolygon2d(footstepPolygon);
 
       FramePose nextNextNextFootstepPose = new FramePose(nextNextNextFootstep.getSoleReferenceFrame());
-      nextNextNextFootstepPose.changeFrame(worldFrame);
-      yoNextNextNextFootstepPose.set(nextNextNextFootstepPose);
+      yoNextNextNextFootstepPose.setAndMatchFrame(nextNextNextFootstepPose);
    }
 
    private void callUpdatables()
