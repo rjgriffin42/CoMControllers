@@ -140,27 +140,32 @@ public class SphereControlToolbox
       YoGraphicPosition icpViz = new YoGraphicPosition("Capture Point", icp, 0.01, YoAppearance.Blue(), GraphicType.ROTATED_CROSS);
       YoGraphicPosition comViz = new YoGraphicPosition("Center of Mass", yoCenterOfMass, 0.01, YoAppearance.Grey(), GraphicType.ROTATED_CROSS);
 
-      YoArtifactPolygon nextFootstepViz =  new YoArtifactPolygon("nextFootstep", yoNextFootstepPolygon, Color.blue, false);
-      YoArtifactPolygon nextNextFootstepViz =  new YoArtifactPolygon("nextNextFootstep", yoNextNextFootstepPolygon, Color.blue, false);
-      YoArtifactPolygon nextNextNextFootstepViz =  new YoArtifactPolygon("nextNextNextFootstep", yoNextNextNextFootstepPolygon, Color.blue, false);
+      YoArtifactPolygon nextFootstepArtifact =  new YoArtifactPolygon("nextFootstep", yoNextFootstepPolygon, Color.blue, false);
+      YoArtifactPolygon nextNextFootstepArtifact =  new YoArtifactPolygon("nextNextFootstep", yoNextNextFootstepPolygon, Color.blue, false);
+      YoArtifactPolygon nextNextNextFootstepArtifact =  new YoArtifactPolygon("nextNextNextFootstep", yoNextNextNextFootstepPolygon, Color.blue, false);
 
       yoGraphicsListRegistry.registerArtifact(graphicListName, desiredCMPViz.createArtifact());
       yoGraphicsListRegistry.registerArtifact(graphicListName, desiredICPViz.createArtifact());
       yoGraphicsListRegistry.registerArtifact(graphicListName, icpViz.createArtifact());
       yoGraphicsListRegistry.registerArtifact(graphicListName, comViz.createArtifact());
 
-      yoGraphicsListRegistry.registerArtifact(graphicListName, nextFootstepViz);
-      yoGraphicsListRegistry.registerArtifact(graphicListName, nextNextFootstepViz);
-      yoGraphicsListRegistry.registerArtifact(graphicListName, nextNextNextFootstepViz);
+      yoGraphicsListRegistry.registerArtifact(graphicListName, nextFootstepArtifact);
+      yoGraphicsListRegistry.registerArtifact(graphicListName, nextNextFootstepArtifact);
+      yoGraphicsListRegistry.registerArtifact(graphicListName, nextNextNextFootstepArtifact);
 
       Graphics3DObject footstepGraphics = new Graphics3DObject();
       List<Point2d> contactPoints = new ArrayList<>();
       for (FramePoint2d point : contactableFeet.get(RobotSide.LEFT).getContactPoints2d())
          contactPoints.add(point.getPointCopy());
       footstepGraphics.addExtrudedPolygon(contactPoints, 0.02, YoAppearance.Color(Color.blue));
-      yoGraphicsListRegistry.registerYoGraphic("upcomingFootsteps", new YoGraphicShape("nextFootstep", footstepGraphics, yoNextFootstepPose, 1.0));
-      yoGraphicsListRegistry.registerYoGraphic("upcomingFootsteps", new YoGraphicShape("nextNextFootstep", footstepGraphics, yoNextNextFootstepPose, 1.0));
-      yoGraphicsListRegistry.registerYoGraphic("upcomingFootsteps", new YoGraphicShape("nextNextNextFootstep", footstepGraphics, yoNextNextNextFootstepPose, 1.0));
+
+      YoGraphicShape nextFootstepViz = new YoGraphicShape("nextFootstep", footstepGraphics, yoNextFootstepPose, 1.0);
+      YoGraphicShape nextNextFootstepViz = new YoGraphicShape("nextNextFootstep", footstepGraphics, yoNextNextFootstepPose, 1.0);
+      YoGraphicShape nextNextNextFootstepViz = new YoGraphicShape("nextNextNextFootstep", footstepGraphics, yoNextNextNextFootstepPose, 1.0);
+
+      yoGraphicsListRegistry.registerYoGraphic(graphicListName, nextFootstepViz);
+      yoGraphicsListRegistry.registerYoGraphic(graphicListName, nextNextFootstepViz);
+      yoGraphicsListRegistry.registerYoGraphic(graphicListName, nextNextNextFootstepViz);
 
       updatables.add(new Updatable()
       {
