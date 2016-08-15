@@ -46,8 +46,8 @@ public class SphereControlToolbox
    private static final double toeWidthForControl = 0.12;
 
    private static final double initialTransferDuration = 2.0;
-   private static final double singleSupportDuration = 2.0; /// 0.7;
-   private static final double doubleSupportDuration = 1.0; // 0.4; //0.25;
+   private static final double singleSupportDuration = 1.0; /// 0.7;
+   private static final double doubleSupportDuration = 0.2; // 0.4; //0.25;
    private static final double doubleSupportSplitFraction = 0.5;
    private static final boolean useTwoCMPs = true;
 
@@ -59,7 +59,7 @@ public class SphereControlToolbox
    private final YoFramePoint eCMP = new YoFramePoint("eCMP", worldFrame, registry);
    private final YoFramePoint desiredICP = new YoFramePoint("desiredICP", worldFrame, registry);
    private final YoFrameVector desiredICPVelocity = new YoFrameVector("desiredICPVelocity", worldFrame, registry);
-   private final YoFramePoint2d desiredCMP = new YoFramePoint2d("desiredCMP", worldFrame, registry);
+   private final YoFramePoint desiredCMP = new YoFramePoint("desiredCMP", worldFrame, registry);
 
    private final YoFramePoint icp = new YoFramePoint("icp", worldFrame, registry);
 
@@ -334,7 +334,7 @@ public class SphereControlToolbox
       return yoTime;
    }
 
-   public YoFramePoint2d getDesiredCMP()
+   public YoFramePoint getDesiredCMP()
    {
       return desiredCMP;
    }

@@ -35,9 +35,11 @@ public class SphereRobot
       ExternalForcePoint externalForcePoint = new ExternalForcePoint("forcePoint", new Vector3d(), scsRobot);
       floatingJoint.addExternalForcePoint(externalForcePoint);
 
+      /*
       YoGraphicVector externalForceGraphic = new YoGraphicVector(externalForcePoint.getName() + "Force", externalForcePoint.getYoPosition(),
             externalForcePoint.getYoForce(), 1.0/10.0);
       yoGraphicsListRegistry.registerYoGraphic("ExternalForces", externalForceGraphic);
+      */
 
       YoGraphicPosition dynamicGraphicPosition = new YoGraphicPosition(gcName + "Position", gc.getYoPosition(), 0.01, YoAppearance.Red());
       yoGraphicsListRegistry.registerYoGraphic("SphereGCPoints", dynamicGraphicPosition);
