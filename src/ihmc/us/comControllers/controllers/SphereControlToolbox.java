@@ -52,7 +52,7 @@ public class SphereControlToolbox
    private static final boolean useTwoCMPs = true;
 
    private static final double maxDurationForSmoothingEntryToExitCMPSwitch = 1.0;
-   private static final double timeSpentOnExitCMPInPercentOfStepTime = 1.0; // singleSupportDuration
+   private static final double timeSpentOnExitCMPInPercentOfStepTime = 0.5; // singleSupportDuration
 
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
 
@@ -128,7 +128,7 @@ public class SphereControlToolbox
 
       elevator = sphereRobotModel.getElevator();
 
-      double omega = Math.sqrt(desiredHeight / gravity);
+      double omega = Math.sqrt(gravity / desiredHeight);
       omega0.set(omega);
 
       setupFeetFrames(yoGraphicsListRegistry);
@@ -450,7 +450,8 @@ public class SphereControlToolbox
       yoNextFootstepPolygon.setFrameConvexPolygon2d(footstepPolygon);
 
       FramePose nextFootstepPose = new FramePose(nextFootstep.getSoleReferenceFrame());
-      yoNextFootstepPose.setAndMatchFrame(nextFootstepPose);
+      nextFootstepPose.changeFrame(worldFrame);
+      yoNextFootstepPose.set(nextFootstepPose);
 
       if (nextNextFootstep == null)
       {
@@ -471,7 +472,8 @@ public class SphereControlToolbox
       yoNextNextFootstepPolygon.setFrameConvexPolygon2d(footstepPolygon);
 
       FramePose nextNextFootstepPose = new FramePose(nextNextFootstep.getSoleReferenceFrame());
-      yoNextNextFootstepPose.setAndMatchFrame(nextNextFootstepPose);
+      nextNextFootstepPose.changeFrame(worldFrame);
+      yoNextNextFootstepPose.set(nextNextFootstepPose);
 
       if (nextNextNextFootstep == null)
       {
@@ -490,7 +492,8 @@ public class SphereControlToolbox
       yoNextNextNextFootstepPolygon.setFrameConvexPolygon2d(footstepPolygon);
 
       FramePose nextNextNextFootstepPose = new FramePose(nextNextNextFootstep.getSoleReferenceFrame());
-      yoNextNextNextFootstepPose.setAndMatchFrame(nextNextNextFootstepPose);
+      nextNextNextFootstepPose.changeFrame(worldFrame);
+      yoNextNextNextFootstepPose.set(nextNextNextFootstepPose);
    }
 
    private void callUpdatables()

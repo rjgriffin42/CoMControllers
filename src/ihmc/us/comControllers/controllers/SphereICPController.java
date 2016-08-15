@@ -200,7 +200,7 @@ public class SphereICPController implements GenericSphereController
 
          icpPlanner.clearPlan();
          icpPlanner.holdCurrentICP(yoTime.getDoubleValue(), desiredCapturePoint);
-         icpPlanner.initializeForStanding(controlToolbox.getYoTime().getDoubleValue());
+         icpPlanner.initializeForStanding(yoTime.getDoubleValue());
          icpPlanner.setDesiredCapturePointState(desiredICP, desiredICPVelocity);
 
          for (RobotSide robotSide : RobotSide.values)
@@ -242,11 +242,18 @@ public class SphereICPController implements GenericSphereController
          icpPlanner.setSupportLeg(supportSide);
          icpPlanner.initializeForSingleSupport(yoTime.getDoubleValue());
 
+
          FootSpoof footSpoof = contactableFeet.get(supportSide.getOppositeSide());
          FramePose nextSupportPose = footPosesAtTouchdown.get(supportSide.getOppositeSide());
          nextSupportPose.setToZero(nextFootstep.getSoleReferenceFrame());
          nextSupportPose.changeFrame(ReferenceFrame.getWorldFrame());
          footSpoof.setSoleFrame(nextSupportPose);
+
+         contactStates.get(supportSide.getOppositeSide()).clear();
+         if (nextFootstep.getPredictedContactPoints() == null)
+            contactStates.get(supportSide.getOppositeSide()).setContactFramePoints(footSpoof.getContactPoints2d());
+         else
+            contactStates.get(supportSide.getOppositeSide()).setContactPoints(nextFootstep.getPredictedContactPoints());
       }
 
       @Override public void doTransitionOutOfAction()
@@ -270,8 +277,11 @@ public class SphereICPController implements GenericSphereController
 
       @Override public void doTransitionIntoAction()
       {
+         icpPlanner.clearPlan();
+
          for (RobotSide robotSide : RobotSide.values)
             contactStates.get(robotSide).setFullyConstrained();
+         controlToolbox.getBipedSupportPolygons().updateUsingContactStates(contactStates);
 
          Footstep nextFootstep = controlToolbox.peekAtFootstep(0);
          Footstep nextNextFootstep = controlToolbox.peekAtFootstep(1);
