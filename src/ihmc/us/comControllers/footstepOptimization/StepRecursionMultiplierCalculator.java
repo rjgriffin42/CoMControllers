@@ -50,16 +50,16 @@ public class StepRecursionMultiplierCalculator
    {
       reset();
 
-      if (!useTwoCMPS)
-         throw new RuntimeException("Trying to compute two CMP recursion multipliers.");
+      if (!useTwoCMPS || numberOfStepsToConsider > maxNumberOfFootstepsToConsider)
+         throw new RuntimeException("Trying to compute two CMP recursion multipliers, or requesting too many steps.");
 
       double steppingDuration = totalTimeSpentOnEntryCMP + totalTimeSpentOnExitCMP;
-      double exitRecursion = 1.0 - Math.exp(-omega.getDoubleValue() * totalTimeSpentOnExitCMP);
+      double exitRecursion = Math.exp(-omega.getDoubleValue() * totalTimeSpentOnEntryCMP) * (1.0 - Math.exp(-omega.getDoubleValue() * totalTimeSpentOnExitCMP));
       double entryRecursion = 1.0 - Math.exp(-omega.getDoubleValue() * totalTimeSpentOnEntryCMP);
 
       for (int i = 0; i < numberOfStepsToConsider; i++)
       {
-         double multiplier = Math.exp(-omega.getDoubleValue() * (i - 1) * steppingDuration);
+         double multiplier = Math.exp(-omega.getDoubleValue() * i * steppingDuration);
          twoCMPRecursionEntryMultipliers.get(i).set(multiplier * entryRecursion);
          twoCMPRecursionExitMultipliers.get(i).set(multiplier * exitRecursion);
       }
@@ -71,13 +71,13 @@ public class StepRecursionMultiplierCalculator
    {
       reset();
 
-      if (useTwoCMPS)
-         throw new RuntimeException("Trying to compute one CMP recursion multipliers.");
+      if (useTwoCMPS || numberOfStepsToConsider > maxNumberOfFootstepsToConsider)
+         throw new RuntimeException("Trying to compute one CMP recursion multipliers, or requesting too many steps.");
 
       double stepRecursion = 1.0 - Math.exp(-omega.getDoubleValue() * steppingDuration);
 
       for (int i = 0; i < numberOfStepsToConsider; i++)
-         oneCMPRecursionMultipliers.get(i).set(Math.exp(-omega.getDoubleValue() * (i - 1) * steppingDuration) * stepRecursion);
+         oneCMPRecursionMultipliers.get(i).set(Math.exp(-omega.getDoubleValue() * i * steppingDuration) * stepRecursion);
 
       computeFinalICPRecursionMultiplier(steppingDuration, omega.getDoubleValue(), numberOfStepsToConsider);
    }
