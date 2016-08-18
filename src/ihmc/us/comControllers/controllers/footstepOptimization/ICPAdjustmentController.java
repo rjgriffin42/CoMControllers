@@ -1,20 +1,17 @@
-package ihmc.us.comControllers.controllers;
+package ihmc.us.comControllers.controllers.footstepOptimization;
 
 import org.ejml.data.DenseMatrix64F;
 import org.ejml.factory.LinearSolverFactory;
 import org.ejml.interfaces.linsol.LinearSolver;
-import org.ejml.ops.CommonOps;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.BipedSupportPolygons;
 import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerParameters;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ReferenceCentroidalMomentumPivotLocationsCalculator;
 import us.ihmc.humanoidRobotics.bipedSupportPolygons.ContactablePlaneBody;
 import us.ihmc.humanoidRobotics.footstep.Footstep;
-import us.ihmc.robotics.MathTools;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.BooleanYoVariable;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.robotics.dataStructures.variable.IntegerYoVariable;
-import us.ihmc.robotics.dataStructures.variable.YoVariable;
 import us.ihmc.robotics.geometry.*;
 import us.ihmc.robotics.math.frames.YoFramePoint2d;
 import us.ihmc.robotics.math.frames.YoFrameVector2d;
@@ -79,7 +76,7 @@ public class ICPAdjustmentController
 
    private final FramePoint currentICP = new FramePoint();
 
-   private final ICPAdjustmentMatrixHelper icpAdjustmentMatrixHelper;
+   private final ICPAdjustmentSolver icpAdjustmentSolver;
    private final LinearSolver<DenseMatrix64F> solver = LinearSolverFactory.linear(0);
 
    private final ReferenceCentroidalMomentumPivotLocationsCalculator referenceCMPsCalculator;
@@ -94,7 +91,7 @@ public class ICPAdjustmentController
       numberOfFootstepsToConsider.set(2);
       maxNumberOfFootstepsToConsider.set(MAX_NUMBER_OF_FOOTSTEPS_TO_CONSIDER);
 
-      icpAdjustmentMatrixHelper = new ICPAdjustmentMatrixHelper(maxNumberOfFootstepsToConsider.getIntegerValue(), registry);
+      icpAdjustmentSolver = new ICPAdjustmentSolver(maxNumberOfFootstepsToConsider.getIntegerValue(), registry);
 
       exitCMPDurationInPercentOfStepTime.set(icpPlannerParameters.getTimeSpentOnExitCMPInPercentOfStepTime());
       referenceCMPsCalculator = new ReferenceCentroidalMomentumPivotLocationsCalculator(namePrefix, bipedSupportPolygons, contactableFeet,
@@ -208,15 +205,15 @@ public class ICPAdjustmentController
 
       submitInformation(currentICP);
 
-      icpAdjustmentMatrixHelper.solve();
+      icpAdjustmentSolver.solve();
 
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
       {
-         icpAdjustmentMatrixHelper.getFootstepSolutionLocation(i, footstepSolutionLocation);
+         icpAdjustmentSolver.getFootstepSolutionLocation(i, footstepSolutionLocation);
          footstepSolutionLocations.get(i).set(footstepSolutionLocation);
       }
 
-      icpAdjustmentMatrixHelper.getCMPFeedbackDifference(cmpFeedbackDifferenceSolutionTmp);
+      icpAdjustmentSolver.getCMPFeedbackDifference(cmpFeedbackDifferenceSolutionTmp);
       cmpFeedbackDifferenceSolution.set(cmpFeedbackDifferenceSolutionTmp);
 
       FramePoint currentToeOffCMP = referenceCMPsCalculator.getExitCMPs().get(0).getFrameTuple();
@@ -226,7 +223,7 @@ public class ICPAdjustmentController
       cmpFeedbackSolution.set(currentToeOffCMP2d);
       cmpFeedbackSolution.add(cmpFeedbackDifferenceSolutionTmp);
 
-      costToGo.set(icpAdjustmentMatrixHelper.getCostToGo());
+      costToGo.set(icpAdjustmentSolver.getCostToGo());
    }
 
    private void computeTimeInCurrentState(double time)
@@ -311,8 +308,8 @@ public class ICPAdjustmentController
 
    private void submitInformation(FramePoint2d currentICP)
    {
-      icpAdjustmentMatrixHelper.setProblemConditions(numberOfFootstepsToConsider.getIntegerValue());
-      icpAdjustmentMatrixHelper.reset();
+      icpAdjustmentSolver.setProblemConditions(numberOfFootstepsToConsider.getIntegerValue());
+      icpAdjustmentSolver.reset();
 
       for (int i = 0; i < numberOfFootstepsToConsider.getIntegerValue(); i++)
       {
@@ -338,23 +335,23 @@ public class ICPAdjustmentController
          entryOffset.applyTransform(transform);
          exitOffset.applyTransform(transform);
 
-         icpAdjustmentMatrixHelper.setReferenceFootstepLocation(i, footstepLocation2d, entryOffset, exitOffset);
+         icpAdjustmentSolver.setReferenceFootstepLocation(i, footstepLocation2d, entryOffset, exitOffset);
 
-         icpAdjustmentMatrixHelper.setFootstepRecursionMultipliers(i, heelRecursionMultipliers.get(i).getDoubleValue(), toeRecursionMultipliers.get(i).getDoubleValue());
+         icpAdjustmentSolver.setFootstepRecursionMultipliers(i, heelRecursionMultipliers.get(i).getDoubleValue(), toeRecursionMultipliers.get(i).getDoubleValue());
 
          if (i == 0)
-            icpAdjustmentMatrixHelper.setFootstepWeight(i, effectiveFirstStepWeight.getDoubleValue());
+            icpAdjustmentSolver.setFootstepWeight(i, effectiveFirstStepWeight.getDoubleValue());
          else
-            icpAdjustmentMatrixHelper.setFootstepWeight(i, stepWeights.get(i).getDoubleValue());
+            icpAdjustmentSolver.setFootstepWeight(i, stepWeights.get(i).getDoubleValue());
       }
 
-      icpAdjustmentMatrixHelper.setTargetICPRecursion(targetICPRecursion.getFramePoint2dCopy());
-      icpAdjustmentMatrixHelper.setCMPProjectionForward(cmpProjectionForward.getFramePoint2dCopy());
-      icpAdjustmentMatrixHelper.setFeedbackWeight(feedbackWeight.getDoubleValue());
-      icpAdjustmentMatrixHelper.setEffectiveFeedbackGain(effectiveFeedbackGain.getDoubleValue());
-      icpAdjustmentMatrixHelper.setRemainingDurationProjection(remainingDurationProjection.getDoubleValue());
-      icpAdjustmentMatrixHelper.setCurrentICPValue(currentICP);
+      icpAdjustmentSolver.setTargetICPRecursion(targetICPRecursion.getFramePoint2dCopy());
+      icpAdjustmentSolver.setCMPProjectionForward(cmpProjectionForward.getFramePoint2dCopy());
+      icpAdjustmentSolver.setFeedbackWeight(feedbackWeight.getDoubleValue());
+      icpAdjustmentSolver.setEffectiveFeedbackGain(effectiveFeedbackGain.getDoubleValue());
+      icpAdjustmentSolver.setRemainingDurationProjection(remainingDurationProjection.getDoubleValue());
+      icpAdjustmentSolver.setCurrentICPValue(currentICP);
 
-      icpAdjustmentMatrixHelper.assembleCostMatrices();
+      icpAdjustmentSolver.assembleCostMatrices();
    }
 }

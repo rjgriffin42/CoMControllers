@@ -1,4 +1,4 @@
-package ihmc.us.comControllers.controllers;
+package ihmc.us.comControllers.controllers.footstepOptimization;
 
 import org.ejml.data.DenseMatrix64F;
 import org.ejml.factory.LinearSolverFactory;
@@ -13,13 +13,17 @@ import us.ihmc.simulationconstructionset.mathfunctions.Matrix;
 
 import java.util.ArrayList;
 
-public class ICPAdjustmentMatrixHelper
+public class ICPAdjustmentSolver
 {
    private final static ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
 
    private final int maxNumberOfFootstepsToConsider;
+
    private int numberOfFootstepsToConsider;
+   private int totalFreeVariables;
+   private int totalFootstepVariables;
+   private int totalLagrangeMultipliers;
 
    private final DenseMatrix64F solverInput_G;
    private final DenseMatrix64F solverInput_g;
@@ -52,11 +56,9 @@ public class ICPAdjustmentMatrixHelper
    private final DenseMatrix64F cmpFeedback;
 
    private final DenseMatrix64F targetICP;
-   private final DenseMatrix64F currentICP;
    private final DenseMatrix64F perfectCMP;
    private final DenseMatrix64F finalICPRecursion;
 
-   private double exponent;
    private double kappa;
 
    private boolean includeFeedback;
@@ -64,9 +66,6 @@ public class ICPAdjustmentMatrixHelper
 
    private boolean hasFeedbackWeight;
    private boolean hasFeedbackEffectiveGain;
-   private boolean hasExponent;
-   private boolean hasCurrentICP;
-   private boolean hasPerfectCMP;
 
    private final ArrayList<DenseMatrix64F> referenceFootstepLocations = new ArrayList<>();
    private final ArrayList<DenseMatrix64F> heelTransforms = new ArrayList<>();
@@ -81,7 +80,7 @@ public class ICPAdjustmentMatrixHelper
 
    private final ArrayList<FramePoint2d> footstepSolutionLocations = new ArrayList<>();
 
-   public ICPAdjustmentMatrixHelper(int maxNumberOfFootstepsToConsider, YoVariableRegistry parentRegistry)
+   public ICPAdjustmentSolver(int maxNumberOfFootstepsToConsider, YoVariableRegistry parentRegistry)
    {
       this.maxNumberOfFootstepsToConsider = maxNumberOfFootstepsToConsider;
 
@@ -105,6 +104,8 @@ public class ICPAdjustmentMatrixHelper
       solverInput_G = new DenseMatrix64F(maxNumberOfFreeVariables + maxNumberOfLagrangeMultipliers, maxNumberOfFreeVariables + maxNumberOfLagrangeMultipliers);
       solverInput_g = new DenseMatrix64F(1 + maxNumberOfLagrangeMultipliers, 1);
 
+      footstepSelectionMatrix = new DenseMatrix64F(2 * maxNumberOfFootstepsToConsider, maxNumberOfFreeVariables);
+
       solution = new DenseMatrix64F(maxNumberOfFreeVariables + maxNumberOfLagrangeMultipliers, 1);
       freeVariableSolution = new DenseMatrix64F(maxNumberOfFreeVariables, 1);
       footstepSolutions = new DenseMatrix64F(3 * maxNumberOfFootstepsToConsider, 1);
@@ -112,7 +113,6 @@ public class ICPAdjustmentMatrixHelper
       lagrangeMultiplierSolutions = new DenseMatrix64F(maxNumberOfLagrangeMultipliers, 1);
 
       targetICP = new DenseMatrix64F(2, 1);
-      currentICP = new DenseMatrix64F(2, 1);
       perfectCMP = new DenseMatrix64F(2, 1);
       finalICPRecursion = new DenseMatrix64F(2, 1);
 
@@ -162,38 +162,29 @@ public class ICPAdjustmentMatrixHelper
       feedbackSolution.zero();
       lagrangeMultiplierSolutions.zero();
 
+      footstepSelectionMatrix.zero();
+
       costToGo.zero();
       cmpFeedback.zero();
 
-      int numberOfFootstepFreeVariables, totalFreeVariables;
-
-      if (useTwoCMPs)
-         numberOfFootstepFreeVariables = 3 * numberOfFootstepsToConsider;
-      else
-         numberOfFootstepFreeVariables = 2 * numberOfFootstepsToConsider;
-
-      totalFreeVariables = numberOfFootstepFreeVariables;
-      if (includeFeedback)
-         totalFreeVariables += 2;
-
       solverInput_H.reshape(totalFreeVariables, totalFreeVariables);
-      tmpFootstepTask_H.reshape(numberOfFootstepFreeVariables, numberOfFootstepFreeVariables);
+      tmpFootstepTask_H.reshape(totalFootstepVariables, totalFootstepVariables);
 
-      int numberOfLagrangeMultipliers = 1;
-      if (useTwoCMPs)
-         numberOfLagrangeMultipliers += numberOfFootstepsToConsider;
+      solverInput_G.reshape(totalFreeVariables + totalLagrangeMultipliers, totalFreeVariables + totalLagrangeMultipliers);
+      solverInput_g.reshape(totalFreeVariables + totalLagrangeMultipliers, 1);
 
-      lagrangeMultiplierSolutions.reshape(numberOfLagrangeMultipliers, 1);
+      solverInput_Aeq.reshape(totalFreeVariables, totalLagrangeMultipliers);
+      solverInput_beq.reshape(totalLagrangeMultipliers, 1);
 
-      solverInput_G.reshape(totalFreeVariables + numberOfLagrangeMultipliers, totalFreeVariables, numberOfLagrangeMultipliers);
-      solverInput_g.reshape(1 + numberOfLagrangeMultipliers, 1);
+      footstepSelectionMatrix.reshape(2 * numberOfFootstepsToConsider, totalFreeVariables);
 
-      solverInput_Aeq.reshape(totalFreeVariables + numberOfLagrangeMultipliers, 1);
-      solverInput_beq.reshape(numberOfLagrangeMultipliers, 1);
+      tmpTwoCMPProjection_Aeq.reshape(totalFootstepVariables, numberOfFootstepsToConsider);
+      tmpTwoCMPProjection_beq.reshape(numberOfFootstepsToConsider, 1);
 
-      solution.reshape(totalFreeVariables + numberOfLagrangeMultipliers, 1);
+      solution.reshape(totalFreeVariables + totalLagrangeMultipliers, 1);
       freeVariableSolution.reshape(totalFreeVariables, 1);
-      footstepSolutions.reshape(numberOfFootstepFreeVariables, 1);
+      footstepSolutions.reshape(totalFootstepVariables, 1);
+      lagrangeMultiplierSolutions.reshape(totalLagrangeMultipliers, 1);
 
       for (int i = 0; i < maxNumberOfFootstepsToConsider; i++)
       {
@@ -207,12 +198,10 @@ public class ICPAdjustmentMatrixHelper
       }
 
       targetICP.zero();
-      currentICP.zero();
       perfectCMP.zero();
       finalICPRecursion.zero();
 
       hasFeedbackWeight = false;
-      hasExponent = false;
       hasFeedbackEffectiveGain = false;
    }
 
@@ -221,6 +210,22 @@ public class ICPAdjustmentMatrixHelper
       this.numberOfFootstepsToConsider = numberOfFootstepsToConsider;
       this.includeFeedback = includeFeedback;
       this.useTwoCMPs = useTwoCMPs;
+
+      if (useTwoCMPs)
+      {
+         totalFootstepVariables = 3 * numberOfFootstepsToConsider;
+         totalLagrangeMultipliers = numberOfFootstepsToConsider + 1;
+      }
+      else
+      {
+         totalFootstepVariables = 2 * numberOfFootstepsToConsider;
+         totalLagrangeMultipliers = 1;
+      }
+
+      if (includeFeedback)
+         totalFreeVariables = totalFootstepVariables + 2;
+      else
+         totalFreeVariables = totalFootstepVariables;
    }
 
    public void setReferenceFootstepLocation(int footstepIndex, FramePoint2d footstepLocation)
@@ -253,7 +258,7 @@ public class ICPAdjustmentMatrixHelper
          oneCMPFootstepRecursions.get(footstepIndex).set(i, 1, recursion);
    }
 
-   public void setFootstepRecursionMultipliers(int footstepIndex, double entryRecursion, double exitRecursion)
+   public void setFootstepRecursionMultipliers(int footstepIndex, double entryRecursionMultiplier, double exitRecursionMultiplier)
    {
       if (!useTwoCMPs)
          throw new RuntimeException("Should be submitting one recursions multiplier");
@@ -262,27 +267,11 @@ public class ICPAdjustmentMatrixHelper
       {
          for (int col = 0; col < 3; col++)
          {
-            double exitValue = exitRecursion * toeTransforms.get(footstepIndex).get(row, col);
-            double entryValue = entryRecursion * heelTransforms.get(footstepIndex).get(row, col);
+            double exitValue = exitRecursionMultiplier * toeTransforms.get(footstepIndex).get(row, col);
+            double entryValue = entryRecursionMultiplier * heelTransforms.get(footstepIndex).get(row, col);
             twoCMPFootstepRecursions.get(footstepIndex).add(row, col, entryValue + exitValue);
          }
       }
-   }
-
-   public void setPerfectCMP(FramePoint2d perfectCMP)
-   {
-      hasPerfectCMP = true;
-
-      this.perfectCMP.set(0, 0, perfectCMP.getX());
-      this.perfectCMP.set(1, 0, perfectCMP.getY());
-   }
-
-   public void setCurrentICP(FramePoint2d currentICP)
-   {
-      hasCurrentICP = true;
-
-      this.currentICP.set(0, 0, currentICP.getX());
-      this.currentICP.set(1, 0, currentICP.getY());
    }
 
    public void setFootstepWeight(int footstepIndex, double weight)
@@ -306,12 +295,6 @@ public class ICPAdjustmentMatrixHelper
       kappa = effectiveFeedbackGain;
    }
 
-   public void setExponentialExponent(double exponent)
-   {
-      hasExponent = true;
-      this.exponent = exponent;
-   }
-
    public void setFinalICPRecursion(FramePoint2d finalICPRecursion)
    {
       finalICPRecursion.changeFrame(worldFrame);
@@ -319,44 +302,43 @@ public class ICPAdjustmentMatrixHelper
       this.finalICPRecursion.set(1, 0, finalICPRecursion.getY());
    }
 
+   public void setTargetTouchdownICP(FramePoint2d targetTouchdownICP)
+   {
+      targetTouchdownICP.changeFrame(worldFrame);
+      this.targetICP.set(0, 0, targetTouchdownICP.getX());
+      this.targetICP.set(1, 0, targetTouchdownICP.getY());
+   }
+
+   public void setPerfectCMP(FramePoint2d perfectCMP)
+   {
+      perfectCMP.changeFrame(worldFrame);
+      this.perfectCMP.set(0, 0, perfectCMP.getX());
+      this.perfectCMP.set(1, 0, perfectCMP.getY());
+   }
+
    public void computeMatrices()
    {
       computeFootstepCostMatrices();
-
-      int indexMultiplier;
-      int totalLagrangeMultipliers = 1;
-      if (useTwoCMPs)
-      {
-         indexMultiplier = 3;
-         totalLagrangeMultipliers += numberOfFootstepsToConsider;
-      }
-      else
-         indexMultiplier = 2;
-
-      int totalFreeVariables = indexMultiplier * numberOfFootstepsToConsider;
-
-      MatrixTools.setMatrixBlock(solverInput_H, 0, 0, tmpFootstepTask_H, 0, 0, totalFreeVariables, totalFreeVariables, 1.0);
+      MatrixTools.setMatrixBlock(solverInput_H, 0, 0, tmpFootstepTask_H, 0, 0, totalFootstepVariables, totalFootstepVariables, 1.0);
 
       if (includeFeedback)
       {
          if (!hasFeedbackWeight)
             throw new RuntimeException("Have not set up the feedback weight");
 
-         MatrixTools.setMatrixBlock(solverInput_H, totalFreeVariables, totalFreeVariables, feedbackWeight, 0, 0, 2, 2, 1.0);
-
-         totalFreeVariables += 2;
+         MatrixTools.setMatrixBlock(solverInput_H, totalFootstepVariables, totalFootstepVariables, feedbackWeight, 0, 0, 2, 2, 1.0);
       }
-
-      computeTargetICPValue();
 
       computeConstraintMatrices();
 
       CommonOps.transpose(solverInput_Aeq, tmpTrans_Aeq);
 
+      // assemble quadratic cost with equalities
       MatrixTools.setMatrixBlock(solverInput_G, 0, 0, solverInput_H, 0, 0, totalFreeVariables, totalFreeVariables, 1.0);
       MatrixTools.setMatrixBlock(solverInput_G, 0, totalFreeVariables, solverInput_Aeq, 0, 0, totalFreeVariables, totalLagrangeMultipliers, 1.0);
       MatrixTools.setMatrixBlock(solverInput_G, totalFreeVariables, 0, tmpTrans_Aeq, 0, 0, totalLagrangeMultipliers, totalFreeVariables, 1.0);
 
+      // assemble negative linear cost with equalities
       MatrixTools.setMatrixBlock(solverInput_g, 1, 0, solverInput_beq, 0, 0, totalLagrangeMultipliers, 1, 1.0);
    }
 
@@ -372,56 +354,19 @@ public class ICPAdjustmentMatrixHelper
          MatrixTools.setMatrixBlock(tmpFootstepTask_H, i * indexMultiplier, i * indexMultiplier, stepWeights.get(i), 0, 0, 2, 2, 1.0);
    }
 
-   private void computeTargetICPValue()
-   {
-      if (!hasExponent)
-         throw new RuntimeException("ICP evolution exponent has not been set.");
-      if (!hasCurrentICP)
-         throw new RuntimeException("Current ICP has not been set.");
-      if (!hasPerfectCMP)
-         throw new RuntimeException("Perfect CMP has not been set.");
-
-      if (includeFeedback)
-      {
-         if (!hasFeedbackEffectiveGain)
-            throw new RuntimeException("Effective feedback gain has not been set.");
-
-         targetICP.set(currentICP);
-         CommonOps.scale((1 + Math.exp(exponent)), currentICP);
-         CommonOps.add(targetICP, -Math.exp(exponent), perfectCMP, targetICP);
-      }
-      else
-      {
-         targetICP.set(currentICP);
-         CommonOps.scale(Math.exp(exponent), currentICP);
-         CommonOps.add(targetICP, (1 - Math.exp(exponent)), perfectCMP, targetICP);
-      }
-   }
-
    private void computeConstraintMatrices()
    {
       computeDynamicsConstraintMatrices();
 
-      int numberOfFreeVariables;
       if (useTwoCMPs)
       {
-         numberOfFreeVariables = 3 * numberOfFootstepsToConsider;
-
          computeTwoCMPProjectionConstraintMatrices();
 
-         MatrixTools.setMatrixBlock(solverInput_Aeq, 0, 1, tmpTwoCMPProjection_Aeq, 0, 0, numberOfFreeVariables, numberOfFootstepsToConsider, 1.0);
+         MatrixTools.setMatrixBlock(solverInput_Aeq, 0, 1, tmpTwoCMPProjection_Aeq, 0, 0, totalFootstepVariables, numberOfFootstepsToConsider, 1.0);
          MatrixTools.setMatrixBlock(solverInput_beq, 1, 0, tmpTwoCMPProjection_beq, 0, 0, numberOfFootstepsToConsider, 1, 1.0);
       }
-      else
-      {
-         numberOfFreeVariables = 2 * numberOfFootstepsToConsider;
-      }
 
-      if (includeFeedback)
-         numberOfFreeVariables += 2;
-
-
-      MatrixTools.setMatrixBlock(solverInput_Aeq, 0, 0, tmpDynamics_Aeq, 0, 0, numberOfFreeVariables, 1, 1.0);
+      MatrixTools.setMatrixBlock(solverInput_Aeq, 0, 0, tmpDynamics_Aeq, 0, 0, totalFreeVariables, 1, 1.0);
       MatrixTools.setMatrixBlock(solverInput_beq, 0, 0, tmpDynamics_beq, 0, 0, 1, 1, 1.0);
    }
 
@@ -430,25 +375,14 @@ public class ICPAdjustmentMatrixHelper
       tmpDynamics_Aeq.zero();
       tmpDynamics_beq.zero();
 
-      int multiplier;
-      int numberOfFreeVariables;
-      if (useTwoCMPs)
-         multiplier = 3;
-      else
-         multiplier = 2;
-      numberOfFreeVariables = multiplier * numberOfFootstepsToConsider;
-
-      if (includeFeedback)
-         numberOfFreeVariables += 2;
-
-      tmpDynamics_Aeq.reshape(numberOfFreeVariables, 1);
+      tmpDynamics_Aeq.reshape(totalFreeVariables, 1);
 
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
       {
          if (useTwoCMPs)
-            MatrixTools.setMatrixBlock(tmpDynamics_Aeq, multiplier * i, 0, twoCMPFootstepRecursions.get(i), 0, 0, multiplier, 1, 1.0);
+            MatrixTools.setMatrixBlock(tmpDynamics_Aeq, 3 * i, 0, twoCMPFootstepRecursions.get(i), 0, 0, 3, 1, 1.0);
          else
-            MatrixTools.setMatrixBlock(tmpDynamics_Aeq, multiplier * i, 0, oneCMPFootstepRecursions.get(i), 0, 0, multiplier, 1, 1.0);
+            MatrixTools.setMatrixBlock(tmpDynamics_Aeq, 2 * i, 0, oneCMPFootstepRecursions.get(i), 0, 0, 2, 1, 1.0);
       }
 
       CommonOps.subtract(targetICP, finalICPRecursion, tmpDynamics_beq);
@@ -459,7 +393,7 @@ public class ICPAdjustmentMatrixHelper
       tmpTwoCMPProjection_Aeq.zero();
       tmpTwoCMPProjection_beq.zero();
 
-      tmpTwoCMPProjection_Aeq.reshape(3 * numberOfFootstepsToConsider, numberOfFootstepsToConsider);
+      tmpTwoCMPProjection_Aeq.reshape(totalFootstepVariables, numberOfFootstepsToConsider);
       tmpTwoCMPProjection_beq.reshape(numberOfFootstepsToConsider, 1);
 
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
@@ -483,25 +417,14 @@ public class ICPAdjustmentMatrixHelper
    {
       computeFootstepSelectionMatrices();
 
-      int numberOfFreeVariables, numberOfLagrangeMultipliers;
-      if (useTwoCMPs)
-      {
-         numberOfFreeVariables = 3 * numberOfFootstepsToConsider;
-         numberOfLagrangeMultipliers = numberOfFootstepsToConsider;
-      }
-      else
-         numberOfFreeVariables = 2 * numberOfFootstepsToConsider;
-
-      numberOfLagrangeMultipliers += 1;
-
-      MatrixTools.setMatrixBlock(freeVariableSolution, 0, 0, solution, 0, 0, numberOfFreeVariables, 1, 1.0);
+      MatrixTools.setMatrixBlock(freeVariableSolution, 0, 0, solution, 0, 0, totalFreeVariables, 1, 1.0);
 
       if (includeFeedback)
       {
-         MatrixTools.setMatrixBlock(feedbackSolution, 0, 0, solution, numberOfFreeVariables, 0, 2, 1, 1.0);
-         numberOfFreeVariables += 2;
+         MatrixTools.setMatrixBlock(feedbackSolution, 0, 0, freeVariableSolution, totalFootstepVariables, 0, 2, 1, 1.0);
       }
-      MatrixTools.setMatrixBlock(lagrangeMultiplierSolutions, 0, 0, solution, numberOfFreeVariables, 1, numberOfLagrangeMultipliers, 1, 1.0);
+
+      MatrixTools.setMatrixBlock(lagrangeMultiplierSolutions, 0, 0, solution, totalFreeVariables, 1, totalLagrangeMultipliers, 1, 1.0);
 
       if (useTwoCMPs)
          CommonOps.mult(footstepSelectionMatrix, freeVariableSolution, footstepSolutions);
@@ -548,8 +471,15 @@ public class ICPAdjustmentMatrixHelper
    public void getCMPFeedbackDifference(FrameVector2d cmpFeedbackDifference)
    {
       cmpFeedbackDifference.setToZero(worldFrame);
-      cmpFeedbackDifference.setX(cmpFeedback.get(0, 0));
-      cmpFeedbackDifference.setY(cmpFeedback.get(1, 0));
+      cmpFeedbackDifference.setX(feedbackSolution.get(0, 0));
+      cmpFeedbackDifference.setY(feedbackSolution.get(1, 0));
+   }
+
+   public void getCMPFeedback(FramePoint2d cmpFeedback)
+   {
+      cmpFeedback.setToZero(worldFrame);
+      cmpFeedback.setX(this.cmpFeedback.get(0, 0));
+      cmpFeedback.setY(this.cmpFeedback.get(1, 0));
    }
 
    public double getCostToGo()
