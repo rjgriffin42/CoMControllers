@@ -1,4 +1,4 @@
-package ihmc.us.comControllers.controllers.footstepOptimization;
+package ihmc.us.comControllers.footstepOptimization;
 
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.BipedSupportPolygons;
 import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerParameters;
@@ -190,8 +190,7 @@ public class ICPAdjustmentController
          stepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, numberOfFootstepsToConsider.getIntegerValue(), useTwoCMPs.getBooleanValue());
       }
 
-      targetTouchdownICPCalculator.computeTargetTouchdownICP(remainingTime.getDoubleValue(), currentICP, perfectCMP.getFramePoint2dCopy(),
-            useFeedback.getBooleanValue());
+      targetTouchdownICPCalculator.computeTargetTouchdownICP(remainingTime.getDoubleValue(), currentICP, perfectCMP.getFramePoint2dCopy());
 
       computeEffectiveFeedbackWeight(scaleFeedbackWeightWithGains.getBooleanValue());
       computeEffectiveFirstStepWeight(remainingTime.getDoubleValue(), steppingDuration, scaleFirstStepWeightWithTime.getBooleanValue());
@@ -252,7 +251,7 @@ public class ICPAdjustmentController
 
    private void computeEffectiveFeedbackGain(double timeRemaining)
    {
-      double effectiveFeedbackGain = (1.0 + Math.exp(omega0.getDoubleValue() * timeRemaining)) / (1.0 + feedbackGain.getDoubleValue() / omega0.getDoubleValue()); // kappa
+      double effectiveFeedbackGain = -Math.exp(omega0.getDoubleValue() * timeRemaining) / (1.0 + feedbackGain.getDoubleValue() / omega0.getDoubleValue()); // kappa
       this.effectiveFeedbackGain.set(effectiveFeedbackGain);
    }
 

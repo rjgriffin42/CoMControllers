@@ -1,4 +1,4 @@
-package ihmc.us.comControllers.controllers.footstepOptimization;
+package ihmc.us.comControllers.footstepOptimization;
 
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
@@ -26,7 +26,7 @@ public class TargetTouchdownICPCalculator
    private final FramePoint2d tmpICP = new FramePoint2d();
    private final FramePoint2d tmpCMP = new FramePoint2d();
 
-   public void computeTargetTouchdownICP(double timeRemaining, FramePoint2d currentICP, FramePoint2d perfectCMP, boolean useFeedback)
+   public void computeTargetTouchdownICP(double timeRemaining, FramePoint2d currentICP, FramePoint2d perfectCMP)
    {
       currentICP.changeFrame(worldFrame);
       perfectCMP.changeFrame(worldFrame);
@@ -36,16 +36,8 @@ public class TargetTouchdownICPCalculator
 
       double exponential = Math.exp(omega.getDoubleValue() * timeRemaining);
 
-      if (useFeedback)
-      {
-         tmpICP.scale(1 + exponential);
-         tmpCMP.scale(-exponential);
-      }
-      else
-      {
          tmpICP.scale(exponential);
          tmpCMP.scale(1 - exponential);
-      }
 
       targetTouchdownICP.set(tmpICP);
       targetTouchdownICP.add(tmpCMP);

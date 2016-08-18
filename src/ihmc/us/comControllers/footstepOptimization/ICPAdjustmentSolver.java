@@ -1,4 +1,4 @@
-package ihmc.us.comControllers.controllers.footstepOptimization;
+package ihmc.us.comControllers.footstepOptimization;
 
 import org.ejml.data.DenseMatrix64F;
 import org.ejml.factory.LinearSolverFactory;
@@ -9,7 +9,6 @@ import us.ihmc.robotics.geometry.FramePoint2d;
 import us.ihmc.robotics.geometry.FrameVector2d;
 import us.ihmc.robotics.linearAlgebra.MatrixTools;
 import us.ihmc.robotics.referenceFrames.ReferenceFrame;
-import us.ihmc.simulationconstructionset.mathfunctions.Matrix;
 
 import java.util.ArrayList;
 
