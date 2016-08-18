@@ -14,11 +14,13 @@ public class StepRecursionMultiplierCalculator
    private final ArrayList<DoubleYoVariable> twoCMPRecursionExitMultipliers = new ArrayList<>();
 
    private final DoubleYoVariable finalICPRecursionMultiplier;
+   private final DoubleYoVariable omega;
 
    private final int maxNumberOfFootstepsToConsider;
 
-   public StepRecursionMultiplierCalculator(int maxNumberOfFootstepsToConsider, YoVariableRegistry parentRegistry)
+   public StepRecursionMultiplierCalculator(DoubleYoVariable omega, int maxNumberOfFootstepsToConsider, YoVariableRegistry parentRegistry)
    {
+      this.omega = omega;
       this.maxNumberOfFootstepsToConsider = maxNumberOfFootstepsToConsider;
 
       for (int i = 0; i < maxNumberOfFootstepsToConsider; i++)
@@ -44,36 +46,40 @@ public class StepRecursionMultiplierCalculator
 
    }
 
-   public void computeRecursionMultipliers(double totalTimeSpentOnExitCMP, double totalTimeSpentOnEntryCMP, double omega, int numberOfStepsToConsider, boolean useTwoCMPS)
+   public void computeRecursionMultipliers(double totalTimeSpentOnExitCMP, double totalTimeSpentOnEntryCMP, int numberOfStepsToConsider, boolean useTwoCMPS)
    {
+      reset();
+
       if (!useTwoCMPS)
          throw new RuntimeException("Trying to compute two CMP recursion multipliers.");
 
       double steppingDuration = totalTimeSpentOnEntryCMP + totalTimeSpentOnExitCMP;
-      double exitRecursion = 1.0 - Math.exp(-omega * totalTimeSpentOnExitCMP);
-      double entryRecursion = 1.0 - Math.exp(-omega * totalTimeSpentOnEntryCMP);
+      double exitRecursion = 1.0 - Math.exp(-omega.getDoubleValue() * totalTimeSpentOnExitCMP);
+      double entryRecursion = 1.0 - Math.exp(-omega.getDoubleValue() * totalTimeSpentOnEntryCMP);
 
       for (int i = 0; i < numberOfStepsToConsider; i++)
       {
-         double multiplier = Math.exp(-omega * (i - 1) * steppingDuration);
+         double multiplier = Math.exp(-omega.getDoubleValue() * (i - 1) * steppingDuration);
          twoCMPRecursionEntryMultipliers.get(i).set(multiplier * entryRecursion);
          twoCMPRecursionExitMultipliers.get(i).set(multiplier * exitRecursion);
       }
 
-      computeFinalICPRecursionMultiplier(steppingDuration, omega, numberOfStepsToConsider);
+      computeFinalICPRecursionMultiplier(steppingDuration, omega.getDoubleValue(), numberOfStepsToConsider);
    }
 
-   public void computeRecursionMultipliers(double steppingDuration, int numberOfStepsToConsider, double omega, boolean useTwoCMPS)
+   public void computeRecursionMultipliers(double steppingDuration, int numberOfStepsToConsider, boolean useTwoCMPS)
    {
+      reset();
+
       if (useTwoCMPS)
          throw new RuntimeException("Trying to compute one CMP recursion multipliers.");
 
-      double stepRecursion = 1.0 - Math.exp(-omega * steppingDuration);
+      double stepRecursion = 1.0 - Math.exp(-omega.getDoubleValue() * steppingDuration);
 
       for (int i = 0; i < numberOfStepsToConsider; i++)
-         oneCMPRecursionMultipliers.get(i).set(Math.exp(-omega * (i - 1) * steppingDuration) * stepRecursion);
+         oneCMPRecursionMultipliers.get(i).set(Math.exp(-omega.getDoubleValue() * (i - 1) * steppingDuration) * stepRecursion);
 
-      computeFinalICPRecursionMultiplier(steppingDuration, omega, numberOfStepsToConsider);
+      computeFinalICPRecursionMultiplier(steppingDuration, omega.getDoubleValue(), numberOfStepsToConsider);
    }
 
    private void computeFinalICPRecursionMultiplier(double steppingDuration, double omega, int numberOfStepsToConsider)
