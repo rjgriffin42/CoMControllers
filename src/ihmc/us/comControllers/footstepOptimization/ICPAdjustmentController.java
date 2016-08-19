@@ -95,7 +95,7 @@ public class ICPAdjustmentController
 
       targetTouchdownICPCalculator = new TargetTouchdownICPCalculator(omega0, registry);
       stepRecursionMultiplierCalculator = new StepRecursionMultiplierCalculator(omega0, maxNumberOfFootstepsToConsider.getIntegerValue(), registry);
-      icpAdjustmentSolver = new ICPAdjustmentSolver(maxNumberOfFootstepsToConsider.getIntegerValue(), registry);
+      icpAdjustmentSolver = new ICPAdjustmentSolver(maxNumberOfFootstepsToConsider.getIntegerValue());
 
       exitCMPDurationInPercentOfStepTime.set(icpPlannerParameters.getTimeSpentOnExitCMPInPercentOfStepTime());
       referenceCMPsCalculator = new ReferenceCentroidalMomentumPivotLocationsCalculator(namePrefix, bipedSupportPolygons, contactableFeet,

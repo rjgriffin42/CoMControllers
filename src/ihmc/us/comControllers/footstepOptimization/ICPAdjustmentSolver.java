@@ -4,7 +4,6 @@ import org.ejml.data.DenseMatrix64F;
 import org.ejml.factory.LinearSolverFactory;
 import org.ejml.interfaces.linsol.LinearSolver;
 import org.ejml.ops.CommonOps;
-import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.geometry.FramePoint2d;
 import us.ihmc.robotics.geometry.FrameVector2d;
 import us.ihmc.robotics.linearAlgebra.MatrixTools;
@@ -15,14 +14,13 @@ import java.util.ArrayList;
 public class ICPAdjustmentSolver
 {
    private final static ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
-   private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
 
    private final int maxNumberOfFootstepsToConsider;
 
-   private int numberOfFootstepsToConsider;
-   private int totalFreeVariables;
-   private int totalFootstepVariables;
-   private int totalLagrangeMultipliers;
+   protected int numberOfFootstepsToConsider;
+   protected int totalFreeVariables;
+   protected int totalFootstepVariables;
+   protected int totalLagrangeMultipliers;
 
    private final DenseMatrix64F solverInput_G;
    private final DenseMatrix64F solverInput_g;
@@ -60,11 +58,10 @@ public class ICPAdjustmentSolver
 
    private double kappa;
 
-   private boolean includeFeedback;
-   private boolean useTwoCMPs;
+   protected boolean includeFeedback;
+   protected boolean useTwoCMPs;
 
    private boolean hasFeedbackWeight;
-   private boolean hasFeedbackEffectiveGain;
 
    private final ArrayList<DenseMatrix64F> referenceFootstepLocations = new ArrayList<>();
    private final ArrayList<DenseMatrix64F> heelTransforms = new ArrayList<>();
@@ -79,7 +76,7 @@ public class ICPAdjustmentSolver
 
    private final ArrayList<FramePoint2d> footstepSolutionLocations = new ArrayList<>();
 
-   public ICPAdjustmentSolver(int maxNumberOfFootstepsToConsider, YoVariableRegistry parentRegistry)
+   public ICPAdjustmentSolver(int maxNumberOfFootstepsToConsider)
    {
       this.maxNumberOfFootstepsToConsider = maxNumberOfFootstepsToConsider;
 
@@ -135,8 +132,6 @@ public class ICPAdjustmentSolver
       feedbackWeight = new DenseMatrix64F(2, 2);
 
       cmpFeedback = new DenseMatrix64F(2, 1);
-
-      parentRegistry.addChild(registry);
    }
 
    public void reset()
@@ -201,23 +196,22 @@ public class ICPAdjustmentSolver
       finalICPRecursion.zero();
 
       hasFeedbackWeight = false;
-      hasFeedbackEffectiveGain = false;
    }
 
    public void setProblemConditions(int numberOfFootstepsToConsider, boolean includeFeedback, boolean useTwoCMPs)
    {
-      this.numberOfFootstepsToConsider = numberOfFootstepsToConsider;
+      this.numberOfFootstepsToConsider = Math.min(numberOfFootstepsToConsider, maxNumberOfFootstepsToConsider);
       this.includeFeedback = includeFeedback;
       this.useTwoCMPs = useTwoCMPs;
 
       if (useTwoCMPs)
       {
-         totalFootstepVariables = 3 * numberOfFootstepsToConsider;
-         totalLagrangeMultipliers = numberOfFootstepsToConsider + 1;
+         totalFootstepVariables = 3 * this.numberOfFootstepsToConsider;
+         totalLagrangeMultipliers = this.numberOfFootstepsToConsider + 1;
       }
       else
       {
-         totalFootstepVariables = 2 * numberOfFootstepsToConsider;
+         totalFootstepVariables = 2 * this.numberOfFootstepsToConsider;
          totalLagrangeMultipliers = 1;
       }
 
@@ -289,8 +283,6 @@ public class ICPAdjustmentSolver
 
    public void setEffectiveFeedbackGain(double effectiveFeedbackGain)
    {
-      hasFeedbackEffectiveGain = true;
-
       kappa = effectiveFeedbackGain;
    }
 
@@ -369,12 +361,16 @@ public class ICPAdjustmentSolver
       MatrixTools.setMatrixBlock(solverInput_beq, 0, 0, tmpDynamics_beq, 0, 0, 1, 1, 1.0);
    }
 
+   private final DenseMatrix64F ones = new DenseMatrix64F(2, 1);
    private void computeDynamicsConstraintMatrices()
    {
       tmpDynamics_Aeq.zero();
       tmpDynamics_beq.zero();
 
       tmpDynamics_Aeq.reshape(totalFreeVariables, 1);
+
+      ones.set(0, 0, 1.0);
+      ones.set(1, 0, 1.0);
 
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
       {
@@ -383,6 +379,9 @@ public class ICPAdjustmentSolver
          else
             MatrixTools.setMatrixBlock(tmpDynamics_Aeq, 2 * i, 0, oneCMPFootstepRecursions.get(i), 0, 0, 2, 1, 1.0);
       }
+
+      if (includeFeedback)
+         MatrixTools.setMatrixBlock(tmpDynamics_Aeq, totalFootstepVariables, 0, ones, 0, 0, 2, 1, -kappa);
 
       CommonOps.subtract(targetICP, finalICPRecursion, tmpDynamics_beq);
    }
