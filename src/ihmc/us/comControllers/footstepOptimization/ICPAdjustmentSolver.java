@@ -61,7 +61,14 @@ public class ICPAdjustmentSolver
    protected boolean includeFeedback;
    protected boolean useTwoCMPs;
 
-   private boolean hasFeedbackWeight;
+   private boolean hasPerfectCMP = false;
+   private boolean hasFootstepRecursionMutliplier = false;
+   private boolean hasReferenceFootstep = false;
+   private boolean hasTargetTouchdownICP = false;
+   private boolean hasFinalICPRecursion = false;
+   private boolean hasFootstepWeight = false;
+   private boolean hasFeedbackWeight = false;
+   private boolean hasEffectiveFeedbackGain = false;
 
    private final ArrayList<DenseMatrix64F> referenceFootstepLocations = new ArrayList<>();
    private final ArrayList<DenseMatrix64F> heelTransforms = new ArrayList<>();
@@ -195,7 +202,14 @@ public class ICPAdjustmentSolver
       perfectCMP.zero();
       finalICPRecursion.zero();
 
+      hasPerfectCMP = false;
+      hasFootstepRecursionMutliplier = false;
+      hasReferenceFootstep = false;
+      hasTargetTouchdownICP = false;
+      hasFinalICPRecursion = false;
+      hasFootstepWeight = false;
       hasFeedbackWeight = false;
+      hasEffectiveFeedbackGain = false;
    }
 
    public void setProblemConditions(int numberOfFootstepsToConsider, boolean includeFeedback, boolean useTwoCMPs)
@@ -225,6 +239,8 @@ public class ICPAdjustmentSolver
    {
       referenceFootstepLocations.get(footstepIndex).set(0, footstepLocation.getX());
       referenceFootstepLocations.get(footstepIndex).set(1, footstepLocation.getY());
+
+      hasReferenceFootstep = true;
    }
 
    public void setReferenceFootstepLocation(int footstepIndex, FramePoint2d footstepLocation, FrameVector2d entryOffset, FrameVector2d exitOffset)
@@ -249,6 +265,8 @@ public class ICPAdjustmentSolver
 
       for (int i = 0; i < 2; i++)
          oneCMPFootstepRecursions.get(footstepIndex).set(i, 1, recursion);
+
+      hasFootstepRecursionMutliplier = true;
    }
 
    public void setFootstepRecursionMultipliers(int footstepIndex, double entryRecursionMultiplier, double exitRecursionMultiplier)
@@ -265,25 +283,31 @@ public class ICPAdjustmentSolver
             twoCMPFootstepRecursions.get(footstepIndex).add(row, col, entryValue + exitValue);
          }
       }
+
+      hasFootstepRecursionMutliplier = true;
    }
 
    public void setFootstepWeight(int footstepIndex, double weight)
    {
       CommonOps.setIdentity(stepWeights.get(footstepIndex));
       CommonOps.scale(weight, stepWeights.get(footstepIndex));
+
+      hasFootstepWeight = true;
    }
 
    public void setFeedbackWeight(double weight)
    {
-      hasFeedbackWeight = true;
-
       CommonOps.setIdentity(feedbackWeight);
       CommonOps.scale(weight, feedbackWeight);
+
+      hasFeedbackWeight = true;
    }
 
    public void setEffectiveFeedbackGain(double effectiveFeedbackGain)
    {
       kappa = effectiveFeedbackGain;
+
+      hasEffectiveFeedbackGain = true;
    }
 
    public void setFinalICPRecursion(FramePoint2d finalICPRecursion)
@@ -291,6 +315,8 @@ public class ICPAdjustmentSolver
       finalICPRecursion.changeFrame(worldFrame);
       this.finalICPRecursion.set(0, 0, finalICPRecursion.getX());
       this.finalICPRecursion.set(1, 0, finalICPRecursion.getY());
+
+      hasFinalICPRecursion = true;
    }
 
    public void setTargetTouchdownICP(FramePoint2d targetTouchdownICP)
@@ -298,6 +324,8 @@ public class ICPAdjustmentSolver
       targetTouchdownICP.changeFrame(worldFrame);
       this.targetICP.set(0, 0, targetTouchdownICP.getX());
       this.targetICP.set(1, 0, targetTouchdownICP.getY());
+
+      hasTargetTouchdownICP = true;
    }
 
    public void setPerfectCMP(FramePoint2d perfectCMP)
@@ -305,17 +333,22 @@ public class ICPAdjustmentSolver
       perfectCMP.changeFrame(worldFrame);
       this.perfectCMP.set(0, 0, perfectCMP.getX());
       this.perfectCMP.set(1, 0, perfectCMP.getY());
+
+      hasPerfectCMP = true;
    }
 
    public void computeMatrices()
    {
+      if (!hasPerfectCMP || !hasFootstepRecursionMutliplier || !hasReferenceFootstep || !hasTargetTouchdownICP || !hasFinalICPRecursion || !hasFootstepWeight)
+         throw new RuntimeException("Have not provided all required inputs to solve the problem.");
+
       computeFootstepCostMatrices();
       MatrixTools.setMatrixBlock(solverInput_H, 0, 0, tmpFootstepTask_H, 0, 0, totalFootstepVariables, totalFootstepVariables, 1.0);
 
       if (includeFeedback)
       {
-         if (!hasFeedbackWeight)
-            throw new RuntimeException("Have not set up the feedback weight");
+         if (!hasFeedbackWeight || !hasEffectiveFeedbackGain)
+            throw new RuntimeException("Have not set up the appropriate feedback weight.");
 
          MatrixTools.setMatrixBlock(solverInput_H, totalFootstepVariables, totalFootstepVariables, feedbackWeight, 0, 0, 2, 2, 1.0);
       }
