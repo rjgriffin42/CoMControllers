@@ -1,11 +1,15 @@
 package ihmc.us.comControllers.footstepOptimization;
 
+import org.ejml.data.DenseMatrix64F;
 import org.junit.Assert;
 import org.junit.Test;
+import us.ihmc.convexOptimization.qpOASES.DenseMatrix;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.robotics.geometry.FramePoint2d;
+import us.ihmc.robotics.linearAlgebra.MatrixTools;
 import us.ihmc.robotics.referenceFrames.ReferenceFrame;
+import us.ihmc.tools.testing.JUnitTools;
 import us.ihmc.tools.testing.TestPlanAnnotations.DeployableTestMethod;
 
 public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
@@ -141,6 +145,16 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       }
 
       checkDimensions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
+
+      for (int i = 0; i < numberOfFootstepsToConsider; i++)
+      {
+         Assert.assertEquals(i, tmpDynamics_Aeq.get(2 * i, 0), stepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, includeFeedback));
+      }
+
+      DenseMatrix64F rightHandSide = new DenseMatrix64F(2, 1);
+
+      JUnitTools.assertMatrixEquals(tmpDynamics_Aeq, solverInput_Aeq, epsilon);
+      JUnitTools.assertMatrixEquals(tmpDynamics_Aeq, solverInput_Aeq, epsilon);
 
       super.computeMatrices();
    }

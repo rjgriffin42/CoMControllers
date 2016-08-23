@@ -27,14 +27,14 @@ public class ICPAdjustmentSolver
 
    private final DenseMatrix64F solverInput_H;
 
-   private final DenseMatrix64F solverInput_Aeq;
-   private final DenseMatrix64F solverInput_beq;
+   protected final DenseMatrix64F solverInput_Aeq;
+   protected final DenseMatrix64F solverInput_beq;
    private final DenseMatrix64F tmpTrans_Aeq;
 
    private final DenseMatrix64F tmpFootstepTask_H;
 
-   private final DenseMatrix64F tmpDynamics_Aeq;
-   private final DenseMatrix64F tmpDynamics_beq;
+   protected final DenseMatrix64F tmpDynamics_Aeq;
+   protected final DenseMatrix64F tmpDynamics_beq;
 
    private final DenseMatrix64F tmpTwoCMPProjection_Aeq;
    private final DenseMatrix64F tmpTwoCMPProjection_beq;
@@ -174,9 +174,27 @@ public class ICPAdjustmentSolver
       solverInput_G.reshape(totalFreeVariables + totalLagrangeMultipliers, totalFreeVariables + totalLagrangeMultipliers);
       solverInput_g.reshape(totalFreeVariables + totalLagrangeMultipliers, 1);
 
-      solverInput_Aeq.reshape(totalFreeVariables, totalLagrangeMultipliers);
-      solverInput_beq.reshape(totalLagrangeMultipliers, 1);
-      tmpTrans_Aeq.reshape(totalLagrangeMultipliers, totalFreeVariables);
+      tmpDynamics_Aeq.reshape(totalFreeVariables, totalLagrangeMultipliers);
+      tmpDynamics_beq.reshape(totalLagrangeMultipliers, 1);
+
+      if (useTwoCMPs)
+      {
+         tmpTwoCMPProjection_Aeq.reshape(numberOfFootstepsToConsider, totalLagrangeMultipliers);
+         tmpTwoCMPProjection_beq.reshape(numberOfFootstepsToConsider, 1);
+
+         solverInput_Aeq.reshape(totalFreeVariables + numberOfFootstepsToConsider, totalLagrangeMultipliers);
+         solverInput_beq.reshape(totalLagrangeMultipliers + numberOfFootstepsToConsider, 1);
+         tmpTrans_Aeq.reshape(totalLagrangeMultipliers, totalFreeVariables + numberOfFootstepsToConsider);
+      }
+      else
+      {
+         tmpTwoCMPProjection_Aeq.reshape(0, totalLagrangeMultipliers);
+         tmpTwoCMPProjection_beq.reshape(0, 1);
+
+         solverInput_Aeq.reshape(totalFreeVariables, totalLagrangeMultipliers);
+         solverInput_beq.reshape(totalLagrangeMultipliers, 1);
+         tmpTrans_Aeq.reshape(totalLagrangeMultipliers, totalFreeVariables);
+      }
 
       footstepSelectionMatrix.reshape(2 * numberOfFootstepsToConsider, totalFreeVariables);
 
