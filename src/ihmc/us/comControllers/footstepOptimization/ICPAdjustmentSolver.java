@@ -95,7 +95,7 @@ public class ICPAdjustmentSolver
       tmpFootstepTask_H = new DenseMatrix64F(3 * maxNumberOfFootstepsToConsider, 3 * maxNumberOfFootstepsToConsider);
 
       tmpDynamics_Aeq = new DenseMatrix64F(3 * maxNumberOfFootstepsToConsider, 1);
-      tmpDynamics_beq = new DenseMatrix64F(1, 1);
+      tmpDynamics_beq = new DenseMatrix64F(2, 1);
 
       tmpTwoCMPProjection_Aeq = new DenseMatrix64F(maxNumberOfFreeVariables, maxNumberOfFootstepsToConsider);
       tmpTwoCMPProjection_beq = new DenseMatrix64F(maxNumberOfFootstepsToConsider, 1);
@@ -176,6 +176,7 @@ public class ICPAdjustmentSolver
 
       solverInput_Aeq.reshape(totalFreeVariables, totalLagrangeMultipliers);
       solverInput_beq.reshape(totalLagrangeMultipliers, 1);
+      tmpTrans_Aeq.reshape(totalLagrangeMultipliers, totalFreeVariables);
 
       footstepSelectionMatrix.reshape(2 * numberOfFootstepsToConsider, totalFreeVariables);
 
@@ -264,7 +265,7 @@ public class ICPAdjustmentSolver
          throw new RuntimeException("Should be submitting entry and exit recursions multipliers");
 
       for (int i = 0; i < 2; i++)
-         oneCMPFootstepRecursions.get(footstepIndex).set(i, 1, recursion);
+         oneCMPFootstepRecursions.get(footstepIndex).set(i, 0, recursion);
 
       hasFootstepRecursionMutliplier = true;
    }

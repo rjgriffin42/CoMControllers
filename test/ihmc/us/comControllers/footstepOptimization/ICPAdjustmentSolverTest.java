@@ -95,6 +95,12 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       FramePoint2d desiredFootstep1 = new FramePoint2d(worldFrame);
       FramePoint2d desiredFootstep2 = new FramePoint2d(worldFrame);
 
+      FramePoint2d targetTouchdownICP = new FramePoint2d(worldFrame);
+      FramePoint2d desiredFinalICP = new FramePoint2d(worldFrame);
+      FramePoint2d finalICPRecursion = new FramePoint2d(worldFrame);
+
+      double footstepWeight = 3.0;
+
       double stepLength = 0.2;
       double stanceWidth = 0.1;
 
@@ -103,30 +109,53 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       desiredFootstep1.set(stepLength, stanceWidth);
       desiredFootstep2.set(2 * stepLength, -stanceWidth);
 
-      double
+      desiredFinalICP.set(desiredFootstep2);
 
       double singleSupportDuration = 2.0;
       double doubleSupportDuration = 1.0;
       double remainingTime = 1.0;
+      double steppingDuration = singleSupportDuration + doubleSupportDuration;
+
+      targetTouchdownICPCalculator.computeTargetTouchdownICP(remainingTime, currentICP, perfectCMP);
+      stepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, numberOfFootstepsToConsider, useTwoCMPs);
+
+      targetTouchdownICPCalculator.getTargetTouchdownICP(targetTouchdownICP);
+
+      double finalICPRecursionMultiplier = stepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier();
+      finalICPRecursion.set(desiredFinalICP);
+      finalICPRecursion.scale(finalICPRecursionMultiplier);
 
       super.setProblemConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
-
       super.reset();
+      super.setReferenceFootstepLocation(0, desiredFootstep1);
+      super.setReferenceFootstepLocation(1, desiredFootstep2);
+
+      super.setPerfectCMP(perfectCMP);
+      super.setTargetTouchdownICP(targetTouchdownICP);
+      super.setFinalICPRecursion(finalICPRecursion);
+
+      for (int i = 0; i < numberOfFootstepsToConsider; i++)
+      {
+         super.setFootstepRecursionMultipliers(i, stepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, includeFeedback));
+         super.setFootstepWeight(i, footstepWeight);
+      }
 
       checkDimensions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
+
+      super.computeMatrices();
    }
 
-   private void checkDimensions(int nummberOFFootstepsToConsider, boolean includeFeedback, boolean useTwoCMPs)
+   private void checkDimensions(int numberOFFootstepsToConsider, boolean includeFeedback, boolean useTwoCMPs)
    {
       int totalLagrangeMultipliers, totalFreeVariables, totalFootstepVariables;
       if (useTwoCMPs)
       {
-         totalFootstepVariables = 3 * nummberOFFootstepsToConsider;
-         totalLagrangeMultipliers = 1 + nummberOFFootstepsToConsider;
+         totalFootstepVariables = 3 * numberOFFootstepsToConsider;
+         totalLagrangeMultipliers = 1 + numberOFFootstepsToConsider;
       }
       else
       {
-         totalFootstepVariables = 2 * nummberOFFootstepsToConsider;
+         totalFootstepVariables = 2 * numberOFFootstepsToConsider;
          totalLagrangeMultipliers = 1;
       }
 
