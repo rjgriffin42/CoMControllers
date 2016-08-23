@@ -22,10 +22,10 @@ public class ICPAdjustmentSolver
    protected int totalFootstepVariables;
    protected int totalLagrangeMultipliers;
 
-   private final DenseMatrix64F solverInput_G;
-   private final DenseMatrix64F solverInput_g;
+   protected final DenseMatrix64F solverInput_G;
+   protected final DenseMatrix64F solverInput_g;
 
-   private final DenseMatrix64F solverInput_H;
+   protected final DenseMatrix64F solverInput_H;
 
    protected final DenseMatrix64F solverInput_Aeq;
    protected final DenseMatrix64F solverInput_beq;
@@ -175,7 +175,7 @@ public class ICPAdjustmentSolver
       solverInput_g.reshape(totalFreeVariables + totalLagrangeMultipliers, 1);
 
       tmpDynamics_Aeq.reshape(totalFreeVariables, totalLagrangeMultipliers);
-      tmpDynamics_beq.reshape(totalLagrangeMultipliers, 1);
+      tmpDynamics_beq.reshape(2, 1);
 
       if (useTwoCMPs)
       {
@@ -183,7 +183,7 @@ public class ICPAdjustmentSolver
          tmpTwoCMPProjection_beq.reshape(numberOfFootstepsToConsider, 1);
 
          solverInput_Aeq.reshape(totalFreeVariables + numberOfFootstepsToConsider, totalLagrangeMultipliers);
-         solverInput_beq.reshape(totalLagrangeMultipliers + numberOfFootstepsToConsider, 1);
+         solverInput_beq.reshape(2 + numberOfFootstepsToConsider, 1);
          tmpTrans_Aeq.reshape(totalLagrangeMultipliers, totalFreeVariables + numberOfFootstepsToConsider);
       }
       else
@@ -192,7 +192,7 @@ public class ICPAdjustmentSolver
          tmpTwoCMPProjection_beq.reshape(0, 1);
 
          solverInput_Aeq.reshape(totalFreeVariables, totalLagrangeMultipliers);
-         solverInput_beq.reshape(totalLagrangeMultipliers, 1);
+         solverInput_beq.reshape(2, 1);
          tmpTrans_Aeq.reshape(totalLagrangeMultipliers, totalFreeVariables);
       }
 
@@ -406,11 +406,11 @@ public class ICPAdjustmentSolver
          computeTwoCMPProjectionConstraintMatrices();
 
          MatrixTools.setMatrixBlock(solverInput_Aeq, 0, 1, tmpTwoCMPProjection_Aeq, 0, 0, totalFootstepVariables, numberOfFootstepsToConsider, 1.0);
-         MatrixTools.setMatrixBlock(solverInput_beq, 1, 0, tmpTwoCMPProjection_beq, 0, 0, numberOfFootstepsToConsider, 1, 1.0);
+         MatrixTools.setMatrixBlock(solverInput_beq, 2, 0, tmpTwoCMPProjection_beq, 0, 0, numberOfFootstepsToConsider, 1, 1.0);
       }
 
       MatrixTools.setMatrixBlock(solverInput_Aeq, 0, 0, tmpDynamics_Aeq, 0, 0, totalFreeVariables, 1, 1.0);
-      MatrixTools.setMatrixBlock(solverInput_beq, 0, 0, tmpDynamics_beq, 0, 0, 1, 1, 1.0);
+      MatrixTools.setMatrixBlock(solverInput_beq, 0, 0, tmpDynamics_beq, 0, 0, 2, 1, 1.0);
    }
 
    private final DenseMatrix64F ones = new DenseMatrix64F(2, 1);
@@ -434,6 +434,9 @@ public class ICPAdjustmentSolver
 
       if (includeFeedback)
          MatrixTools.setMatrixBlock(tmpDynamics_Aeq, totalFootstepVariables, 0, ones, 0, 0, 2, 1, -kappa);
+
+      MatrixTools.setMatrixBlock(tmpDynamics_beq, 0, 0, targetICP, 0, 0, 2, 1, 1.0);
+      CommonOps.subtract(tmpDynamics_beq, finalICPRecursion, tmpDynamics_beq);
 
       CommonOps.subtract(targetICP, finalICPRecursion, tmpDynamics_beq);
    }
