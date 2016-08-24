@@ -36,7 +36,7 @@ public class ICPAdjustmentSolver
    protected final DenseMatrix64F tmpDynamics_Aeq;
    protected final DenseMatrix64F tmpDynamics_beq;
 
-   private final DenseMatrix64F solution;
+   protected final DenseMatrix64F solution;
    private final DenseMatrix64F freeVariableSolution;
    private final DenseMatrix64F footstepSolutions;
    private final DenseMatrix64F feedbackSolution;
