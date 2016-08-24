@@ -74,53 +74,33 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
    public void testDimensionality()
    {
       int numberOfFootstepsToConsider = maxNumberOfFootstepsToConsider - 2;
-      boolean includeFeedback = false;
-      boolean useTwoCMPs = false;
 
-      super.setProblemConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
+      super.setProblemConditions(numberOfFootstepsToConsider, false, false);
+      checkDimensions(numberOfFootstepsToConsider, false, false);
 
-      checkDimensions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
+      super.setProblemConditions(numberOfFootstepsToConsider, true, false);
+      checkDimensions(numberOfFootstepsToConsider, true, false);
 
-      includeFeedback = true;
-      useTwoCMPs = false;
+      super.setProblemConditions(numberOfFootstepsToConsider, false, true);
+      checkDimensions(numberOfFootstepsToConsider, false, true);
 
-      super.setProblemConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
-      checkDimensions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
-
-      includeFeedback = false;
-      useTwoCMPs = true;
-
-      super.setProblemConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
-      checkDimensions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
-
-      includeFeedback = true;
-      useTwoCMPs = true;
-
-      super.setProblemConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
-      checkDimensions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
+      super.setProblemConditions(numberOfFootstepsToConsider, true, true);
+      checkDimensions(numberOfFootstepsToConsider, true, true);
 
 
       numberOfFootstepsToConsider = maxNumberOfFootstepsToConsider + 2;
-      includeFeedback = false;
-      useTwoCMPs = false;
 
-      super.setProblemConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
-      checkDimensions(maxNumberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
+      super.setProblemConditions(numberOfFootstepsToConsider, false, false);
+      checkDimensions(maxNumberOfFootstepsToConsider, false, false);
 
-      super.setProblemConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
-      checkDimensions(maxNumberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
+      super.setProblemConditions(numberOfFootstepsToConsider, true, false);
+      checkDimensions(maxNumberOfFootstepsToConsider, true, false);
 
-      includeFeedback = false;
-      useTwoCMPs = true;
+      super.setProblemConditions(numberOfFootstepsToConsider, false, true);
+      checkDimensions(maxNumberOfFootstepsToConsider, false, true);
 
-      super.setProblemConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
-      checkDimensions(maxNumberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
-
-      includeFeedback = true;
-      useTwoCMPs = true;
-
-      super.setProblemConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
-      checkDimensions(maxNumberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
+      super.setProblemConditions(numberOfFootstepsToConsider, true, true);
+      checkDimensions(maxNumberOfFootstepsToConsider, true, true);
    }
 
    @DeployableTestMethod(estimatedDuration = 2.0)
@@ -205,8 +185,8 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
    private void runStepTestNoFeedbackOneCMP(int numberOfFootstepsToConsider)
    {
-      boolean includeFeedback = false;
-      boolean useTwoCMPs = false;
+      final boolean includeFeedback = false;
+      final boolean useTwoCMPs = false;
 
       setImperfectConditions(numberOfFootstepsToConsider);
 
@@ -229,8 +209,8 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
    private void runStepTestOneCMPWithFeedback(int numberOfFootstepsToConsider)
    {
-      boolean includeFeedback = true;
-      boolean useTwoCMPs = false;
+      final boolean includeFeedback = true;
+      final boolean useTwoCMPs = false;
 
       setImperfectConditions(numberOfFootstepsToConsider);
 
@@ -253,8 +233,8 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
    private void runStepTestTwoCMPsWithFeedback(int numberOfFootstepsToConsider)
    {
-      boolean includeFeedback = true;
-      boolean useTwoCMPs = true;
+      final boolean includeFeedback = true;
+      final boolean useTwoCMPs = true;
 
       setImperfectConditions(numberOfFootstepsToConsider);
 
@@ -277,8 +257,8 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
    private void runStepTestNoFeedbackTwoCMPs(int numberOfFootstepsToConsider)
    {
-      boolean includeFeedback = false;
-      boolean useTwoCMPs = true;
+      final boolean includeFeedback = false;
+      final boolean useTwoCMPs = true;
 
       setImperfectConditions(numberOfFootstepsToConsider);
 
@@ -341,7 +321,6 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       }
 
       desiredFinalICP.set(desiredFootsteps.get(numberOfFootstepsToConsider));
-
    }
 
    private void submitConditions(int numberOfFootstepsToConsider, boolean includeFeedback, boolean useTwoCMPs)
@@ -378,7 +357,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       super.setEffectiveFeedbackGain(effectiveFeedbackWeight);
    }
 
-   private void submitInformation(int numberOfFootstepsToConsider, boolean useTwoCMPs)
+   private void submitInformation(int numberOfFootstepsToConsider, final boolean useTwoCMPs)
    {
       if (entryOffset != null && exitOffset != null)
       {
@@ -415,7 +394,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       }
    }
 
-   private void checkMatrices(int numberOfFootstepsToConsider, boolean includeFeedback, boolean useTwoCMPs)
+   private void checkMatrices(int numberOfFootstepsToConsider, boolean includeFeedback, final boolean useTwoCMPs)
    {
       DenseMatrix64F identity = CommonOps.identity(2, 2);
       DenseMatrix64F dynamicsSubset = new DenseMatrix64F(2, 2);
