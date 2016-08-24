@@ -382,7 +382,7 @@ public class ICPAdjustmentSolver
       MatrixTools.setMatrixBlock(solverInput_G, totalFreeVariables, 0, tmpTrans_Aeq, 0, 0, totalLagrangeMultipliers, totalFreeVariables, 1.0);
 
       // assemble negative linear cost with equalities
-      MatrixTools.setMatrixBlock(solverInput_g, 2, 0, solverInput_beq, 0, 0, totalLagrangeMultipliers, 1, 1.0);
+      MatrixTools.setMatrixBlock(solverInput_g, totalFreeVariables, 0, solverInput_beq, 0, 0, totalLagrangeMultipliers, 1, 1.0);
    }
 
    private void computeFootstepCostMatrices()
