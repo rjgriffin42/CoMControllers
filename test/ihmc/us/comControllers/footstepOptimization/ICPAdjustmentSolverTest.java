@@ -186,6 +186,8 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       JUnitTools.assertMatrixEquals(tmpDynamics_beq, constraintEquals, epsilon);
 
       super.solve();
+
+      Assert.assertTrue(super.getCostToGo() > 0.0);
    }
 
    private void checkDimensions(int numberOFFootstepsToConsider, boolean includeFeedback, boolean useTwoCMPs)

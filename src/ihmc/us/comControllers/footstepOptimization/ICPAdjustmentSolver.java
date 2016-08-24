@@ -216,6 +216,7 @@ public class ICPAdjustmentSolver
 
          stepWeights.get(i).zero();
       }
+      tmpCost.reshape(totalFreeVariables, 1);
 
       targetICP.zero();
       perfectCMP.zero();
