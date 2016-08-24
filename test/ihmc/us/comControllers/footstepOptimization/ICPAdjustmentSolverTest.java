@@ -103,6 +103,26 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
    @DeployableTestMethod(estimatedDuration = 2.0)
    @Test(timeout = 21000)
+   public void testStepOneCMPWithFeedback()
+   {
+      int iters = 100;
+
+      for (int iter = 0; iter < iters; iter++)
+      {
+         for (int i = 0; i < maxNumberOfFootstepsToConsider + 1; i++)
+         {
+            Random random = new Random();
+            int numberOfFootstepsToConsider = random.nextInt();
+            numberOfFootstepsToConsider = Math.min(numberOfFootstepsToConsider, maxNumberOfFootstepsToConsider);
+            numberOfFootstepsToConsider = Math.max(numberOfFootstepsToConsider, 1);
+
+            runStepTestOneCMP(numberOfFootstepsToConsider);
+         }
+      }
+   }
+
+   @DeployableTestMethod(estimatedDuration = 2.0)
+   @Test(timeout = 21000)
    public void testStepNoFeedbackTwoCMPs()
    {
       int iters = 1;
@@ -185,6 +205,81 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       super.computeMatrices();
 
       checkMatricesNoFeedbackOneCMP(stepRecursionMultiplierCalculator, targetTouchdownICP, finalICPRecursion, numberOfFootstepsToConsider, footstepWeight, useTwoCMPs);
+
+      super.solve();
+
+      Assert.assertTrue(super.getCostToGo() > 0.0);
+   }
+
+   private void runStepTestOneCMP(int numberOfFootstepsToConsider)
+   {
+      YoVariableRegistry registry = new YoVariableRegistry("robert");
+      DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
+      omega.set(3.0);
+
+      boolean includeFeedback = true;
+      boolean useTwoCMPs = false;
+
+      TargetTouchdownICPCalculator targetTouchdownICPCalculator = new TargetTouchdownICPCalculator(omega, registry);
+      StepRecursionMultiplierCalculator stepRecursionMultiplierCalculator = new StepRecursionMultiplierCalculator(omega, maxNumberOfFootstepsToConsider, registry);
+
+      FramePoint2d perfectCMP = new FramePoint2d(worldFrame);
+      FramePoint2d currentICP = new FramePoint2d(worldFrame);
+
+      ArrayList<FramePoint2d> desiredFootsteps = new ArrayList<>();
+      for (int i = 0; i < numberOfFootstepsToConsider + 1; i++)
+         desiredFootsteps.add(new FramePoint2d(worldFrame));
+
+      FramePoint2d targetTouchdownICP = new FramePoint2d(worldFrame);
+      FramePoint2d desiredFinalICP = new FramePoint2d(worldFrame);
+      FramePoint2d finalICPRecursion = new FramePoint2d(worldFrame);
+
+      double footstepWeight = 3.0;
+      double feedbackWeight = 1.5;
+      double feedbackGain = 2.0;
+
+      double stepLength = 0.2;
+      double stanceWidth = 0.1;
+
+      perfectCMP.set(0.0, -stanceWidth); // right foot stance
+      currentICP.set(0.1, 0.0);
+      RobotSide stanceSide = RobotSide.RIGHT;
+
+      for (int i = 0; i < numberOfFootstepsToConsider + 1; i++)
+      {
+         desiredFootsteps.get(i).set((i + 1) * stepLength, stanceSide.negateIfRightSide(stanceWidth));
+         stanceSide = stanceSide.getOppositeSide();
+      }
+
+      desiredFinalICP.set(desiredFootsteps.get(numberOfFootstepsToConsider));
+
+      double singleSupportDuration = 2.0;
+      double doubleSupportDuration = 1.0;
+      double remainingTime = 1.0;
+      double steppingDuration = singleSupportDuration + doubleSupportDuration;
+
+      double effectiveFeedbackGain = -Math.exp(omega.getDoubleValue() * remainingTime) / (1.0 + feedbackGain / omega.getDoubleValue());
+
+      targetTouchdownICPCalculator.computeTargetTouchdownICP(remainingTime, currentICP, perfectCMP);
+      stepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, numberOfFootstepsToConsider, useTwoCMPs);
+
+      targetTouchdownICPCalculator.getTargetTouchdownICP(targetTouchdownICP);
+
+      finalICPRecursion.set(desiredFinalICP);
+      finalICPRecursion.scale(stepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier());
+
+      super.setProblemConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
+      super.reset();
+
+      submitInformation(stepRecursionMultiplierCalculator, desiredFootsteps, null, null, perfectCMP, targetTouchdownICP, finalICPRecursion, footstepWeight,
+                        feedbackWeight, effectiveFeedbackGain, numberOfFootstepsToConsider, useTwoCMPs);
+
+      checkDimensions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
+
+      super.computeMatrices();
+
+      checkMatricesOneCMPWithFeedback(stepRecursionMultiplierCalculator, targetTouchdownICP, finalICPRecursion, numberOfFootstepsToConsider, footstepWeight,
+                                      feedbackWeight, useTwoCMPs);
 
       super.solve();
 
@@ -329,6 +424,18 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       }
    }
 
+   private void submitInformation(StepRecursionMultiplierCalculator stepRecursionMultiplierCalculator, ArrayList<FramePoint2d> desiredFootsteps,
+                                  FrameVector2d entryOffset, FrameVector2d exitOffset, FramePoint2d perfectCMP, FramePoint2d targetTouchdownICP,
+                                  FramePoint2d finalICPRecursion, double footstepWeight, double feedbackWeight, double effectiveFeedbackWeight,
+                                  int numberOfFootstepsToConsider, boolean useTwoCMPs)
+   {
+      submitInformation(stepRecursionMultiplierCalculator, desiredFootsteps, entryOffset, exitOffset, perfectCMP, targetTouchdownICP, finalICPRecursion,
+                        footstepWeight, numberOfFootstepsToConsider, useTwoCMPs);
+
+      super.setFeedbackWeight(feedbackWeight);
+      super.setEffectiveFeedbackGain(effectiveFeedbackWeight);
+   }
+
    private void checkMatricesNoFeedbackOneCMP(StepRecursionMultiplierCalculator stepRecursionMultiplierCalculator, FramePoint2d targetTouchdownICP,
          FramePoint2d finalICPRecursion, int numberOfFootstepsToConsider, double footstepWeight, boolean useTwoCMPs)
    {
@@ -351,30 +458,98 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, tmpDynamics_Aeq, solverInput_Aeq, epsilon);
       JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, tmpDynamics_beq, solverInput_beq, epsilon);
 
-      DenseMatrix64F weights = CommonOps.identity(2, 2);
-      CommonOps.scale(footstepWeight, weights);
       int size = 2 * numberOfFootstepsToConsider;
       DenseMatrix64F zeros = new DenseMatrix64F(size, 1);
 
       DenseMatrix64F optimizationBlock = new DenseMatrix64F(size, size);
-      CommonOps.extract(solverInput_G, 0, size, 0, size, optimizationBlock, 0, 0);
       DenseMatrix64F optimizationEquals = new DenseMatrix64F(size, 1);
+      CommonOps.extract(solverInput_G, 0, size, 0, size, optimizationBlock, 0, 0);
       CommonOps.extract(solverInput_g, 0, size, 0, 1, optimizationEquals, 0, 0);
 
       DenseMatrix64F constraintBlock = new DenseMatrix64F(size, 2);
-      CommonOps.extract(solverInput_G, 0, size, size, size + 2, constraintBlock, 0, 0);
       DenseMatrix64F constraintEquals = new DenseMatrix64F(2, 1);
+      CommonOps.extract(solverInput_G, 0, size, size, size + 2, constraintBlock, 0, 0);
       CommonOps.extract(solverInput_g, size, size + 2, 0, 1, constraintEquals, 0, 0);
 
       DenseMatrix64F weightsSubset = new DenseMatrix64F(2, 2);
+      DenseMatrix64F footstepWeights = CommonOps.identity(2, 2);
+
+      CommonOps.scale(footstepWeight, footstepWeights);
+
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
       {
          int start = 2 * i;
          CommonOps.extract(solverInput_H, start, start + 2, start, start + 2, weightsSubset, 0, 0);
 
-         JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, weightsSubset, weights, epsilon);
+         JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, weightsSubset, footstepWeights, epsilon);
       }
       // check that the cost was inserted into total problem correctly
+      JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, solverInput_H, optimizationBlock, epsilon);
+      JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, zeros, optimizationEquals, epsilon);
+
+      JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, tmpDynamics_Aeq, constraintBlock, epsilon);
+      JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, tmpDynamics_beq, constraintEquals, epsilon);
+   }
+
+   private void checkMatricesOneCMPWithFeedback(StepRecursionMultiplierCalculator stepRecursionMultiplierCalculator, FramePoint2d targetTouchdownICP,
+                                              FramePoint2d finalICPRecursion, int numberOfFootstepsToConsider, double footstepWeight, double feedbackWeight,
+                                                boolean useTwoCMPs)
+   {
+      DenseMatrix64F identity = CommonOps.identity(2, 2);
+      DenseMatrix64F dynamicsSubset = new DenseMatrix64F(2, 2);
+      for (int i = 0; i < numberOfFootstepsToConsider; i++)
+      {
+         CommonOps.setIdentity(identity);
+         CommonOps.scale(stepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, useTwoCMPs), identity);
+         CommonOps.extract(tmpDynamics_Aeq, 2 * i, 2 * i + 2, 0, 2, dynamicsSubset, 0, 0);
+
+         JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, dynamicsSubset, identity, epsilon);
+      }
+
+      DenseMatrix64F rightHandSide = new DenseMatrix64F(2, 1);
+      rightHandSide.set(0, 0, targetTouchdownICP.getX() - finalICPRecursion.getX());
+      rightHandSide.set(1, 0, targetTouchdownICP.getY() - finalICPRecursion.getY());
+      JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, tmpDynamics_beq, rightHandSide, epsilon);
+
+      JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, tmpDynamics_Aeq, solverInput_Aeq, epsilon);
+      JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, tmpDynamics_beq, solverInput_beq, epsilon);
+
+      int size = 2 * numberOfFootstepsToConsider + 2;
+      DenseMatrix64F zeros = new DenseMatrix64F(size, 1);
+
+      DenseMatrix64F optimizationBlock = new DenseMatrix64F(size, size);
+      DenseMatrix64F optimizationEquals = new DenseMatrix64F(size, 1);
+      CommonOps.extract(solverInput_G, 0, size, 0, size, optimizationBlock, 0, 0);
+      CommonOps.extract(solverInput_g, 0, size, 0, 1, optimizationEquals, 0, 0);
+
+      DenseMatrix64F feedbackBlock = new DenseMatrix64F(2, 2);
+      DenseMatrix64F feedbackEquals = new DenseMatrix64F(2, 1);
+      CommonOps.extract(solverInput_G, size, size + 2, size, size + 2, feedbackBlock, 0, 0);
+      CommonOps.extract(solverInput_g, size, size + 2, 0, 1, feedbackEquals, 0, 0);
+
+      DenseMatrix64F constraintBlock = new DenseMatrix64F(size, 2);
+      DenseMatrix64F constraintEquals = new DenseMatrix64F(2, 1);
+      CommonOps.extract(solverInput_G, 0, size, size, size + 2, constraintBlock, 0, 0);
+      CommonOps.extract(solverInput_g, size, size + 2, 0, 1, constraintEquals, 0, 0);
+
+      DenseMatrix64F weightsSubset = new DenseMatrix64F(2, 2);
+      DenseMatrix64F footstepWeights = CommonOps.identity(2, 2);
+      DenseMatrix64F feedbackWeights = CommonOps.identity(2, 2);
+
+      CommonOps.scale(footstepWeight, footstepWeights);
+      CommonOps.scale(feedbackWeight, feedbackWeights);
+
+      for (int i = 0; i < numberOfFootstepsToConsider; i++)
+      {
+         int start = 2 * i;
+         CommonOps.extract(solverInput_H, start, start + 2, start, start + 2, weightsSubset, 0, 0);
+         JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, weightsSubset, footstepWeights, epsilon);
+      }
+
+      int start = 2 * numberOfFootstepsToConsider;
+      CommonOps.extract(solverInput_H, start, start + 2, start, start + 2, weightsSubset, 0, 0);
+      JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, weightsSubset, feedbackWeights, epsilon);
+
       JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, solverInput_H, optimizationBlock, epsilon);
       JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, zeros, optimizationEquals, epsilon);
 
