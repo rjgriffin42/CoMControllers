@@ -105,7 +105,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
    @Test(timeout = 21000)
    public void testStepNoFeedbackTwoCMPs()
    {
-      int iters = 100;
+      int iters = 1;
 
       for (int iter = 0; iter < iters; iter++)
       {

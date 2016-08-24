@@ -321,14 +321,8 @@ public class ICPAdjustmentSolver
 
    private void computeFootstepCostMatrices()
    {
-      int indexMultiplier;
-      if (useTwoCMPs)
-         indexMultiplier = 3;
-      else
-         indexMultiplier = 2;
-
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
-         MatrixTools.setMatrixBlock(tmpFootstepTask_H, i * indexMultiplier, i * indexMultiplier, stepWeights.get(i), 0, 0, 2, 2, 1.0);
+         MatrixTools.setMatrixBlock(tmpFootstepTask_H, 2 * i, 2 * i, stepWeights.get(i), 0, 0, 2, 2, 1.0);
    }
 
    private void computeConstraintMatrices()
