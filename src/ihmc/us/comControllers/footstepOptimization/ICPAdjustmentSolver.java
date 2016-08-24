@@ -94,7 +94,7 @@ public class ICPAdjustmentSolver
 
       tmpFootstepTask_H = new DenseMatrix64F(3 * maxNumberOfFootstepsToConsider, 3 * maxNumberOfFootstepsToConsider);
 
-      tmpDynamics_Aeq = new DenseMatrix64F(3 * maxNumberOfFootstepsToConsider, 2);
+      tmpDynamics_Aeq = new DenseMatrix64F(3 * maxNumberOfFootstepsToConsider, maxNumberOfFootstepsToConsider + 2);
       tmpDynamics_beq = new DenseMatrix64F(2, 1);
 
       tmpTwoCMPProjection_Aeq = new DenseMatrix64F(maxNumberOfFreeVariables, maxNumberOfFootstepsToConsider);
@@ -128,8 +128,8 @@ public class ICPAdjustmentSolver
 
          heelTransforms.add(new DenseMatrix64F(2, 3));
          toeTransforms.add(new DenseMatrix64F(2, 3));
-         twoCMPFootstepRecursions.add(new DenseMatrix64F(3, 1));
-         oneCMPFootstepRecursions.add(new DenseMatrix64F(1, 1));
+         twoCMPFootstepRecursions.add(new DenseMatrix64F(3, 2)); // transposed when multiplying
+         oneCMPFootstepRecursions.add(new DenseMatrix64F(2, 2));
 
          stepWeights.add(new DenseMatrix64F(2, 2));
 
@@ -283,7 +283,8 @@ public class ICPAdjustmentSolver
       if (useTwoCMPs)
          throw new RuntimeException("Should be submitting entry and exit recursions multipliers");
 
-      oneCMPFootstepRecursions.get(footstepIndex).set(0, 0, recursion);
+      CommonOps.setIdentity(oneCMPFootstepRecursions.get(footstepIndex));
+      CommonOps.scale(recursion, oneCMPFootstepRecursions.get(footstepIndex));
 
       hasFootstepRecursionMutliplier = true;
    }
@@ -299,7 +300,7 @@ public class ICPAdjustmentSolver
          {
             double exitValue = exitRecursionMultiplier * toeTransforms.get(footstepIndex).get(row, col);
             double entryValue = entryRecursionMultiplier * heelTransforms.get(footstepIndex).get(row, col);
-            twoCMPFootstepRecursions.get(footstepIndex).add(row, col, entryValue + exitValue);
+            twoCMPFootstepRecursions.get(footstepIndex).set(col, row, entryValue + exitValue); // this is transposed
          }
       }
 
@@ -414,21 +415,17 @@ public class ICPAdjustmentSolver
    }
 
    private final DenseMatrix64F ones = new DenseMatrix64F(2, 1);
-   private final DenseMatrix64F identity = CommonOps.identity(2, 2);
    private void computeDynamicsConstraintMatrices()
    {
-      tmpDynamics_Aeq.zero();
-      tmpDynamics_beq.zero();
-
       ones.set(0, 0, 1.0);
       ones.set(1, 0, 1.0);
 
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
       {
          if (useTwoCMPs)
-            MatrixTools.setMatrixBlock(tmpDynamics_Aeq, 3 * i, 0, twoCMPFootstepRecursions.get(i), 0, 0, 3, 1, 1.0);
+            MatrixTools.setMatrixBlock(tmpDynamics_Aeq, 3 * i, 0, twoCMPFootstepRecursions.get(i), 0, 0, 3, 2, 1.0);
          else
-            MatrixTools.setMatrixBlock(tmpDynamics_Aeq, 2 * i, 0, identity, 0, 0, 2, 2, oneCMPFootstepRecursions.get(i).get(0, 0));
+            MatrixTools.setMatrixBlock(tmpDynamics_Aeq, 2 * i, 0, oneCMPFootstepRecursions.get(i), 0, 0, 2, 2, 1.0);
       }
 
       if (includeFeedback)
@@ -442,16 +439,10 @@ public class ICPAdjustmentSolver
 
    private void computeTwoCMPProjectionConstraintMatrices()
    {
-      tmpTwoCMPProjection_Aeq.zero();
-      tmpTwoCMPProjection_beq.zero();
-
-      tmpTwoCMPProjection_Aeq.reshape(totalFootstepVariables, numberOfFootstepsToConsider);
-      tmpTwoCMPProjection_beq.reshape(numberOfFootstepsToConsider, 1);
-
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
       {
          tmpTwoCMPProjection_Aeq.set(3 * i, i, 1.0);
-         tmpTwoCMPProjection_beq.set(i, 1, 1.0);
+         tmpTwoCMPProjection_beq.set(i, 0, 1.0);
       }
    }
 
