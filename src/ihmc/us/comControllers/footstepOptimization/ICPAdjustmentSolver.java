@@ -174,17 +174,17 @@ public class ICPAdjustmentSolver
       solverInput_G.reshape(totalFreeVariables + totalLagrangeMultipliers, totalFreeVariables + totalLagrangeMultipliers);
       solverInput_g.reshape(totalFreeVariables + totalLagrangeMultipliers, 1);
 
-      tmpDynamics_Aeq.reshape(totalFreeVariables, totalLagrangeMultipliers);
+      tmpDynamics_Aeq.reshape(totalFreeVariables, 2);
       tmpDynamics_beq.reshape(2, 1);
 
       if (useTwoCMPs)
       {
-         tmpTwoCMPProjection_Aeq.reshape(numberOfFootstepsToConsider, totalLagrangeMultipliers);
+         tmpTwoCMPProjection_Aeq.reshape(totalFreeVariables, numberOfFootstepsToConsider);
          tmpTwoCMPProjection_beq.reshape(numberOfFootstepsToConsider, 1);
 
-         solverInput_Aeq.reshape(totalFreeVariables + numberOfFootstepsToConsider, totalLagrangeMultipliers);
+         solverInput_Aeq.reshape(totalFreeVariables, totalLagrangeMultipliers);
          solverInput_beq.reshape(2 + numberOfFootstepsToConsider, 1);
-         tmpTrans_Aeq.reshape(totalLagrangeMultipliers, totalFreeVariables + numberOfFootstepsToConsider);
+         tmpTrans_Aeq.reshape(totalLagrangeMultipliers, totalFreeVariables);
       }
       else
       {
