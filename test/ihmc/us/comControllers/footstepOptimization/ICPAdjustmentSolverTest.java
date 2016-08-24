@@ -14,6 +14,7 @@ import us.ihmc.robotics.robotSide.RobotSide;
 import us.ihmc.tools.testing.JUnitTools;
 import us.ihmc.tools.testing.TestPlanAnnotations.DeployableTestMethod;
 
+import javax.vecmath.Point2d;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -48,9 +49,9 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
    private static final double stepLength = 0.2;
    private static final double stanceWidth = 0.1;
 
-   private static final double singleSupportDuration = 2.0;
-   private static final double doubleSupportDuration = 1.0;
-   private static final double remainingTime = 1.0;
+   private static final double singleSupportDuration = 0.6;
+   private static final double doubleSupportDuration = 0.2;
+   private static final double remainingTime = 0.4;
    private static final double steppingDuration = singleSupportDuration + doubleSupportDuration;
 
    private static final double timeSpentOnExitCMPRatio = 0.5;
@@ -101,6 +102,16 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       super.setProblemConditions(numberOfFootstepsToConsider, true, true);
       checkDimensions(maxNumberOfFootstepsToConsider, true, true);
+   }
+
+   @DeployableTestMethod(estimatedDuration = 2.0)
+   @Test(timeout = 21000)
+   public void testPerfectOneCMPNoFeedback()
+   {
+      int iters = 100;
+
+      for (int iter = 0; iter < iters; iter++)
+         runStepTestPerfectNoFeedbackOneCMP(1);
    }
 
    @DeployableTestMethod(estimatedDuration = 2.0)
@@ -183,6 +194,38 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       }
    }
 
+   private void runStepTestPerfectNoFeedbackOneCMP(int numberOfFootstepsToConsider)
+   {
+      final boolean includeFeedback = false;
+      final boolean useTwoCMPs = false;
+
+      setPerfectConditions(numberOfFootstepsToConsider);
+
+      super.setProblemConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
+      super.reset();
+
+      checkDimensions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
+
+      submitConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
+
+      super.computeMatrices();
+
+      checkMatrices(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
+
+      super.solve();
+
+      checkSolutions(numberOfFootstepsToConsider);
+
+      FramePoint2d footstep1 = new FramePoint2d(worldFrame);
+      FramePoint2d feedback = new FramePoint2d(worldFrame);
+
+      super.getFootstepSolutionLocation(0, footstep1);
+      super.getCMPFeedback(feedback);
+
+      JUnitTools.assertTuple2dEquals("", desiredFootsteps.get(0).getPoint(), footstep1.getPoint(), epsilon);
+      JUnitTools.assertTuple2dEquals("", perfectCMP.getPoint(), feedback.getPoint(), epsilon);
+   }
+
    private void runStepTestNoFeedbackOneCMP(int numberOfFootstepsToConsider)
    {
       final boolean includeFeedback = false;
@@ -203,8 +246,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       super.solve();
 
-      Assert.assertTrue(super.getCostToGo() > 0.0);
-      Assert.assertTrue(!MathTools.containsNaN(solution));
+      checkSolutions(numberOfFootstepsToConsider);
    }
 
    private void runStepTestOneCMPWithFeedback(int numberOfFootstepsToConsider)
@@ -227,8 +269,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       super.solve();
 
-      Assert.assertTrue(super.getCostToGo() > 0.0);
-      Assert.assertTrue(!MathTools.containsNaN(solution));
+      checkSolutions(numberOfFootstepsToConsider);
    }
 
    private void runStepTestTwoCMPsWithFeedback(int numberOfFootstepsToConsider)
@@ -251,8 +292,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       super.solve();
 
-      Assert.assertTrue(super.getCostToGo() > 0.0);
-      Assert.assertTrue(!MathTools.containsNaN(solution));
+      checkSolutions(numberOfFootstepsToConsider);
    }
 
    private void runStepTestNoFeedbackTwoCMPs(int numberOfFootstepsToConsider)
@@ -275,8 +315,82 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       super.solve();
 
-      Assert.assertTrue(super.getCostToGo() > 0.0);
-      Assert.assertTrue(!MathTools.containsNaN(solution));
+      checkSolutions(numberOfFootstepsToConsider);
+   }
+
+   private void setPerfectConditions(int numberOfFootstepsToConsider)
+   {
+      perfectCMP.setToZero(worldFrame);
+      currentICP.setToZero(worldFrame);
+
+      for (int i = 0; i < maxNumberOfFootstepsToConsider + 1; i++)
+         desiredFootsteps.get(i).setToZero();
+
+      targetTouchdownICP.setToZero(worldFrame);
+      desiredFinalICP.setToZero(worldFrame);
+      finalICPRecursion.setToZero(worldFrame);
+
+      RobotSide stanceSide = RobotSide.RIGHT;
+
+      for (int i = 0; i < numberOfFootstepsToConsider + 1; i++)
+      {
+         desiredFootsteps.get(i).set((i + 1) * stepLength, stanceSide.negateIfRightSide(stanceWidth));
+         stanceSide = stanceSide.getOppositeSide();
+      }
+
+      desiredFinalICP.set(desiredFootsteps.get(numberOfFootstepsToConsider));
+      targetTouchdownICPCalculator.computeTargetTouchdownICP(remainingTime, currentICP, perfectCMP);
+
+      if (useTwoCMPs)
+         stepRecursionMultiplierCalculator.computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, numberOfFootstepsToConsider, useTwoCMPs);
+      else
+         stepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, numberOfFootstepsToConsider, useTwoCMPs);
+
+      targetTouchdownICPCalculator.getTargetTouchdownICP(targetTouchdownICP);
+
+      finalICPRecursion.set(desiredFinalICP);
+      finalICPRecursion.scale(stepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier());
+
+      FramePoint2d perfectTargetHeelStrikeICP = new FramePoint2d();
+      FramePoint2d perfectHeelCMP = new FramePoint2d();
+      perfectTargetHeelStrikeICP.set(finalICPRecursion);
+      perfectTargetHeelStrikeICP.set(finalICPRecursion);
+      for (int i = 0; i < numberOfFootstepsToConsider; i++)
+      {
+         perfectHeelCMP.set(desiredFootsteps.get(i));
+         perfectHeelCMP.scale(stepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, useTwoCMPs));
+
+         perfectTargetHeelStrikeICP.add(perfectHeelCMP);
+      }
+
+      perfectCMP.set(0.0, -stanceWidth); // right foot stance
+
+      currentICP.set(perfectTargetHeelStrikeICP);
+      currentICP.scale(Math.exp(-omega.getDoubleValue() * remainingTime));
+      perfectHeelCMP.set(perfectCMP);
+      perfectHeelCMP.scale(1 - Math.exp(-omega.getDoubleValue() * remainingTime));
+      currentICP.add(perfectHeelCMP);
+
+      twoCMPOffsetEffect.setToZero();
+
+      if (useTwoCMPs)
+      {
+         FramePoint2d totalCMPOffset = new FramePoint2d(worldFrame);
+         for (int i = 0; i < numberOfFootstepsToConsider; i++)
+         {
+            totalCMPOffset.set(exitOffset);
+            totalCMPOffset.scale(stepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs));
+
+            twoCMPOffsetEffect.add(totalCMPOffset);
+
+            totalCMPOffset.set(entryOffset);
+            totalCMPOffset.scale(stepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs));
+
+            twoCMPOffsetEffect.add(totalCMPOffset);
+         }
+      }
+
+      desiredFinalICP.set(desiredFootsteps.get(numberOfFootstepsToConsider));
    }
 
    private void setImperfectConditions(int numberOfFootstepsToConsider)
@@ -489,6 +603,38 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, tmpDynamics_Aeq, constraintBlock, epsilon);
       JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, tmpDynamics_beq, constraintEquals, epsilon);
+   }
+
+   private void checkSolutions(int numberOfFootstepsToConsider)
+   {
+      Assert.assertTrue(super.getCostToGo() > 0.0);
+      Assert.assertTrue(!MathTools.containsNaN(solution));
+
+      FramePoint2d footstepLocation = new FramePoint2d();
+      FramePoint2d feedbackLocation = new FramePoint2d();
+      DenseMatrix64F solutionBlock = new DenseMatrix64F(2, 1);
+      DenseMatrix64F readSolution = new DenseMatrix64F(2, 1);
+      for (int i = 0; i < numberOfFootstepsToConsider; i++)
+      {
+         super.getFootstepSolutionLocation(i, footstepLocation);
+
+         CommonOps.extract(solution, 2 * i, 2 * (i + 1), 0, 1, solutionBlock, 0, 0);
+         readSolution.set(0, 0, footstepLocation.getX());
+         readSolution.set(1, 0, footstepLocation.getY());
+
+         JUnitTools.assertMatrixEquals("step " + i, solutionBlock, readSolution, epsilon);
+      }
+
+      if (includeFeedback)
+      {
+         super.getCMPFeedback(feedbackLocation);
+
+         CommonOps.extract(solution, 2 * numberOfFootstepsToConsider, 2 * (numberOfFootstepsToConsider + 1), 0, 0, solutionBlock, 0, 0);
+         readSolution.set(0, 0, feedbackLocation.getX());
+         readSolution.set(1, 0, feedbackLocation.getY());
+
+         JUnitTools.assertMatrixEquals("feedback", solutionBlock, readSolution, epsilon);
+      }
    }
 
    private void checkDimensions(int numberOFFootstepsToConsider, boolean includeFeedback, boolean useTwoCMPs)

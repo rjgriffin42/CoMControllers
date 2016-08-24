@@ -374,6 +374,12 @@ public class ICPAdjustmentSolver
 
       footstepSolutions.set(freeVariableSolution);
 
+      for (int i = 0; i < numberOfFootstepsToConsider; i++)
+      {
+         footstepSolutionLocations.get(i).setX(footstepSolutions.get(2 * i));
+         footstepSolutionLocations.get(i).setY(footstepSolutions.get(2 * i + 1));
+      }
+
       cmpFeedback.set(perfectCMP);
       CommonOps.add(cmpFeedback, feedbackSolution, cmpFeedback);
    }
