@@ -6,8 +6,8 @@ import org.junit.Assert;
 import org.junit.Test;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
+import us.ihmc.robotics.geometry.FramePoint;
 import us.ihmc.robotics.geometry.FramePoint2d;
-import us.ihmc.robotics.linearAlgebra.MatrixTools;
 import us.ihmc.robotics.referenceFrames.ReferenceFrame;
 import us.ihmc.robotics.robotSide.RobotSide;
 import us.ihmc.tools.testing.JUnitTools;
@@ -150,43 +150,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       super.computeMatrices();
 
-      for (int i = 0; i < numberOfFootstepsToConsider; i++)
-      {
-         Assert.assertEquals(i, tmpDynamics_Aeq.get(2 * i, 0), stepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, includeFeedback));
-      }
-
-      DenseMatrix64F rightHandSide = new DenseMatrix64F(2, 1);
-      rightHandSide.set(0, 0, targetTouchdownICP.getX() - finalICPRecursion.getX());
-      rightHandSide.set(1, 0, targetTouchdownICP.getY() - finalICPRecursion.getY());
-      JUnitTools.assertMatrixEquals(tmpDynamics_beq, rightHandSide, epsilon);
-
-      JUnitTools.assertMatrixEquals(tmpDynamics_Aeq, solverInput_Aeq, epsilon);
-      JUnitTools.assertMatrixEquals(tmpDynamics_beq, solverInput_beq, epsilon);
-
-      int size = 2 * numberOfFootstepsToConsider;
-      DenseMatrix64F weights = CommonOps.identity(2, 2);
-      CommonOps.scale(footstepWeight, weights);
-      DenseMatrix64F zeros = new DenseMatrix64F(size, 1);
-
-      // extract the optimization from the linear constraint
-      DenseMatrix64F optimizationBlock = new DenseMatrix64F(size, size);
-      CommonOps.extract(solverInput_G, 0, size, 0, 2, optimizationBlock, 0, 0);
-      DenseMatrix64F optimizationEquals = new DenseMatrix64F(2, 1);
-      CommonOps.extract(solverInput_g, 0, 2, 0, 1, optimizationEquals, 0, 0);
-
-      DenseMatrix64F constraintBlock = new DenseMatrix64F(size, 2);
-      CommonOps.extract(solverInput_G, 0, size, size, size + 2, constraintBlock, 0, 0);
-      DenseMatrix64F constraintEquals = new DenseMatrix64F(2, 1);
-      CommonOps.extract(solverInput_g, size, size + 2, 0, 1, constraintEquals, 0, 0);
-
-      // check that the cost for the step was written correctly
-      JUnitTools.assertMatrixEquals(weights, solverInput_H, epsilon);
-      // check that the cost was inserted into total problem correctly
-      JUnitTools.assertMatrixEquals(solverInput_H, optimizationBlock, epsilon);
-      JUnitTools.assertMatrixEquals(zeros, optimizationEquals, epsilon);
-
-      JUnitTools.assertMatrixEquals(tmpDynamics_Aeq, constraintBlock, epsilon);
-      JUnitTools.assertMatrixEquals(tmpDynamics_beq, constraintEquals, epsilon);
+      checkMatricesNoFeedback(stepRecursionMultiplierCalculator, targetTouchdownICP, finalICPRecursion, numberOfFootstepsToConsider, footstepWeight);
 
       super.solve();
 
@@ -270,6 +234,16 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       super.computeMatrices();
 
+      checkMatricesNoFeedback(stepRecursionMultiplierCalculator, targetTouchdownICP, finalICPRecursion, numberOfFootstepsToConsider, footstepWeight);
+
+      super.solve();
+
+      Assert.assertTrue(super.getCostToGo() > 0.0);
+   }
+
+   private void checkMatricesNoFeedback(StepRecursionMultiplierCalculator stepRecursionMultiplierCalculator, FramePoint2d targetTouchdownICP,
+         FramePoint2d finalICPRecursion, int numberOfFootstepsToConsider, double footstepWeight)
+   {
       DenseMatrix64F identity = CommonOps.identity(2, 2);
       DenseMatrix64F dynamicsSubset = new DenseMatrix64F(2, 2);
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
@@ -289,12 +263,11 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       JUnitTools.assertMatrixEquals(tmpDynamics_Aeq, solverInput_Aeq, epsilon);
       JUnitTools.assertMatrixEquals(tmpDynamics_beq, solverInput_beq, epsilon);
 
-      int size = 2 * numberOfFootstepsToConsider;
       DenseMatrix64F weights = CommonOps.identity(2, 2);
       CommonOps.scale(footstepWeight, weights);
+      int size = 2 * numberOfFootstepsToConsider;
       DenseMatrix64F zeros = new DenseMatrix64F(size, 1);
 
-      // extract the optimization from the linear constraint
       DenseMatrix64F optimizationBlock = new DenseMatrix64F(size, size);
       CommonOps.extract(solverInput_G, 0, size, 0, size, optimizationBlock, 0, 0);
       DenseMatrix64F optimizationEquals = new DenseMatrix64F(size, 1);
@@ -305,7 +278,6 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       DenseMatrix64F constraintEquals = new DenseMatrix64F(2, 1);
       CommonOps.extract(solverInput_g, size, size + 2, 0, 1, constraintEquals, 0, 0);
 
-      // check that the cost for the step was written correctly
       DenseMatrix64F weightsSubset = new DenseMatrix64F(2, 2);
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
       {
@@ -321,9 +293,6 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       JUnitTools.assertMatrixEquals(tmpDynamics_Aeq, constraintBlock, epsilon);
       JUnitTools.assertMatrixEquals(tmpDynamics_beq, constraintEquals, epsilon);
 
-      super.solve();
-
-      Assert.assertTrue(super.getCostToGo() > 0.0);
    }
 
    private void checkDimensions(int numberOFFootstepsToConsider, boolean includeFeedback, boolean useTwoCMPs)
