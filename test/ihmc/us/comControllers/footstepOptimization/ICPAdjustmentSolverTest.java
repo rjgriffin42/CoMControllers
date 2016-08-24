@@ -4,11 +4,9 @@ import org.ejml.data.DenseMatrix64F;
 import org.ejml.ops.CommonOps;
 import org.junit.Assert;
 import org.junit.Test;
-import us.ihmc.convexOptimization.qpOASES.DenseMatrix;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.robotics.geometry.FramePoint2d;
-import us.ihmc.robotics.linearAlgebra.MatrixTools;
 import us.ihmc.robotics.referenceFrames.ReferenceFrame;
 import us.ihmc.tools.testing.JUnitTools;
 import us.ihmc.tools.testing.TestPlanAnnotations.DeployableTestMethod;
@@ -185,6 +183,8 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       JUnitTools.assertMatrixEquals(tmpDynamics_Aeq, constraintBlock, epsilon);
       JUnitTools.assertMatrixEquals(tmpDynamics_beq, constraintEquals, epsilon);
+
+      super.solve();
    }
 
    private void checkDimensions(int numberOFFootstepsToConsider, boolean includeFeedback, boolean useTwoCMPs)
