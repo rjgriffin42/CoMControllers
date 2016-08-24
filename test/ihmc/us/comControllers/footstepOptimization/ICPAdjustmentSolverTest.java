@@ -105,19 +105,16 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
    @Test(timeout = 21000)
    public void testStepNoFeedbackTwoCMPs()
    {
-      int iters = 1;
+      int iters = 100;
 
       for (int iter = 0; iter < iters; iter++)
       {
          for (int i = 0; i < maxNumberOfFootstepsToConsider + 1; i++)
          {
-            /*
             Random random = new Random();
             int numberOfFootstepsToConsider = random.nextInt();
             numberOfFootstepsToConsider = Math.min(numberOfFootstepsToConsider, maxNumberOfFootstepsToConsider);
             numberOfFootstepsToConsider = Math.max(numberOfFootstepsToConsider, 1);
-            */
-            int numberOfFootstepsToConsider = 1;
 
             runStepTestNoFeedbackTwoCMPs(numberOfFootstepsToConsider);
          }
@@ -174,9 +171,8 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       targetTouchdownICPCalculator.getTargetTouchdownICP(targetTouchdownICP);
 
-      double finalICPRecursionMultiplier = stepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier();
       finalICPRecursion.set(desiredFinalICP);
-      finalICPRecursion.scale(finalICPRecursionMultiplier);
+      finalICPRecursion.scale(stepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier());
 
       super.setProblemConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
       super.reset();
@@ -222,6 +218,8 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       FramePoint2d targetTouchdownICP = new FramePoint2d(worldFrame);
       FramePoint2d desiredFinalICP = new FramePoint2d(worldFrame);
       FramePoint2d finalICPRecursion = new FramePoint2d(worldFrame);
+      FramePoint2d twoCMPOffsetEffect = new FramePoint2d(worldFrame);
+      FramePoint2d effectiveICPRecursion = new FramePoint2d(worldFrame);
 
       double footstepWeight = 3.0;
 
@@ -254,22 +252,38 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       targetTouchdownICPCalculator.getTargetTouchdownICP(targetTouchdownICP);
 
-      double finalICPRecursionMultiplier = stepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier();
       finalICPRecursion.set(desiredFinalICP);
-      finalICPRecursion.scale(finalICPRecursionMultiplier);
+      finalICPRecursion.scale(stepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier());
+
+      FramePoint2d totalCMPOffset = new FramePoint2d(worldFrame);
+      for (int i = 0; i < numberOfFootstepsToConsider; i++)
+      {
+         totalCMPOffset.set(exitOffset);
+         totalCMPOffset.scale(stepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs));
+
+         twoCMPOffsetEffect.add(totalCMPOffset);
+
+         totalCMPOffset.set(entryOffset);
+         totalCMPOffset.scale(stepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs));
+
+         twoCMPOffsetEffect.add(totalCMPOffset);
+      }
+
+      effectiveICPRecursion.set(finalICPRecursion);
+      effectiveICPRecursion.add(twoCMPOffsetEffect);
 
       super.setProblemConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
       super.reset();
 
-      submitInformation(stepRecursionMultiplierCalculator, desiredFootsteps, entryOffset, exitOffset, perfectCMP, targetTouchdownICP, finalICPRecursion,
+      submitInformation(stepRecursionMultiplierCalculator, desiredFootsteps, entryOffset, exitOffset, perfectCMP, targetTouchdownICP, effectiveICPRecursion,
                         footstepWeight, numberOfFootstepsToConsider, useTwoCMPs);
 
       checkDimensions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
 
       super.computeMatrices();
 
-      checkMatricesNoFeedbackTwoCMPs(stepRecursionMultiplierCalculator, entryOffset, exitOffset, targetTouchdownICP, finalICPRecursion,
-                                     numberOfFootstepsToConsider, footstepWeight, useTwoCMPs);
+      checkMatricesNoFeedbackTwoCMPs(stepRecursionMultiplierCalculator, targetTouchdownICP, effectiveICPRecursion, numberOfFootstepsToConsider, footstepWeight,
+                                     useTwoCMPs);
 
       super.solve();
 
@@ -297,15 +311,20 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
       {
+         double recursionMultiplier;
          if (useTwoCMPs)
          {
-            super.setFootstepRecursionMultipliers(i, stepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs),
-                                                  stepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs));
+            double entryRecursionMultiplier = stepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs);
+            double exitRecursionMultiplier = stepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs);
+
+            recursionMultiplier = entryRecursionMultiplier + exitRecursionMultiplier;
          }
          else
          {
-            super.setFootstepRecursionMultipliers(i, stepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, useTwoCMPs));
+            recursionMultiplier = stepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, useTwoCMPs);
          }
+
+         super.setFootstepRecursionMultipliers(i, recursionMultiplier);
          super.setFootstepWeight(i, footstepWeight);
       }
    }
@@ -363,24 +382,18 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       JUnitTools.assertMatrixEquals(tmpDynamics_beq, constraintEquals, epsilon);
    }
 
-   private void checkMatricesNoFeedbackTwoCMPs(StepRecursionMultiplierCalculator stepRecursionMultiplierCalculator, FrameVector2d entryOffset,
-                                               FrameVector2d exitOffset, FramePoint2d targetTouchdownICP, FramePoint2d finalICPRecursion,
-                                               int numberOfFootstepsToConsider, double footstepWeight, boolean useTwoCMPs)
+   private void checkMatricesNoFeedbackTwoCMPs(StepRecursionMultiplierCalculator stepRecursionMultiplierCalculator, FramePoint2d targetTouchdownICP,
+                                               FramePoint2d finalICPRecursion, int numberOfFootstepsToConsider, double footstepWeight, boolean useTwoCMPs)
    {
-      DenseMatrix64F identity = CommonOps.identity(3, 2);
-      DenseMatrix64F dynamicsSubset = new DenseMatrix64F(3, 2);
+      DenseMatrix64F identity = CommonOps.identity(2, 2);
+      DenseMatrix64F dynamicsSubset = new DenseMatrix64F(2, 2);
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
       {
-         double entryMultiplier = stepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs);
-         double exitMultiplier = stepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs);
-
+         double recursionMultiplier = stepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs) +
+            stepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs);
          CommonOps.setIdentity(identity);
-         identity.set(0, 0, entryMultiplier + exitMultiplier);
-         identity.set(1, 1, entryMultiplier + exitMultiplier);
-         identity.set(2, 0, entryMultiplier * entryOffset.getX() + exitMultiplier * exitOffset.getX());
-         identity.set(2, 1, entryMultiplier * entryOffset.getY() + exitMultiplier * exitOffset.getY());
-
-         CommonOps.extract(tmpDynamics_Aeq, 3 * i, 3 * (i + 1), 0, 2, dynamicsSubset, 0, 0);
+         CommonOps.scale(recursionMultiplier, identity);
+         CommonOps.extract(tmpDynamics_Aeq, 2 * i, 2 * i + 2, 0, 2, dynamicsSubset, 0, 0);
 
          JUnitTools.assertMatrixEquals(dynamicsSubset, identity, epsilon);
       }
@@ -390,7 +403,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       rightHandSide.set(1, 0, targetTouchdownICP.getY() - finalICPRecursion.getY());
       JUnitTools.assertMatrixEquals(tmpDynamics_beq, rightHandSide, epsilon);
 
-      int size = 3 * numberOfFootstepsToConsider;
+      int size = 2 * numberOfFootstepsToConsider;
       DenseMatrix64F dynamicsConstraintBlock = new DenseMatrix64F(size, 2);
       DenseMatrix64F dynamicsConstraintEqual = new DenseMatrix64F(2, 1);
       CommonOps.extract(solverInput_Aeq, 0, size, 0, 2, dynamicsConstraintBlock, 0, 0);
@@ -431,26 +444,15 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
    private void checkDimensions(int numberOFFootstepsToConsider, boolean includeFeedback, boolean useTwoCMPs)
    {
-      int totalLagrangeMultipliers, totalFreeVariables, totalFootstepVariables;
-      if (useTwoCMPs)
-      {
-         totalFootstepVariables = 3 * numberOFFootstepsToConsider;
-         totalLagrangeMultipliers = 2 + numberOFFootstepsToConsider;
-      }
-      else
-      {
-         totalFootstepVariables = 2 * numberOFFootstepsToConsider;
-         totalLagrangeMultipliers = 2;
-      }
+      int totalFreeVariables;
+
+      int totalFootstepVariables = 2 * numberOFFootstepsToConsider;
+      int totalLagrangeMultipliers = 2;
 
       if (includeFeedback)
-      {
          totalFreeVariables = totalFootstepVariables + 2;
-      }
       else
-      {
          totalFreeVariables = totalFootstepVariables;
-      }
 
       Assert.assertEquals("", numberOfFootstepsToConsider, this.numberOfFootstepsToConsider, epsilon);
       Assert.assertEquals("", totalFreeVariables, this.totalFreeVariables, epsilon);
