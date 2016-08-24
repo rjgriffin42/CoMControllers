@@ -162,7 +162,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       DenseMatrix64F weights = CommonOps.identity(2, 2);
       CommonOps.scale(footstepWeight, weights);
-      DenseMatrix64F zeros = new DenseMatrix64F(2, 2);
+      DenseMatrix64F zeros = new DenseMatrix64F(2, 1);
 
       // extract the optimization from the linear constraint
       DenseMatrix64F optimizationBlock = new DenseMatrix64F(2, 2);
