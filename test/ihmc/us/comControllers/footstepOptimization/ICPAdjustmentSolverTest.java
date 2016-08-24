@@ -170,10 +170,11 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       DenseMatrix64F optimizationEquals = new DenseMatrix64F(2, 1);
       CommonOps.extract(solverInput_g, 0, 2, 0, 1, optimizationEquals, 0, 0);
 
-      DenseMatrix64F constraintBlock = new DenseMatrix64F(1, 2 * numberOfFootstepsToConsider);
-      CommonOps.extract(solverInput_G, 0, 1, 0, 2 * numberOfFootstepsToConsider, constraintBlock, 0, 0);
-      DenseMatrix64F constraintEquals = new DenseMatrix64F(2 * numberOfFootstepsToConsider, 1);
-      CommonOps.extract(solverInput_g, 0, 2 * numberOfFootstepsToConsider, 0, 1, constraintEquals, 0, 0);
+      int offset = 2 * numberOfFootstepsToConsider;
+      DenseMatrix64F constraintBlock = new DenseMatrix64F(offset, 2);
+      CommonOps.extract(solverInput_G, 0, offset, offset, offset + 2, constraintBlock, 0, 0);
+      DenseMatrix64F constraintEquals = new DenseMatrix64F(offset, 1);
+      CommonOps.extract(solverInput_g, offset, offset + 2, 0, 1, constraintEquals, 0, 0);
 
       // check that the cost for the step was written correctly
       JUnitTools.assertMatrixEquals(weights, solverInput_H, epsilon);
@@ -193,12 +194,12 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       if (useTwoCMPs)
       {
          totalFootstepVariables = 3 * numberOFFootstepsToConsider;
-         totalLagrangeMultipliers = 1 + numberOFFootstepsToConsider;
+         totalLagrangeMultipliers = 2 + numberOFFootstepsToConsider;
       }
       else
       {
          totalFootstepVariables = 2 * numberOFFootstepsToConsider;
-         totalLagrangeMultipliers = 1;
+         totalLagrangeMultipliers = 2;
       }
 
       if (includeFeedback)
