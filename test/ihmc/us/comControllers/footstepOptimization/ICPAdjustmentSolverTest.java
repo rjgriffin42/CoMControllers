@@ -57,7 +57,6 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       checkDimensions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
 
 
-
       numberOfFootstepsToConsider = maxNumberOfFootstepsToConsider + 2;
       includeFeedback = false;
       useTwoCMPs = false;
@@ -83,7 +82,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
    @DeployableTestMethod(estimatedDuration = 2.0)
    @Test(timeout = 21000)
-   public void testStep()
+   public void testStepNoFeedbackOneCMP()
    {
       int iters = 100;
 
