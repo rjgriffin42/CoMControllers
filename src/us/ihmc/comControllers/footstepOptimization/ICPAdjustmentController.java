@@ -56,14 +56,12 @@ public class ICPAdjustmentController
    private final DoubleYoVariable costToGo;
 
    private final DoubleYoVariable feedbackWeight = new DoubleYoVariable("feedbackWeight", registry);
-   private final DoubleYoVariable effectiveFeedbackWeight = new DoubleYoVariable("effectiveFeedbackWeight", registry);
+   private final DoubleYoVariable feedbackDynamicEffect = new DoubleYoVariable("feedbackDynamicEffect", registry);
    private final DoubleYoVariable effectiveFirstStepWeight = new DoubleYoVariable("effectiveFirstStepWeight", registry);
 
    private final DoubleYoVariable omega0;
    private final DoubleYoVariable doubleSupportDuration = new DoubleYoVariable("doubleSupportDuration", registry);
    private final DoubleYoVariable singleSupportDuration = new DoubleYoVariable("singleSupportDuration", registry);
-   private final DoubleYoVariable feedbackGain = new DoubleYoVariable("feedbackGain", registry);
-   private final DoubleYoVariable effectiveFeedbackGain = new DoubleYoVariable("effectiveFeedbackGain", registry); // kappa
 
    private final YoFramePoint2d finalICPRecursion = new YoFramePoint2d("finalICPRecursion", worldFrame, registry);
    private final YoFramePoint2d twoCMPOffsetEffect = new YoFramePoint2d("twoCMPOffsetEffect", worldFrame, registry);
@@ -198,10 +196,9 @@ public class ICPAdjustmentController
 
       targetTouchdownICPCalculator.computeTargetTouchdownICP(remainingTime.getDoubleValue(), currentICP, perfectCMP.getFramePoint2dCopy());
 
-      computeEffectiveFeedbackWeight(scaleFeedbackWeightWithGains.getBooleanValue());
+      computeFeedbackDynamicEffect(remainingTime.getDoubleValue());
       computeEffectiveFirstStepWeight(remainingTime.getDoubleValue(), steppingDuration, scaleFirstStepWeightWithTime.getBooleanValue());
       computeTargetICPRecursionBackward();
-      computeEffectiveFeedbackGain(remainingTime.getDoubleValue());
 
       if (useTwoCMPs.getBooleanValue())
       {
@@ -235,19 +232,9 @@ public class ICPAdjustmentController
       numberOfFootstepsToConsider.set(Math.min(maxNumberOfFootstepsToConsider.getIntegerValue(), numberOfFootstepsToConsider.getIntegerValue()));
    }
 
-   private void computeEffectiveFeedbackWeight(boolean scaleFeedbackWeightWithGains)
+   private void computeFeedbackDynamicEffect(double timeRemaining)
    {
-      if (scaleFeedbackWeightWithGains)
-      {
-         double desiredFeedbackWeight = feedbackWeight.getDoubleValue();
-         double feedbackGainEffect = 1 + feedbackGain.getDoubleValue() / omega0.getDoubleValue();
-
-         effectiveFeedbackWeight.set(desiredFeedbackWeight / Math.pow(feedbackGainEffect, 2));
-      }
-      else
-      {
-         effectiveFeedbackWeight.set(feedbackWeight.getDoubleValue());
-      }
+      feedbackDynamicEffect.set(1.0 - Math.exp(omega0.getDoubleValue() * timeRemaining));
    }
 
    private void computeEffectiveFirstStepWeight(double timeRemaining, double steppingDuration, boolean scaleFirstStepWeightWithTime)
@@ -259,12 +246,6 @@ public class ICPAdjustmentController
          alpha = steppingDuration / timeRemaining;
 
       effectiveFirstStepWeight.set(alpha * firstStepWeight);
-   }
-
-   private void computeEffectiveFeedbackGain(double timeRemaining)
-   {
-      double effectiveFeedbackGain = -Math.exp(omega0.getDoubleValue() * timeRemaining) / (1.0 + feedbackGain.getDoubleValue() / omega0.getDoubleValue()); // kappa
-      this.effectiveFeedbackGain.set(effectiveFeedbackGain);
    }
 
    private final FramePoint2d finalEndingICP2d = new FramePoint2d();
@@ -350,7 +331,7 @@ public class ICPAdjustmentController
          footstepLocation.changeFrame(worldFrame);
          footstepLocation.setXY(footstepLocation2d);
 
-         icpAdjustmentSolver.setReferenceFootstepLocation(i, footstepLocation2d, entryOffsets.get(i), exitOffsets.get(i));
+         icpAdjustmentSolver.setReferenceFootstepLocation(i, footstepLocation2d);
 
          if (useTwoCMPs)
          {
@@ -375,7 +356,7 @@ public class ICPAdjustmentController
       }
 
       icpAdjustmentSolver.setFeedbackWeight(feedbackWeight.getDoubleValue());
-      icpAdjustmentSolver.setEffectiveFeedbackGain(effectiveFeedbackGain.getDoubleValue());
+      icpAdjustmentSolver.setFeedbackDynamicEffect(feedbackDynamicEffect.getDoubleValue());
       icpAdjustmentSolver.setFinalICPRecursion(effectiveFinalICPRecursion);
 
       targetTouchdownICPCalculator.getTargetTouchdownICP(targetTouchdownICP);

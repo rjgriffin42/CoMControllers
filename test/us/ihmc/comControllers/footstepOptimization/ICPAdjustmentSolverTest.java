@@ -16,7 +16,6 @@ import us.ihmc.tools.testing.TestPlanAnnotations.DeployableTestMethod;
 
 import javax.vecmath.Vector2d;
 import java.util.ArrayList;
-import java.util.Random;
 
 public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 {
@@ -43,8 +42,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
    private final ArrayList<FramePoint2d> desiredFootsteps = new ArrayList<>();
 
    private static final double footstepWeight = 1.0;
-   private static final double feedbackWeight = 1.5;
-   private static final double feedbackGain = 2.0;
+   private static final double feedbackWeight = 2.0;
 
    private static final double stepLength = 0.2;
    private static final double stanceWidth = 0.1;
@@ -152,14 +150,9 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       for (int iter = 0; iter < iters; iter++)
       {
-         for (int i = 0; i < maxNumberOfFootstepsToConsider + 1; i++)
+         for (int i = 1; i < maxNumberOfFootstepsToConsider + 1; i++)
          {
-            Random random = new Random();
-            int numberOfFootstepsToConsider = random.nextInt();
-            numberOfFootstepsToConsider = Math.min(numberOfFootstepsToConsider, maxNumberOfFootstepsToConsider);
-            numberOfFootstepsToConsider = Math.max(numberOfFootstepsToConsider, 1);
-
-            runStepTestNoFeedbackOneCMP(numberOfFootstepsToConsider);
+            runStepTestNoFeedbackOneCMP(i);
          }
       }
    }
@@ -172,14 +165,9 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       for (int iter = 0; iter < iters; iter++)
       {
-         for (int i = 0; i < maxNumberOfFootstepsToConsider + 1; i++)
+         for (int i = 1; i < maxNumberOfFootstepsToConsider + 1; i++)
          {
-            Random random = new Random();
-            int numberOfFootstepsToConsider = random.nextInt();
-            numberOfFootstepsToConsider = Math.min(numberOfFootstepsToConsider, maxNumberOfFootstepsToConsider);
-            numberOfFootstepsToConsider = Math.max(numberOfFootstepsToConsider, 1);
-
-            runStepTestOneCMPWithFeedback(numberOfFootstepsToConsider);
+            runStepTestOneCMPWithFeedback(i);
          }
       }
    }
@@ -192,14 +180,9 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       for (int iter = 0; iter < iters; iter++)
       {
-         for (int i = 0; i < maxNumberOfFootstepsToConsider + 1; i++)
+         for (int i = 1; i < maxNumberOfFootstepsToConsider + 1; i++)
          {
-            Random random = new Random();
-            int numberOfFootstepsToConsider = random.nextInt();
-            numberOfFootstepsToConsider = Math.min(numberOfFootstepsToConsider, maxNumberOfFootstepsToConsider);
-            numberOfFootstepsToConsider = Math.max(numberOfFootstepsToConsider, 1);
-
-            runStepTestNoFeedbackTwoCMPs(numberOfFootstepsToConsider);
+            runStepTestNoFeedbackTwoCMPs(i);
          }
       }
    }
@@ -212,14 +195,9 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       for (int iter = 0; iter < iters; iter++)
       {
-         for (int i = 0; i < maxNumberOfFootstepsToConsider + 1; i++)
+         for (int i = 1; i < maxNumberOfFootstepsToConsider + 1; i++)
          {
-            Random random = new Random();
-            int numberOfFootstepsToConsider = random.nextInt();
-            numberOfFootstepsToConsider = Math.min(numberOfFootstepsToConsider, maxNumberOfFootstepsToConsider);
-            numberOfFootstepsToConsider = Math.max(numberOfFootstepsToConsider, 1);
-
-            runStepTestTwoCMPsWithFeedback(numberOfFootstepsToConsider);
+            runStepTestTwoCMPsWithFeedback(i);
          }
       }
    }
@@ -642,7 +620,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
    private void submitConditions(int numberOfFootstepsToConsider, boolean includeFeedback, boolean useTwoCMPs)
    {
-      double effectiveFeedbackGain = -Math.exp(omega.getDoubleValue() * remainingTime) / (1.0 + feedbackGain / omega.getDoubleValue());
+      double feedbackDynamicEffect = (1.0 - Math.exp(omega.getDoubleValue() * remainingTime));
 
       targetTouchdownICPCalculator.computeTargetTouchdownICP(remainingTime, currentICP, perfectCMP);
 
@@ -660,32 +638,24 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
          finalICPRecursion.add(twoCMPOffsetEffect);
 
       if (includeFeedback)
-         submitInformation(effectiveFeedbackGain, numberOfFootstepsToConsider, useTwoCMPs);
+         submitInformation(feedbackDynamicEffect, numberOfFootstepsToConsider, useTwoCMPs);
       else
          submitInformation(numberOfFootstepsToConsider, useTwoCMPs);
 
    }
 
-   private void submitInformation(double effectiveFeedbackWeight, int numberOfFootstepsToConsider, boolean useTwoCMPs)
+   private void submitInformation(double feedbackDynamicEffect, int numberOfFootstepsToConsider, boolean useTwoCMPs)
    {
       submitInformation(numberOfFootstepsToConsider, useTwoCMPs);
 
       super.setFeedbackWeight(feedbackWeight);
-      super.setEffectiveFeedbackGain(effectiveFeedbackWeight);
+      super.setFeedbackDynamicEffect(feedbackDynamicEffect);
    }
 
    private void submitInformation(int numberOfFootstepsToConsider, final boolean useTwoCMPs)
    {
-      if (entryOffset != null && exitOffset != null)
-      {
-         for (int i = 0; i < numberOfFootstepsToConsider; i++)
-            super.setReferenceFootstepLocation(i, desiredFootsteps.get(i), entryOffset, exitOffset);
-      }
-      else
-      {
-         for (int i = 0; i < numberOfFootstepsToConsider; i++)
-            super.setReferenceFootstepLocation(i, desiredFootsteps.get(i));
-      }
+      for (int i = 0; i < numberOfFootstepsToConsider; i++)
+         super.setReferenceFootstepLocation(i, desiredFootsteps.get(i));
 
       super.setPerfectCMP(perfectCMP);
       super.setTargetTouchdownICP(targetTouchdownICP);
@@ -802,7 +772,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       // check that the cost was inserted into total problem correctly
       JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, solverInput_H, optimizationBlock, epsilon);
-      JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, zeros, optimizationEquals, epsilon);
+      JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, solverInput_h, optimizationEquals, epsilon);
 
       JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, tmpDynamics_Aeq, constraintBlock, epsilon);
       JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, tmpDynamics_beq, constraintEquals, epsilon);
@@ -810,8 +780,8 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
    private void checkSolutions(int numberOfFootstepsToConsider)
    {
-      Assert.assertTrue(super.getCostToGo() > 0.0);
-      Assert.assertTrue(!MathTools.containsNaN(solution));
+      Assert.assertTrue("Considering " + numberOfFootstepsToConsider + " steps cannot solve.", !MathTools.containsNaN(solution));
+      Assert.assertTrue("step " + numberOfFootstepsToConsider, super.getCostToGo() > 0.0);
 
       FramePoint2d footstepLocation = new FramePoint2d();
       DenseMatrix64F solutionBlock = new DenseMatrix64F(2, 1);
