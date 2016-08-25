@@ -374,11 +374,18 @@ public class ICPAdjustmentSolver
 
    private void extractSolutions()
    {
+      if (MatrixTools.containsNaN(solution))
+         throw new RuntimeException("The solution contains NaN. This case should be made smarter in case.");
+
       MatrixTools.setMatrixBlock(freeVariableSolution, 0, 0, solution, 0, 0, totalFreeVariables, 1, 1.0);
 
       if (includeFeedback)
       {
          MatrixTools.setMatrixBlock(feedbackSolution, 0, 0, freeVariableSolution, totalFootstepVariables, 0, 2, 1, 1.0);
+      }
+      else
+      {
+         MatrixTools.setToZero(feedbackSolution);
       }
 
       MatrixTools.setMatrixBlock(lagrangeMultiplierSolutions, 0, 0, solution, totalFreeVariables, 1, totalLagrangeMultipliers, 1, 1.0);

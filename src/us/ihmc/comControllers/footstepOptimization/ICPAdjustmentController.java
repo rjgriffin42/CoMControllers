@@ -18,6 +18,7 @@ import us.ihmc.robotics.robotSide.SideDependentList;
 
 import javax.vecmath.Quat4d;
 import java.util.ArrayList;
+import java.util.List;
 
 public class ICPAdjustmentController
 {
@@ -32,7 +33,6 @@ public class ICPAdjustmentController
    private final BooleanYoVariable useTwoCMPs = new BooleanYoVariable("useTwoCMPsPerSupport", registry);
    private final BooleanYoVariable useFeedback = new BooleanYoVariable("useFeedback", registry);
    private final BooleanYoVariable scaleFirstStepWeightWithTime = new BooleanYoVariable("scaleFirstStepWeightWithTime", registry);
-   private final BooleanYoVariable scaleFeedbackWeightWithGains = new BooleanYoVariable("scaleFeedbackWeightWithGains", registry);
 
    private final ArrayList<Footstep> upcomingFootsteps = new ArrayList<>();
    private final ArrayList<FrameVector2d> entryOffsets = new ArrayList<>();
@@ -89,7 +89,6 @@ public class ICPAdjustmentController
       useTwoCMPs.set(icpPlannerParameters.useTwoCMPsPerSupport());
       useFeedback.set(true);
       scaleFirstStepWeightWithTime.set(false);
-      scaleFeedbackWeightWithGains.set(false);
 
       numberOfFootstepsToConsider.set(2);
       maxNumberOfFootstepsToConsider.set(MAX_NUMBER_OF_FOOTSTEPS_TO_CONSIDER);
@@ -100,7 +99,7 @@ public class ICPAdjustmentController
 
       exitCMPDurationInPercentOfStepTime.set(icpPlannerParameters.getTimeSpentOnExitCMPInPercentOfStepTime());
       referenceCMPsCalculator = new ReferenceCentroidalMomentumPivotLocationsCalculator(namePrefix, bipedSupportPolygons, contactableFeet,
-            numberOfFootstepsToConsider.getIntegerValue(), registry);
+            maxNumberOfFootstepsToConsider.getIntegerValue(), registry);
       referenceCMPsCalculator.initializeParameters(icpPlannerParameters);
 
       for (int i = 0; i < MAX_NUMBER_OF_FOOTSTEPS_TO_CONSIDER; i++)
@@ -120,6 +119,23 @@ public class ICPAdjustmentController
       parentRegistry.addChild(registry);
    }
 
+   public void setFeedbackWeight(double feedbackWeight)
+   {
+      this.feedbackWeight.set(feedbackWeight);
+   }
+
+   public void setFootstepWeight(int foostepIndex, double footstepWeight)
+   {
+      if (foostepIndex < maxNumberOfFootstepsToConsider.getIntegerValue())
+         stepWeights.get(foostepIndex).set(footstepWeight);
+   }
+
+   public void setNumberOfFootstepsToConsider(int numberOfFootstepsToConsider)
+   {
+      this.numberOfFootstepsToConsider.set(numberOfFootstepsToConsider);
+      clipNumberOfStepsToConsider();
+   }
+
    public void setDesiredICPValues(FramePoint desiredICP, FrameVector desiredICPVelocity)
    {
       desiredICP.changeFrame(worldFrame);
@@ -132,12 +148,14 @@ public class ICPAdjustmentController
    public void clearPlan()
    {
       referenceCMPsCalculator.clear();
+      upcomingFootsteps.clear();
       numberOfFootstepsInPlan.set(0);
    }
 
    public void addFootstep(Footstep footstep)
    {
       referenceCMPsCalculator.addUpcomingFootstep(footstep);
+      upcomingFootsteps.add(footstep);
       numberOfFootstepsInPlan.increment();
    }
 
@@ -210,7 +228,7 @@ public class ICPAdjustmentController
 
       icpAdjustmentSolver.solve();
 
-      getSolutions();
+      populateSolutionsFromSolver();
    }
 
    private void computeTimeInCurrentState(double time)
@@ -370,7 +388,7 @@ public class ICPAdjustmentController
    private final FramePoint2d cmpFeedbackSolutionTmp = new FramePoint2d();
    private final FrameVector2d cmpFeedbackDifferenceSolutionTmp = new FrameVector2d();
 
-   private void getSolutions()
+   private void populateSolutionsFromSolver()
    {
       for (int i = 0; i < numberOfFootstepsToConsider.getIntegerValue(); i++)
       {
@@ -385,5 +403,35 @@ public class ICPAdjustmentController
       cmpFeedbackDifferenceSolution.set(cmpFeedbackDifferenceSolutionTmp);
 
       costToGo.set(icpAdjustmentSolver.getCostToGo());
+   }
+
+   public void getCMPFeedback(FramePoint2d cmpFeedback)
+   {
+      cmpFeedback.changeFrame(worldFrame);
+      cmpFeedbackSolution.getFrameTuple2d(cmpFeedback);
+   }
+
+   public void getFootstepLocation(int footstepIndex, FramePoint2d footstepLocation)
+   {
+      footstepSolutionLocations.get(footstepIndex).getFrameTuple2d(footstepLocation);
+   }
+
+   private final FramePose footstepPose = new FramePose(worldFrame);
+   public void getFootstepLocation(int footstepIndex, Footstep footstep)
+   {
+      footstep.getPose(footstepPose);
+      footstepPose.setXYFromPosition2d(footstepSolutionLocations.get(footstepIndex).getFrameTuple2d());
+   }
+
+   public void getFootstepLocations(List<FramePoint2d> footstepLocations)
+   {
+      for (int i = 0; i < numberOfFootstepsToConsider.getIntegerValue(); i++)
+         getFootstepLocation(i, footstepLocations.get(i));
+   }
+
+   public void getAdjustedFootsteps(List<Footstep> footsteps)
+   {
+      for (int i = 0; i < numberOfFootstepsToConsider.getIntegerValue(); i++)
+         getFootstepLocation(i, footsteps.get(i));
    }
 }
