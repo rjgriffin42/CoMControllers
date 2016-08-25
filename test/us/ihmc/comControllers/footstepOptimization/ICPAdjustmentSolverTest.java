@@ -41,7 +41,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
    private final ArrayList<FramePoint2d> desiredFootsteps = new ArrayList<>();
 
-   private static final double footstepWeight = 1.0;
+   private static final double footstepWeight = 100.0;
    private static final double feedbackWeight = 2.0;
 
    private static final double stepLength = 0.2;
@@ -544,11 +544,11 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       }
 
       perfectCMP.set(0.0, -stanceWidth); // right foot stance
+      perfectCMP.add(exitOffset); // right foot stance
 
       currentICP.set(perfectTargetHeelStrikeICP);
       currentICP.scale(Math.exp(-omega.getDoubleValue() * remainingTime));
       perfectExitCMP.set(perfectCMP);
-      perfectExitCMP.add(exitOffset);
       perfectExitCMP.scale(1 - Math.exp(-omega.getDoubleValue() * remainingTime));
       currentICP.add(perfectExitCMP);
 
@@ -786,6 +786,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       FramePoint2d footstepLocation = new FramePoint2d();
       DenseMatrix64F solutionBlock = new DenseMatrix64F(2, 1);
       DenseMatrix64F readSolution = new DenseMatrix64F(2, 1);
+
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
       {
          super.getFootstepSolutionLocation(i, footstepLocation);
