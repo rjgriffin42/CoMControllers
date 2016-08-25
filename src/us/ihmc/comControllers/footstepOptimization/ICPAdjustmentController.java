@@ -30,6 +30,7 @@ public class ICPAdjustmentController
 
    private final BooleanYoVariable useTwoCMPs = new BooleanYoVariable("useTwoCMPsPerSupport", registry);
    private final BooleanYoVariable useFeedback = new BooleanYoVariable("useFeedback", registry);
+   private final BooleanYoVariable useStepAdjustment = new BooleanYoVariable("useStepAdjustment", registry);
    private final BooleanYoVariable scaleFirstStepWeightWithTime = new BooleanYoVariable("scaleFirstStepWeightWithTime", registry);
 
    private final ArrayList<Footstep> upcomingFootsteps = new ArrayList<>();
@@ -343,7 +344,8 @@ public class ICPAdjustmentController
 
    private void submitInformationToSolver()
    {
-      icpAdjustmentSolver.setProblemConditions(numberOfFootstepsToConsider.getIntegerValue(), useFeedback.getBooleanValue(), useTwoCMPs.getBooleanValue());
+      icpAdjustmentSolver.setProblemConditions(numberOfFootstepsToConsider.getIntegerValue(), useFeedback.getBooleanValue(),
+            useStepAdjustment.getBooleanValue(), useTwoCMPs.getBooleanValue());
       icpAdjustmentSolver.reset();
 
       boolean useTwoCMPs = this.useTwoCMPs.getBooleanValue();

@@ -56,7 +56,8 @@ public class ICPAdjustmentSolver
 
    private double feedbackDynamicEffect;
 
-   protected boolean includeFeedback;
+   protected boolean useFeedback;
+   protected boolean useStepAdjustment;
    protected boolean useTwoCMPs;
 
    private boolean hasPerfectCMP = false;
@@ -210,16 +211,27 @@ public class ICPAdjustmentSolver
       hasFeedbackDynamicEffect = false;
    }
 
-   public void setProblemConditions(int numberOfFootstepsToConsider, boolean includeFeedback, boolean useTwoCMPs)
+   public void setProblemConditions(int numberOfFootstepsToConsider, boolean useFeedback, boolean useStepAdjustment, boolean useTwoCMPs)
    {
       this.numberOfFootstepsToConsider = Math.min(numberOfFootstepsToConsider, maxNumberOfFootstepsToConsider);
-      this.includeFeedback = includeFeedback;
+      this.useStepAdjustment = useStepAdjustment;
+      this.useFeedback = useFeedback;
       this.useTwoCMPs = useTwoCMPs;
 
-      totalFootstepVariables = 2 * this.numberOfFootstepsToConsider;
+      if (!useStepAdjustment)
+         this.numberOfFootstepsToConsider = 0;
+
+      if (!useFeedback && !useStepAdjustment)
+         throw new RuntimeException("Currently not allowing a single stabilization mechanism.");
+
       totalLagrangeMultipliers = 2;
 
-      if (includeFeedback)
+      if (useStepAdjustment)
+         totalFootstepVariables = 2 * this.numberOfFootstepsToConsider;
+      else
+         totalFootstepVariables = 0;
+
+      if (useFeedback)
          totalFreeVariables = totalFootstepVariables + 2;
       else
          totalFreeVariables = totalFootstepVariables;
@@ -298,14 +310,17 @@ public class ICPAdjustmentSolver
 
    public void computeMatrices()
    {
-      if (!hasPerfectCMP || !hasFootstepRecursionMutliplier || !hasReferenceFootstep || !hasTargetTouchdownICP || !hasFinalICPRecursion || !hasFootstepWeight)
+      if (!hasPerfectCMP || !hasTargetTouchdownICP || !hasFinalICPRecursion)
          throw new RuntimeException("Have not provided all required inputs to solve the problem.");
+
+      if (useStepAdjustment && (!hasFootstepRecursionMutliplier || !hasReferenceFootstep || !hasFootstepWeight))
+         throw new RuntimeException("Need footstep information to solve this problem.");
 
       computeFootstepCostMatrices();
       MatrixTools.setMatrixBlock(solverInput_H, 0, 0, tmpFootstepTask_H, 0, 0, totalFootstepVariables, totalFootstepVariables, 1.0);
       MatrixTools.setMatrixBlock(solverInput_h, 0, 0, tmpFootstepTask_h, 0, 0, totalFootstepVariables, 1, 1.0);
 
-      if (includeFeedback)
+      if (useFeedback)
       {
          if (!hasFeedbackWeight || !hasFeedbackDynamicEffect)
             throw new RuntimeException("Have not set up the appropriate feedback weight.");
@@ -364,7 +379,7 @@ public class ICPAdjustmentSolver
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
          MatrixTools.setMatrixBlock(tmpDynamics_Aeq, 2 * i, 0, cmpFootstepRecursions.get(i), 0, 0, 2, 2, 1.0);
 
-      if (includeFeedback)
+      if (useFeedback)
          MatrixTools.setMatrixBlock(tmpDynamics_Aeq, totalFootstepVariables, 0, ones, 0, 0, 2, 2, -feedbackDynamicEffect);
 
       MatrixTools.setMatrixBlock(tmpDynamics_beq, 0, 0, targetICP, 0, 0, 2, 1, 1.0);
@@ -390,7 +405,7 @@ public class ICPAdjustmentSolver
 
       MatrixTools.setMatrixBlock(freeVariableSolution, 0, 0, solution, 0, 0, totalFreeVariables, 1, 1.0);
 
-      if (includeFeedback)
+      if (useFeedback)
       {
          MatrixTools.setMatrixBlock(feedbackSolution, 0, 0, freeVariableSolution, totalFootstepVariables, 0, 2, 1, 1.0);
       }
