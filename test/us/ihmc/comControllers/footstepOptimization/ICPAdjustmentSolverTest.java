@@ -781,7 +781,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
    private void checkSolutions(int numberOfFootstepsToConsider)
    {
       Assert.assertTrue("Considering " + numberOfFootstepsToConsider + " steps cannot solve.", !MathTools.containsNaN(solution));
-      Assert.assertTrue("step " + numberOfFootstepsToConsider, super.getCostToGo() > 0.0);
+      Assert.assertTrue("step " + numberOfFootstepsToConsider, super.getCostToGo() >= -epsilon);
 
       FramePoint2d footstepLocation = new FramePoint2d();
       DenseMatrix64F solutionBlock = new DenseMatrix64F(2, 1);
