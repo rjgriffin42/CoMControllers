@@ -3,8 +3,10 @@ package us.ihmc.comControllers.footstepOptimization;
 import org.junit.Test;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.BipedSupportPolygons;
 import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerParameters;
+import us.ihmc.commonWalkingControlModules.desiredFootStep.footstepGenerator.FootstepTestHelper;
 import us.ihmc.humanoidRobotics.bipedSupportPolygons.ContactablePlaneBody;
 import us.ihmc.humanoidRobotics.footstep.FootSpoof;
+import us.ihmc.humanoidRobotics.footstep.Footstep;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.robotics.geometry.FramePose;
@@ -40,6 +42,7 @@ public class ICPAdjustmentControllerTest
 
    private final SideDependentList<FootSpoof> contactableFeet = new SideDependentList<>();
    private final SideDependentList<FramePose> footPosesAtTouchdown = new SideDependentList<>(new FramePose(), new FramePose());
+   private final SideDependentList<ReferenceFrame> ankleFrames = new SideDependentList<>();
 
    private BipedSupportPolygons bipedSupportPolygons;
 
@@ -55,14 +58,30 @@ public class ICPAdjustmentControllerTest
    private void setupController()
    {
       DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
+      DoubleYoVariable yoTime = new DoubleYoVariable("t", registry);
       omega.set(3.0);
 
       setupContactableFeet();
       setupBipedSupportPolygons();
 
+      int numberOfFootsteps = 6;
+      double stepLength = 0.2;
+      double stepWidth = 0.1;
+      FootstepTestHelper footstepTestHelper = new FootstepTestHelper(contactableFeet, ankleFrames);
+      List<Footstep> footsteps = footstepTestHelper.createFootsteps(stepWidth, stepLength, numberOfFootsteps);
+
       CapturePointPlannerParameters capturePointPlannerParameters = createCapturePointPlannerParameters();
 
       icpAdjustmentController = new ICPAdjustmentController(bipedSupportPolygons, contactableFeet, capturePointPlannerParameters, omega, registry);
+
+      icpAdjustmentController.setDoubleSupportDuration(doubleSupportDuration);
+      icpAdjustmentController.setSingleSupportDuration(doubleSupportDuration);
+
+      icpAdjustmentController.clearPlan();
+      for (int i = 0; i < numberOfFootsteps; i++)
+         icpAdjustmentController.addFootstep(footsteps.get(i));
+
+      icpAdjustmentController.initializeForSingleSupport(yoTime.getDoubleValue());
    }
 
    private void setupContactableFeet()
@@ -98,6 +117,7 @@ public class ICPAdjustmentControllerTest
       {
          FootSpoof contactableFoot = contactableFeet.get(robotSide);
          ReferenceFrame ankleFrame = contactableFoot.getFrameAfterParentJoint();
+         ankleFrames.put(robotSide, ankleFrame);
          ankleZUpFrames.put(robotSide, new ZUpFrame(worldFrame, ankleFrame, robotSide.getCamelCaseNameForStartOfExpression() + "ZUp"));
       }
 

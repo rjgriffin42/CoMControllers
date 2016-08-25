@@ -229,7 +229,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       final boolean includeFeedback = false;
       final boolean useTwoCMPs = false;
 
-      setPerfectOneCMPConditions(numberOfFootstepsToConsider);
+      setPerfectOneCMPConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
 
       super.setProblemConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
       super.reset();
@@ -264,7 +264,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       final boolean includeFeedback = true;
       final boolean useTwoCMPs = false;
 
-      setPerfectOneCMPConditions(numberOfFootstepsToConsider);
+      setPerfectOneCMPConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
 
       super.setProblemConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
       super.reset();
@@ -299,7 +299,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       final boolean includeFeedback = false;
       final boolean useTwoCMPs = true;
 
-      setPerfectTwoCMPsConditions(numberOfFootstepsToConsider);
+      setPerfectTwoCMPsConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
 
       super.setProblemConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
       super.reset();
@@ -334,7 +334,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       final boolean includeFeedback = true;
       final boolean useTwoCMPs = true;
 
-      setPerfectTwoCMPsConditions(numberOfFootstepsToConsider);
+      setPerfectTwoCMPsConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
 
       super.setProblemConditions(numberOfFootstepsToConsider, includeFeedback, useTwoCMPs);
       super.reset();
@@ -456,7 +456,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       checkSolutions(numberOfFootstepsToConsider);
    }
 
-   private void setPerfectOneCMPConditions(int numberOfFootstepsToConsider)
+   private void setPerfectOneCMPConditions(int numberOfFootstepsToConsider, boolean includeFeedback, boolean useTwoCMPs)
    {
       perfectCMP.setToZero(worldFrame);
       currentICP.setToZero(worldFrame);
@@ -489,10 +489,10 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       finalICPRecursion.set(desiredFinalICP);
       finalICPRecursion.scale(stepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier());
 
-      FramePoint2d perfectTargetHeelStrikeICP = new FramePoint2d();
       FramePoint2d perfectHeelCMP = new FramePoint2d();
+      FramePoint2d perfectTargetHeelStrikeICP = new FramePoint2d();
       perfectTargetHeelStrikeICP.set(finalICPRecursion);
-      perfectTargetHeelStrikeICP.set(finalICPRecursion);
+
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
       {
          perfectHeelCMP.set(desiredFootsteps.get(i));
@@ -508,30 +508,11 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       perfectHeelCMP.set(perfectCMP);
       perfectHeelCMP.scale(1 - Math.exp(-omega.getDoubleValue() * remainingTime));
       currentICP.add(perfectHeelCMP);
-
-      twoCMPOffsetEffect.setToZero();
-
-      if (useTwoCMPs)
-      {
-         FramePoint2d totalCMPOffset = new FramePoint2d(worldFrame);
-         for (int i = 0; i < numberOfFootstepsToConsider; i++)
-         {
-            totalCMPOffset.set(exitOffset);
-            totalCMPOffset.scale(stepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs));
-
-            twoCMPOffsetEffect.add(totalCMPOffset);
-
-            totalCMPOffset.set(entryOffset);
-            totalCMPOffset.scale(stepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs));
-
-            twoCMPOffsetEffect.add(totalCMPOffset);
-         }
-      }
 
       desiredFinalICP.set(desiredFootsteps.get(numberOfFootstepsToConsider));
    }
 
-   private void setPerfectTwoCMPsConditions(int numberOfFootstepsToConsider)
+   private void setPerfectTwoCMPsConditions(int numberOfFootstepsToConsider, boolean includeFeedback, boolean useTwoCMPs)
    {
       perfectCMP.setToZero(worldFrame);
       currentICP.setToZero(worldFrame);
@@ -564,25 +545,34 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       finalICPRecursion.set(desiredFinalICP);
       finalICPRecursion.scale(stepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier());
 
+      FramePoint2d perfectExitCMP = new FramePoint2d();
+      FramePoint2d perfectEntryCMP = new FramePoint2d();
       FramePoint2d perfectTargetHeelStrikeICP = new FramePoint2d();
-      FramePoint2d perfectHeelCMP = new FramePoint2d();
       perfectTargetHeelStrikeICP.set(finalICPRecursion);
-      perfectTargetHeelStrikeICP.set(finalICPRecursion);
+
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
       {
-         perfectHeelCMP.set(desiredFootsteps.get(i));
-         perfectHeelCMP.scale(stepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, useTwoCMPs));
+         perfectExitCMP.set(desiredFootsteps.get(i));
+         perfectExitCMP.add(exitOffset);
+         perfectExitCMP.scale(stepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs));
 
-         perfectTargetHeelStrikeICP.add(perfectHeelCMP);
+         perfectTargetHeelStrikeICP.add(perfectExitCMP);
+
+         perfectEntryCMP.set(desiredFootsteps.get(i));
+         perfectEntryCMP.add(entryOffset);
+         perfectEntryCMP.scale(stepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs));
+
+         perfectTargetHeelStrikeICP.add(perfectEntryCMP);
       }
 
       perfectCMP.set(0.0, -stanceWidth); // right foot stance
 
       currentICP.set(perfectTargetHeelStrikeICP);
       currentICP.scale(Math.exp(-omega.getDoubleValue() * remainingTime));
-      perfectHeelCMP.set(perfectCMP);
-      perfectHeelCMP.scale(1 - Math.exp(-omega.getDoubleValue() * remainingTime));
-      currentICP.add(perfectHeelCMP);
+      perfectExitCMP.set(perfectCMP);
+      perfectExitCMP.add(exitOffset);
+      perfectExitCMP.scale(1 - Math.exp(-omega.getDoubleValue() * remainingTime));
+      currentICP.add(perfectExitCMP);
 
       twoCMPOffsetEffect.setToZero();
 
