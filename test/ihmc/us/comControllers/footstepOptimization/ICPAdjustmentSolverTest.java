@@ -363,6 +363,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       JUnitTools.assertTuple2dEquals("", perfectCMP.getPoint(), feedback.getPoint(), epsilon);
       JUnitTools.assertTuple2dEquals("", new Vector2d(), feedbackDelta.getVector(), epsilon);
    }
+
    private void runStepTestNoFeedbackOneCMP(int numberOfFootstepsToConsider)
    {
       final boolean includeFeedback = false;
