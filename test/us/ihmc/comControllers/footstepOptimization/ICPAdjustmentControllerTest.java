@@ -119,15 +119,6 @@ public class ICPAdjustmentControllerTest
       setupController();
       setDynamicConditions();
 
-      double footstepWeight = 2.0;
-      double feedbackWeight = 1.0;
-
-      icpAdjustmentController.setNumberOfFootstepsToConsider(numberOfFootstepsToConsider);
-      icpAdjustmentController.setFeedbackWeight(feedbackWeight);
-      for (int i = 0; i < numberOfFootstepsToConsider; i++)
-         icpAdjustmentController.setFootstepWeight(i, footstepWeight);
-
-      yoTime.set(0.5);
       icpAdjustmentController.compute(yoTime.getDoubleValue(), icpEstimated);
 
       FramePoint2d cmpFeedback = new FramePoint2d();
@@ -145,9 +136,11 @@ public class ICPAdjustmentControllerTest
       setupBipedSupportPolygons();
 
       CapturePointPlannerParameters capturePointPlannerParameters = createCapturePointPlannerParameters();
+      ICPAdjustmentControllerParameters icpAdjustmentControllerParameters = createICPAdjustmentControllerParameters();
 
       icpPlanner = new ICPPlanner(bipedSupportPolygons, contactableFeet, capturePointPlannerParameters, registry, null);
-      icpAdjustmentController = new ICPAdjustmentController(bipedSupportPolygons, contactableFeet, capturePointPlannerParameters, omega, registry);
+      icpAdjustmentController = new ICPAdjustmentController(bipedSupportPolygons, contactableFeet, capturePointPlannerParameters,
+            icpAdjustmentControllerParameters, omega, registry);
    }
 
    private void setDynamicConditions()
@@ -166,7 +159,6 @@ public class ICPAdjustmentControllerTest
       icpPlanner.setSingleSupportTime(singleSupportDuration);
       icpAdjustmentController.setDoubleSupportDuration(doubleSupportDuration);
       icpAdjustmentController.setSingleSupportDuration(singleSupportDuration);
-      icpAdjustmentController.setNumberOfFootstepsToConsider(numberOfFootstepsToConsider);
 
       icpPlanner.clearPlan();
       icpAdjustmentController.clearPlan();
@@ -182,13 +174,15 @@ public class ICPAdjustmentControllerTest
       icpPlanner.updateCurrentPlan();
 
       FramePoint2d icpError = new FramePoint2d();
-      icpError.set(0.01, -0.04);
+      //icpError.set(-0.01, -0.04);
 
+      yoTime.set(0.5);
       FramePoint icpDesired = new FramePoint();
       FrameVector icpDesiredVelocity = new FrameVector();
       icpPlanner.getDesiredCapturePointPositionAndVelocity(icpDesired, icpDesiredVelocity, yoTime.getDoubleValue());
 
-      icpDesired.getXYPlaneDistance(icpEstimated);
+      icpEstimated.setToZero(icpDesired.getReferenceFrame());
+      icpEstimated.setByProjectionOntoXYPlane(icpDesired);
       icpEstimated.add(icpError);
 
       icpAdjustmentController.setDesiredICPValues(icpDesired, icpDesiredVelocity);
@@ -341,6 +335,57 @@ public class ICPAdjustmentControllerTest
          public boolean useExitCMPOnToesForSteppingDown()
          {
             return true;
+         }
+      };
+   }
+
+   private ICPAdjustmentControllerParameters createICPAdjustmentControllerParameters()
+   {
+      return new ICPAdjustmentControllerParameters()
+      {
+         @Override public int getMaximumNumberOfStepsToConsider()
+         {
+            return 5;
+         }
+
+         @Override public int getNumberOfStepsToConsider()
+         {
+            return 2;
+         }
+
+         @Override public double getFootstepWeight()
+         {
+            return 1.5;
+         }
+
+         @Override public double getFeedbackWeight()
+         {
+            return 2.0;
+         }
+
+         @Override public boolean useFeedback()
+         {
+            return false;
+         }
+
+         @Override public boolean scaleFirstStepWithTime()
+         {
+            return false;
+         }
+
+         @Override public double minimumRemainingTime()
+         {
+            return 0.001;
+         }
+
+         @Override public double minimumFootstepWeight()
+         {
+            return 0.0001;
+         }
+
+         @Override public double minimumFeedbackWeight()
+         {
+            return 0.0001;
          }
       };
    }

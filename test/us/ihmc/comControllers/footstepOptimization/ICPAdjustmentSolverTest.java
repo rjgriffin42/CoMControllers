@@ -56,9 +56,56 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
    private static final double totalTimeSpentOnExitCMP = timeSpentOnExitCMPRatio * steppingDuration;
    private static final double totalTimeSpentOnEntryCMP = (1.0 - timeSpentOnExitCMPRatio) * steppingDuration;
 
+
    public ICPAdjustmentSolverTest()
    {
-      super(maxNumberOfFootstepsToConsider);
+      super( new ICPAdjustmentControllerParameters()
+      {
+         @Override public int getMaximumNumberOfStepsToConsider()
+         {
+            return 5;
+         }
+
+         @Override public int getNumberOfStepsToConsider()
+         {
+            return 3;
+         }
+
+         @Override public double getFootstepWeight()
+         {
+            return 1.5;
+         }
+
+         @Override public double getFeedbackWeight()
+         {
+            return 2.0;
+         }
+
+         @Override public boolean useFeedback()
+         {
+            return false;
+         }
+
+         @Override public boolean scaleFirstStepWithTime()
+         {
+            return false;
+         }
+
+         @Override public double minimumRemainingTime()
+         {
+            return 0.001;
+         }
+
+         @Override public double minimumFootstepWeight()
+         {
+            return 0.0001;
+         }
+
+         @Override public double minimumFeedbackWeight()
+         {
+            return 0.0001;
+         }
+      });
 
       for (int i = 0; i < maxNumberOfFootstepsToConsider + 1; i++)
          desiredFootsteps.add(new FramePoint2d(worldFrame));

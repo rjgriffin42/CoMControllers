@@ -79,12 +79,14 @@ public class ICPAdjustmentSolver
 
    private final ArrayList<FramePoint2d> footstepSolutionLocations = new ArrayList<>();
 
-   private final double minimumFootstepCost = 0.00001;
-   private final double minimumFeedbackCost = 0.0001;
+   private final double minimumFootstepWeight;
+   private final double minimumFeedbackWeight;
 
-   public ICPAdjustmentSolver(int maxNumberOfFootstepsToConsider)
+   public ICPAdjustmentSolver(ICPAdjustmentControllerParameters icpControllerParameters)
    {
-      this.maxNumberOfFootstepsToConsider = maxNumberOfFootstepsToConsider;
+      maxNumberOfFootstepsToConsider = icpControllerParameters.getMaximumNumberOfStepsToConsider();
+      minimumFootstepWeight = icpControllerParameters.minimumFootstepWeight();
+      minimumFeedbackWeight = icpControllerParameters.minimumFeedbackWeight();
 
       int maxNumberOfFreeVariables = 3 * maxNumberOfFootstepsToConsider + 2;
       int maxNumberOfLagrangeMultipliers = maxNumberOfFootstepsToConsider + 1;
@@ -187,10 +189,10 @@ public class ICPAdjustmentSolver
          cmpFootstepRecursions.get(i).zero();
 
          stepWeights.get(i).zero();
-         MatrixTools.setMatrixBlock(stepWeights.get(i), 0, 0, identity, 0, 0, 2, 2, minimumFootstepCost);
+         MatrixTools.setMatrixBlock(stepWeights.get(i), 0, 0, identity, 0, 0, 2, 2, minimumFootstepWeight);
       }
       feedbackWeight.zero();
-      MatrixTools.setMatrixBlock(feedbackWeight, 0, 0, identity, 0, 0, 2, 2, minimumFeedbackCost);
+      MatrixTools.setMatrixBlock(feedbackWeight, 0, 0, identity, 0, 0, 2, 2, minimumFeedbackWeight);
       tmpCost.reshape(totalFreeVariables, 1);
       referenceFootstepVector.reshape(totalFreeVariables, 1);
 
@@ -245,6 +247,7 @@ public class ICPAdjustmentSolver
    public void setFootstepWeight(int footstepIndex, double weight)
    {
       CommonOps.setIdentity(stepWeights.get(footstepIndex));
+      weight = Math.max(weight, minimumFootstepWeight);
       CommonOps.scale(weight, stepWeights.get(footstepIndex));
 
       hasFootstepWeight = true;
@@ -253,6 +256,7 @@ public class ICPAdjustmentSolver
    public void setFeedbackWeight(double weight)
    {
       CommonOps.setIdentity(feedbackWeight);
+      weight = Math.max(weight, minimumFeedbackWeight);
       CommonOps.scale(weight, feedbackWeight);
 
       hasFeedbackWeight = true;

@@ -23,8 +23,6 @@ import java.util.List;
 public class ICPAdjustmentController
 {
    private static final ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
-   private static final int MAX_NUMBER_OF_FOOTSTEPS_TO_CONSIDER = 5;
-   private static final double MINIMUM_REMAINING_TIME = 0.001;
 
    private final String namePrefix = "icpAdjustmentCalculator";
 
@@ -40,7 +38,7 @@ public class ICPAdjustmentController
 
    private final IntegerYoVariable numberOfFootstepsInPlan = new IntegerYoVariable("numberOfFootstepsInPlan", registry);
    private final IntegerYoVariable numberOfFootstepsToConsider = new IntegerYoVariable("numberOfFootstepsToConsider", registry);
-   private final IntegerYoVariable maxNumberOfFootstepsToConsider = new IntegerYoVariable("maxNumberOfFootstepsToConsider", registry);
+   private final IntegerYoVariable yoMaxNumberOfFootstepsToConsider = new IntegerYoVariable("maxNumberOfFootstepsToConsider", registry);
 
    private final DoubleYoVariable exitCMPDurationInPercentOfStepTime = new DoubleYoVariable(namePrefix + "TimeSpentOnExitCMPInPercentOfStepTime", registry);
    private final DoubleYoVariable initialTime = new DoubleYoVariable("initialTime", registry);
@@ -80,37 +78,45 @@ public class ICPAdjustmentController
 
    private final ReferenceCentroidalMomentumPivotLocationsCalculator referenceCMPsCalculator;
 
+   private final double minimumRemainingTime;
+
    public ICPAdjustmentController(BipedSupportPolygons bipedSupportPolygons, SideDependentList<? extends ContactablePlaneBody> contactableFeet,
-         CapturePointPlannerParameters icpPlannerParameters, DoubleYoVariable omega0, YoVariableRegistry parentRegistry)
+         CapturePointPlannerParameters icpPlannerParameters, ICPAdjustmentControllerParameters icpControllerParameters, DoubleYoVariable omega0,
+         YoVariableRegistry parentRegistry)
    {
       this.omega0 = omega0;
       this.icpPlannerParameters = icpPlannerParameters;
 
       useTwoCMPs.set(icpPlannerParameters.useTwoCMPsPerSupport());
-      useFeedback.set(true);
-      scaleFirstStepWeightWithTime.set(false);
+      useFeedback.set(icpControllerParameters.useFeedback());
+      scaleFirstStepWeightWithTime.set(icpControllerParameters.scaleFirstStepWithTime());
 
-      numberOfFootstepsToConsider.set(2);
-      maxNumberOfFootstepsToConsider.set(MAX_NUMBER_OF_FOOTSTEPS_TO_CONSIDER);
+      minimumRemainingTime = icpControllerParameters.minimumRemainingTime();
+
+      numberOfFootstepsToConsider.set(icpControllerParameters.getNumberOfStepsToConsider());
+      yoMaxNumberOfFootstepsToConsider.set(icpControllerParameters.getMaximumNumberOfStepsToConsider());
 
       targetTouchdownICPCalculator = new TargetTouchdownICPCalculator(omega0, registry);
-      stepRecursionMultiplierCalculator = new StepRecursionMultiplierCalculator(omega0, maxNumberOfFootstepsToConsider.getIntegerValue(), registry);
-      icpAdjustmentSolver = new ICPAdjustmentSolver(maxNumberOfFootstepsToConsider.getIntegerValue());
+      stepRecursionMultiplierCalculator = new StepRecursionMultiplierCalculator(omega0, yoMaxNumberOfFootstepsToConsider.getIntegerValue(), registry);
+      icpAdjustmentSolver = new ICPAdjustmentSolver(icpControllerParameters);
 
       exitCMPDurationInPercentOfStepTime.set(icpPlannerParameters.getTimeSpentOnExitCMPInPercentOfStepTime());
       referenceCMPsCalculator = new ReferenceCentroidalMomentumPivotLocationsCalculator(namePrefix, bipedSupportPolygons, contactableFeet,
-            maxNumberOfFootstepsToConsider.getIntegerValue(), registry);
+            yoMaxNumberOfFootstepsToConsider.getIntegerValue(), registry);
       referenceCMPsCalculator.initializeParameters(icpPlannerParameters);
 
-      for (int i = 0; i < MAX_NUMBER_OF_FOOTSTEPS_TO_CONSIDER; i++)
+      for (int i = 0; i < yoMaxNumberOfFootstepsToConsider.getIntegerValue(); i++)
       {
-         stepWeights.add(new DoubleYoVariable("step" + i + "Weight", registry));
+         DoubleYoVariable stepWeight = new DoubleYoVariable("step" + i + "Weight", registry);
+         stepWeight.set(icpControllerParameters.getFootstepWeight());
+         stepWeights.add(stepWeight);
 
          footstepSolutionLocations.add(new YoFramePoint2d("footstep" + i + "SolutionLocation", worldFrame, registry));
 
          entryOffsets.add(new FrameVector2d(worldFrame));
          exitOffsets.add(new FrameVector2d(worldFrame));
       }
+      feedbackWeight.set(icpControllerParameters.getFeedbackWeight());
 
       cmpFeedbackDifferenceSolution = new YoFrameVector2d("cmpFeedbackDifferenceSolution", worldFrame, registry);
       cmpFeedbackSolution = new YoFramePoint2d("cmpFeedbackSolution", worldFrame, registry);
@@ -126,7 +132,7 @@ public class ICPAdjustmentController
 
    public void setFootstepWeight(int foostepIndex, double footstepWeight)
    {
-      if (foostepIndex < maxNumberOfFootstepsToConsider.getIntegerValue())
+      if (foostepIndex < yoMaxNumberOfFootstepsToConsider.getIntegerValue())
          stepWeights.get(foostepIndex).set(footstepWeight);
    }
 
@@ -239,7 +245,7 @@ public class ICPAdjustmentController
    private void computeRemainingTimeInState(double totalTime)
    {
       double remainingTime = totalTime - timeInCurrentState.getDoubleValue();
-      remainingTime = Math.max(remainingTime, MINIMUM_REMAINING_TIME);
+      remainingTime = Math.max(remainingTime, minimumRemainingTime);
 
       this.remainingTime.set(remainingTime);
    }
@@ -247,7 +253,7 @@ public class ICPAdjustmentController
    private void clipNumberOfStepsToConsider()
    {
       numberOfFootstepsToConsider.set(Math.min(numberOfFootstepsInPlan.getIntegerValue(), numberOfFootstepsToConsider.getIntegerValue()));
-      numberOfFootstepsToConsider.set(Math.min(maxNumberOfFootstepsToConsider.getIntegerValue(), numberOfFootstepsToConsider.getIntegerValue()));
+      numberOfFootstepsToConsider.set(Math.min(yoMaxNumberOfFootstepsToConsider.getIntegerValue(), numberOfFootstepsToConsider.getIntegerValue()));
    }
 
    private void computeFeedbackDynamicEffect(double timeRemaining)
@@ -330,6 +336,7 @@ public class ICPAdjustmentController
       }
    }
 
+
    private final FramePoint2d footstepLocation2d = new FramePoint2d();
    private final FramePoint2d targetTouchdownICP = new FramePoint2d();
    private final FramePoint2d effectiveFinalICPRecursion = new FramePoint2d();
@@ -345,9 +352,10 @@ public class ICPAdjustmentController
       {
          Footstep upcomingFootstep = upcomingFootsteps.get(i);
          upcomingFootstep.getPositionIncludingFrame(footstepLocation);
+         upcomingFootstep.getOrientationInWorldFrame(footstepOrientation);
 
-         footstepLocation.changeFrame(worldFrame);
-         footstepLocation.setXY(footstepLocation2d);
+         footstepLocation2d.setToZero(worldFrame);
+         footstepLocation2d.setByProjectionOntoXYPlane(footstepLocation);
 
          icpAdjustmentSolver.setReferenceFootstepLocation(i, footstepLocation2d);
 
