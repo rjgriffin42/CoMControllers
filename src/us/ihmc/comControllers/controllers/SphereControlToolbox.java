@@ -1,6 +1,7 @@
 package us.ihmc.comControllers.controllers;
 
 import us.ihmc.SdfLoader.models.FullRobotModel;
+import us.ihmc.comControllers.footstepOptimization.ICPAdjustmentControllerParameters;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.BipedSupportPolygons;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.YoPlaneContactState;
 import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerParameters;
@@ -49,7 +50,7 @@ public class SphereControlToolbox
    private static final double singleSupportDuration = 1.0; /// 0.7;
    private static final double doubleSupportDuration = 0.2; // 0.4; //0.25;
    private static final double doubleSupportSplitFraction = 0.5;
-   private static final boolean useTwoCMPs = true;
+   private static final boolean useTwoCMPs = false;
 
    private static final double maxDurationForSmoothingEntryToExitCMPSwitch = 1.0;
    private static final double timeSpentOnExitCMPInPercentOfStepTime = 0.5; // singleSupportDuration
@@ -114,6 +115,7 @@ public class SphereControlToolbox
    private final YoGraphicsListRegistry yoGraphicsListRegistry;
 
    private CapturePointPlannerParameters capturePointPlannerParameters;
+   private ICPAdjustmentControllerParameters icpAdjustmentControllerParameters;
 
    private DoubleYoVariable yoTime;
 
@@ -187,6 +189,7 @@ public class SphereControlToolbox
       centerOfMassJacobian = new CenterOfMassJacobian(elevator);
 
       capturePointPlannerParameters = createICPPlannerParameters();
+      icpAdjustmentControllerParameters = createICPAdjustmentControllerParameters();
 
       parentRegistry.addChild(registry);
    }
@@ -322,6 +325,11 @@ public class SphereControlToolbox
    public CapturePointPlannerParameters getCapturePointPlannerParameters()
    {
       return capturePointPlannerParameters;
+   }
+
+   public ICPAdjustmentControllerParameters getICPAdjustmentControllerParameters()
+   {
+      return icpAdjustmentControllerParameters;
    }
 
    public double getDoubleSupportDuration()
@@ -631,6 +639,57 @@ public class SphereControlToolbox
          public boolean useExitCMPOnToesForSteppingDown()
          {
             return true;
+         }
+      };
+   }
+
+   public ICPAdjustmentControllerParameters createICPAdjustmentControllerParameters()
+   {
+      return new ICPAdjustmentControllerParameters()
+      {
+         @Override public int getMaximumNumberOfStepsToConsider()
+         {
+            return 5;
+         }
+
+         @Override public int getNumberOfStepsToConsider()
+         {
+            return 1;
+         }
+
+         @Override public double getFootstepWeight()
+         {
+            return 20.0;
+         }
+
+         @Override public double getFeedbackWeight()
+         {
+            return 5.0;
+         }
+
+         @Override public boolean useFeedback()
+         {
+            return true;
+         }
+
+         @Override public boolean scaleFirstStepWithTime()
+         {
+            return false;
+         }
+
+         @Override public double minimumRemainingTime()
+         {
+            return 0.001;
+         }
+
+         @Override public double minimumFootstepWeight()
+         {
+            return 0.0001;
+         }
+
+         @Override public double minimumFeedbackWeight()
+         {
+            return 0.0001;
          }
       };
    }
