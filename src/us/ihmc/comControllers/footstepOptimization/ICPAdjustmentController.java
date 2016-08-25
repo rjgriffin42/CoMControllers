@@ -429,6 +429,7 @@ public class ICPAdjustmentController
    {
       footstep.getPose(footstepPose);
       footstepPose.setXYFromPosition2d(footstepSolutionLocations.get(footstepIndex).getFrameTuple2d());
+      footstep.setPose(footstepPose);
    }
 
    public void getFootstepLocations(List<FramePoint2d> footstepLocations)

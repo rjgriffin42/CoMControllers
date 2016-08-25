@@ -1,5 +1,6 @@
 package us.ihmc.comControllers.footstepOptimization;
 
+import org.apache.xpath.operations.Bool;
 import org.junit.Assert;
 import org.junit.Test;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.BipedSupportPolygons;
@@ -12,6 +13,7 @@ import us.ihmc.humanoidRobotics.bipedSupportPolygons.ContactablePlaneBody;
 import us.ihmc.humanoidRobotics.footstep.FootSpoof;
 import us.ihmc.humanoidRobotics.footstep.Footstep;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
+import us.ihmc.robotics.dataStructures.variable.BooleanYoVariable;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.robotics.dataStructures.variable.IntegerYoVariable;
 import us.ihmc.robotics.geometry.*;
@@ -21,6 +23,7 @@ import us.ihmc.robotics.referenceFrames.ZUpFrame;
 import us.ihmc.robotics.robotSide.RobotSide;
 import us.ihmc.robotics.robotSide.SideDependentList;
 import us.ihmc.robotics.screwTheory.RigidBody;
+import us.ihmc.tools.io.printing.PrintTools;
 import us.ihmc.tools.testing.TestPlanAnnotations.DeployableTestMethod;
 
 import javax.vecmath.Point2d;
@@ -34,6 +37,7 @@ public class ICPAdjustmentControllerTest
 
    private final YoVariableRegistry registry = new YoVariableRegistry("robert");
    private final DoubleYoVariable yoTime = new DoubleYoVariable("t", registry);
+   private final DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
 
    private static final double footLengthForControl = 0.25;
    private static final double footWidthForControl = 0.12;
@@ -127,9 +131,26 @@ public class ICPAdjustmentControllerTest
       icpAdjustmentController.getAdjustedFootsteps(footsteps);
    }
 
+   @DeployableTestMethod(estimatedDuration = 1.0)
+   @Test(timeout = 21000)
+   public void testInSingleSupportWithFeedback()
+   {
+      setupController();
+      setDynamicConditions();
+
+      BooleanYoVariable useFeedback = (BooleanYoVariable) registry.getVariable("useFeedback");
+      useFeedback.set(true);
+
+      icpAdjustmentController.compute(yoTime.getDoubleValue(), icpEstimated);
+
+      FramePoint2d cmpFeedback = new FramePoint2d();
+      icpAdjustmentController.getCMPFeedback(cmpFeedback);
+      icpAdjustmentController.getFootstepLocations(footstepLocations);
+      icpAdjustmentController.getAdjustedFootsteps(footsteps);
+   }
+
    private void setupController()
    {
-      DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
       omega.set(3.0);
 
       setupContactableFeet();
@@ -157,6 +178,7 @@ public class ICPAdjustmentControllerTest
 
       icpPlanner.setDoubleSupportTime(doubleSupportDuration);
       icpPlanner.setSingleSupportTime(singleSupportDuration);
+      icpPlanner.setOmega0(omega.getDoubleValue());
       icpAdjustmentController.setDoubleSupportDuration(doubleSupportDuration);
       icpAdjustmentController.setSingleSupportDuration(singleSupportDuration);
 
@@ -168,13 +190,14 @@ public class ICPAdjustmentControllerTest
          icpAdjustmentController.addFootstep(footsteps.get(i));
       }
 
+      icpPlanner.setSupportLeg(footsteps.get(0).getRobotSide().getOppositeSide());
       icpPlanner.initializeForSingleSupport(yoTime.getDoubleValue());
       icpAdjustmentController.initializeForSingleSupport(yoTime.getDoubleValue());
 
       icpPlanner.updateCurrentPlan();
 
       FramePoint2d icpError = new FramePoint2d();
-      //icpError.set(-0.01, -0.04);
+      icpError.set(-0.01, -0.04);
 
       yoTime.set(0.5);
       FramePoint icpDesired = new FramePoint();
@@ -355,7 +378,7 @@ public class ICPAdjustmentControllerTest
 
          @Override public double getFootstepWeight()
          {
-            return 1.5;
+            return 15.0;
          }
 
          @Override public double getFeedbackWeight()
