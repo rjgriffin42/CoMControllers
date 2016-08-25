@@ -79,6 +79,9 @@ public class ICPAdjustmentSolver
 
    private final ArrayList<FramePoint2d> footstepSolutionLocations = new ArrayList<>();
 
+   private final double minimumFootstepCost = 0.00001;
+   private final double minimumFeedbackCost = 0.0001;
+
    public ICPAdjustmentSolver(int maxNumberOfFootstepsToConsider)
    {
       this.maxNumberOfFootstepsToConsider = maxNumberOfFootstepsToConsider;
@@ -130,6 +133,7 @@ public class ICPAdjustmentSolver
       cmpFeedback = new DenseMatrix64F(2, 1);
    }
 
+   private final DenseMatrix64F identity = CommonOps.identity(2, 2);
    public void reset()
    {
       solverInput_H.zero();
@@ -183,7 +187,10 @@ public class ICPAdjustmentSolver
          cmpFootstepRecursions.get(i).zero();
 
          stepWeights.get(i).zero();
+         MatrixTools.setMatrixBlock(stepWeights.get(i), 0, 0, identity, 0, 0, 2, 2, minimumFootstepCost);
       }
+      feedbackWeight.zero();
+      MatrixTools.setMatrixBlock(feedbackWeight, 0, 0, identity, 0, 0, 2, 2, minimumFeedbackCost);
       tmpCost.reshape(totalFreeVariables, 1);
       referenceFootstepVector.reshape(totalFreeVariables, 1);
 

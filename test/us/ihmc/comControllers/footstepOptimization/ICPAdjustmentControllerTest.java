@@ -29,6 +29,7 @@ import java.util.List;
 
 public class ICPAdjustmentControllerTest
 {
+   private static final double epsilon = 0.0005;
    private static final ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
 
    private final YoVariableRegistry registry = new YoVariableRegistry("robert");
@@ -88,6 +89,31 @@ public class ICPAdjustmentControllerTest
 
    @DeployableTestMethod(estimatedDuration = 1.0)
    @Test(timeout = 21000)
+   public void testWeightSetting()
+   {
+      setupController();
+      setDynamicConditions();
+
+      double footstepWeight = 2.0;
+      double feedbackWeight = 1.0;
+
+      icpAdjustmentController.setFeedbackWeight(feedbackWeight);
+      for (int i = 0; i < numberOfFootstepsToConsider; i++)
+         icpAdjustmentController.setFootstepWeight(i, footstepWeight);
+
+      List<DoubleYoVariable> stepWeights = new ArrayList<>();
+      for (int i = 0; i < numberOfFootstepsToConsider; i++)
+      {
+         stepWeights.add((DoubleYoVariable) registry.getVariable("step" + i + "Weight"));
+         Assert.assertEquals("step weight", footstepWeight, stepWeights.get(i).getDoubleValue(), epsilon);
+      }
+
+      DoubleYoVariable yoFeedbackWeight = (DoubleYoVariable) registry.getVariable("feedbackWeight");
+      Assert.assertEquals("feedback weight", feedbackWeight, yoFeedbackWeight.getDoubleValue(), epsilon);
+   }
+
+   @DeployableTestMethod(estimatedDuration = 1.0)
+   @Test(timeout = 21000)
    public void testInSingleSupport()
    {
       setupController();
@@ -140,6 +166,7 @@ public class ICPAdjustmentControllerTest
       icpPlanner.setSingleSupportTime(singleSupportDuration);
       icpAdjustmentController.setDoubleSupportDuration(doubleSupportDuration);
       icpAdjustmentController.setSingleSupportDuration(singleSupportDuration);
+      icpAdjustmentController.setNumberOfFootstepsToConsider(numberOfFootstepsToConsider);
 
       icpPlanner.clearPlan();
       icpAdjustmentController.clearPlan();
