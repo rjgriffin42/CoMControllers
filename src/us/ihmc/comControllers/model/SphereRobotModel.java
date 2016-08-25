@@ -1,4 +1,4 @@
-package ihmc.us.comControllers.model;
+package us.ihmc.comControllers.model;
 
 import us.ihmc.SdfLoader.models.FullRobotModel;
 import us.ihmc.SdfLoader.partNames.NeckJointName;

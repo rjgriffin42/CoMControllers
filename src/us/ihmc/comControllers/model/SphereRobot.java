@@ -1,4 +1,4 @@
-package ihmc.us.comControllers.model;
+package us.ihmc.comControllers.model;
 
 import us.ihmc.graphics3DAdapter.graphics.Graphics3DObject;
 import us.ihmc.graphics3DAdapter.graphics.appearances.YoAppearance;

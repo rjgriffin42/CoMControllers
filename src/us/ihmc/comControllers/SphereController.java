@@ -1,15 +1,14 @@
-package ihmc.us.comControllers;
+package us.ihmc.comControllers;
 
-import ihmc.us.comControllers.controllers.*;
-import ihmc.us.comControllers.model.SphereRobotModel;
 import us.ihmc.SdfLoader.models.FullRobotModel;
+import us.ihmc.comControllers.controllers.BasicSphereController;
+import us.ihmc.comControllers.controllers.GenericSphereController;
+import us.ihmc.comControllers.controllers.SphereControlToolbox;
+import us.ihmc.comControllers.controllers.SphereICPController;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.simulationconstructionset.ExternalForcePoint;
 import us.ihmc.simulationconstructionset.RobotTools;
 import us.ihmc.simulationconstructionset.robotController.RobotController;
-
-import javax.vecmath.Point2d;
-import javax.vecmath.Vector3d;
 
 public class SphereController implements RobotController
 {

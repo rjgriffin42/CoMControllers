@@ -1,4 +1,4 @@
-package ihmc.us.comControllers.footstepOptimization;
+package us.ihmc.comControllers.footstepOptimization;
 
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.BipedSupportPolygons;
 import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerParameters;

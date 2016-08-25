@@ -1,4 +1,4 @@
-package ihmc.us.comControllers.footstepOptimization;
+package us.ihmc.comControllers.footstepOptimization;
 
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;

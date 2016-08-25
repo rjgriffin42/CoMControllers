@@ -1,4 +1,4 @@
-package ihmc.us.comControllers.controllers;
+package us.ihmc.comControllers.controllers;
 
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.YoPlaneContactState;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ICPControlGains;

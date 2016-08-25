@@ -1,4 +1,4 @@
-package ihmc.us.comControllers.footstepOptimization;
+package us.ihmc.comControllers.footstepOptimization;
 
 import org.junit.Assert;
 import org.junit.Test;

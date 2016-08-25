@@ -1,4 +1,4 @@
-package ihmc.us.comControllers.controllers;
+package us.ihmc.comControllers.controllers;
 
 import javax.vecmath.Vector3d;
 

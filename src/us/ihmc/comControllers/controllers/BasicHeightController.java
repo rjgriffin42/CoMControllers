@@ -1,4 +1,4 @@
-package ihmc.us.comControllers.controllers;
+package us.ihmc.comControllers.controllers;
 
 import us.ihmc.SdfLoader.models.FullRobotModel;
 import us.ihmc.robotics.controllers.PIDController;

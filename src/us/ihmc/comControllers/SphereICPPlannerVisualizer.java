@@ -1,4 +1,4 @@
-package ihmc.us.comControllers;
+package us.ihmc.comControllers;
 
 import com.thoughtworks.xstream.io.StreamException;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.BipedSupportPolygons;

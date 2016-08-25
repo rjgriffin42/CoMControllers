@@ -1,8 +1,8 @@
-package ihmc.us.comControllers;
+package us.ihmc.comControllers;
 
-import ihmc.us.comControllers.controllers.SphereControlToolbox;
-import ihmc.us.comControllers.model.SphereRobot;
-import ihmc.us.comControllers.model.SphereRobotModel;
+import us.ihmc.comControllers.controllers.SphereControlToolbox;
+import us.ihmc.comControllers.model.SphereRobot;
+import us.ihmc.comControllers.model.SphereRobotModel;
 import us.ihmc.graphics3DAdapter.GroundProfile3D;
 import us.ihmc.simulationconstructionset.*;
 import us.ihmc.simulationconstructionset.gui.tools.VisualizerUtils;

@@ -1,4 +1,4 @@
-package ihmc.us.comControllers.footstepOptimization;
+package us.ihmc.comControllers.footstepOptimization;
 
 import org.junit.Test;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
