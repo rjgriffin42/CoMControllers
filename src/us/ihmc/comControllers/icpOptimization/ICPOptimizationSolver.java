@@ -217,7 +217,7 @@ public class ICPOptimizationSolver
       referenceFootstepLocations.get(footstepIndex).set(1, 0, referenceFootstepLocation.getY());
    }
 
-   private void setFeedbackConditions(double feedbackWeight, double feedbackGain)
+   public void setFeedbackConditions(double feedbackWeight, double feedbackGain)
    {
       CommonOps.setIdentity(this.feedbackWeight);
       CommonOps.setIdentity(this.feedbackGain);
