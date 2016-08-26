@@ -13,7 +13,7 @@ import us.ihmc.tools.testing.TestPlanTarget;
 ({
    us.ihmc.comControllers.footstepOptimization.ICPAdjustmentControllerTest.class,
    us.ihmc.comControllers.footstepOptimization.ICPAdjustmentSolverTest.class,
-   us.ihmc.comControllers.footstepOptimization.StepRecursionMultiplierCalculatorTest.class,
+   FootstepRecursionMultiplierCalculatorTest.class,
    us.ihmc.comControllers.footstepOptimization.TargetTouchdownICPCalculatorTest.class
 })
 

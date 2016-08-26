@@ -1,12 +1,13 @@
-package us.ihmc.comControllers.footstepOptimization;
+package us.ihmc.comControllers.generatedTestSuites;
 
 import org.junit.Assert;
 import org.junit.Test;
+import us.ihmc.comControllers.icpOptimization.FootstepRecursionMultiplierCalculator;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.tools.testing.TestPlanAnnotations.DeployableTestMethod;
 
-public class StepRecursionMultiplierCalculatorTest
+public class FootstepRecursionMultiplierCalculatorTest
 {
    private final double epsilon = 0.0001;
 
@@ -23,12 +24,12 @@ public class StepRecursionMultiplierCalculatorTest
 
       double steppingDuration = 2.0;
 
-      StepRecursionMultiplierCalculator stepRecursionMultiplierCalculator = new StepRecursionMultiplierCalculator(omega, maxNumberOfStepsToConsider, registry);
+      FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(omega, maxNumberOfStepsToConsider, registry);
 
       boolean pass = false;
       try
       {
-         stepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, stepsToConsider, true);
+         footstepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, stepsToConsider, true);
       }
       catch(RuntimeException e)
       {
@@ -55,12 +56,12 @@ public class StepRecursionMultiplierCalculatorTest
       double totalTimeSpentOnExitCMP = timeSpentOnExitCMPRatio * steppingDuration;
       double totalTimeSpentOnEntryCMP = (1 - timeSpentOnExitCMPRatio) * steppingDuration;
 
-      StepRecursionMultiplierCalculator stepRecursionMultiplierCalculator = new StepRecursionMultiplierCalculator(omega, maxNumberOfStepsToConsider, registry);
+      FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(omega, maxNumberOfStepsToConsider, registry);
 
       boolean pass = false;
       try
       {
-         stepRecursionMultiplierCalculator.computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, stepsToConsider, false);
+         footstepRecursionMultiplierCalculator.computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, stepsToConsider, false);
       }
       catch(RuntimeException e)
       {
@@ -83,12 +84,12 @@ public class StepRecursionMultiplierCalculatorTest
 
       double steppingDuration = 2.0;
 
-      StepRecursionMultiplierCalculator stepRecursionMultiplierCalculator = new StepRecursionMultiplierCalculator(omega, maxNumberOfStepsToConsider, registry);
+      FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(omega, maxNumberOfStepsToConsider, registry);
 
       boolean pass = false;
       try
       {
-         stepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, stepsToConsider, false);
+         footstepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, stepsToConsider, false);
       }
       catch(RuntimeException e)
       {
@@ -115,12 +116,12 @@ public class StepRecursionMultiplierCalculatorTest
       double totalTimeSpentOnExitCMP = timeSpentOnExitCMPRatio * steppingDuration;
       double totalTimeSpentOnEntryCMP = (1 - timeSpentOnExitCMPRatio) * steppingDuration;
 
-      StepRecursionMultiplierCalculator stepRecursionMultiplierCalculator = new StepRecursionMultiplierCalculator(omega, maxNumberOfStepsToConsider, registry);
+      FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(omega, maxNumberOfStepsToConsider, registry);
 
       boolean pass = false;
       try
       {
-         stepRecursionMultiplierCalculator.computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, stepsToConsider, true);
+         footstepRecursionMultiplierCalculator.computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, stepsToConsider, true);
       }
       catch(RuntimeException e)
       {
@@ -146,25 +147,25 @@ public class StepRecursionMultiplierCalculatorTest
       double totalTimeSpentOnExitCMP = timeSpentOnExitCMPRatio * steppingDuration;
       double totalTimeSpentOnEntryCMP = (1 - timeSpentOnExitCMPRatio) * steppingDuration;
 
-      StepRecursionMultiplierCalculator stepRecursionMultiplierCalculator = new StepRecursionMultiplierCalculator(omega, maxNumberOfStepsToConsider, registry);
+      FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(omega, maxNumberOfStepsToConsider, registry);
 
-      stepRecursionMultiplierCalculator.computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, stepsToConsider, true);
+      footstepRecursionMultiplierCalculator.computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, stepsToConsider, true);
 
       double totalTime = stepsToConsider * steppingDuration;
       double finalICPRecursionMultiplier = Math.exp(-omega.getDoubleValue() * totalTime);
 
-      Assert.assertEquals("", finalICPRecursionMultiplier, stepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier(), epsilon);
+      Assert.assertEquals("", finalICPRecursionMultiplier, footstepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier(), epsilon);
 
       for (int i = 0; i < stepsToConsider; i++)
       {
          double multiplier = Math.exp(-omega.getDoubleValue() * i * steppingDuration);
          double desiredExitRecursionMultiplier = Math.exp(-omega.getDoubleValue() * totalTimeSpentOnEntryCMP) * (1.0 - Math.exp(-omega.getDoubleValue() * totalTimeSpentOnExitCMP));
          desiredExitRecursionMultiplier = multiplier * desiredExitRecursionMultiplier;
-         double exitRecursionMultiplier = stepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, true);
+         double exitRecursionMultiplier = footstepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, true);
 
          double desiredEntryRecursionMultiplier = 1.0 - Math.exp(-omega.getDoubleValue() * totalTimeSpentOnEntryCMP);
          desiredEntryRecursionMultiplier = multiplier * desiredEntryRecursionMultiplier;
-         double entryRecursionMultiplier = stepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, true);
+         double entryRecursionMultiplier = footstepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, true);
 
          Assert.assertEquals("Step " + i, desiredExitRecursionMultiplier, exitRecursionMultiplier, epsilon);
          Assert.assertEquals("Step " + i, desiredEntryRecursionMultiplier, entryRecursionMultiplier, epsilon);
@@ -184,20 +185,20 @@ public class StepRecursionMultiplierCalculatorTest
 
       double steppingDuration = 2.0;
 
-      StepRecursionMultiplierCalculator stepRecursionMultiplierCalculator = new StepRecursionMultiplierCalculator(omega, maxNumberOfStepsToConsider, registry);
+      FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(omega, maxNumberOfStepsToConsider, registry);
 
-      stepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, stepsToConsider, false);
+      footstepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, stepsToConsider, false);
 
       double totalTime = stepsToConsider * steppingDuration;
       double finalICPRecursionMultiplier = Math.exp(-omega.getDoubleValue() * totalTime);
 
-      Assert.assertEquals("", finalICPRecursionMultiplier, stepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier(), epsilon);
+      Assert.assertEquals("", finalICPRecursionMultiplier, footstepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier(), epsilon);
 
       for (int i = 0; i < stepsToConsider; i++)
       {
          double desiredRecursionMultiplier = 1.0 - Math.exp(-omega.getDoubleValue() * steppingDuration);
          desiredRecursionMultiplier = desiredRecursionMultiplier * Math.exp(-omega.getDoubleValue() * i * steppingDuration);
-         double recursionMultiplier = stepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, false);
+         double recursionMultiplier = footstepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, false);
 
 
          Assert.assertEquals("Step " + i, desiredRecursionMultiplier, recursionMultiplier, epsilon);

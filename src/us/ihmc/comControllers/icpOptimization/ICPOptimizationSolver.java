@@ -4,6 +4,8 @@ import org.ejml.data.DenseMatrix64F;
 import org.ejml.factory.LinearSolverFactory;
 import org.ejml.interfaces.linsol.LinearSolver;
 import org.ejml.ops.CommonOps;
+import us.ihmc.humanoidRobotics.footstep.Footstep;
+import us.ihmc.robotics.geometry.FramePoint;
 import us.ihmc.robotics.geometry.FramePoint2d;
 import us.ihmc.robotics.geometry.FrameVector2d;
 import us.ihmc.robotics.linearAlgebra.MatrixTools;
@@ -196,6 +198,18 @@ public class ICPOptimizationSolver
    }
 
    private final DenseMatrix64F identity = CommonOps.identity(2, 2);
+
+   private final FramePoint tmpReferenceFootstepLocation = new FramePoint();
+   private final FramePoint2d tmpReferenceFootstepLocation2d = new FramePoint2d();
+
+   public void setFootstepAdjustmentConditions(int footstepIndex, double recursionMultiplier, double weight, Footstep referenceFootstep)
+   {
+      referenceFootstep.getPositionIncludingFrame(tmpReferenceFootstepLocation);
+      tmpReferenceFootstepLocation.changeFrame(worldFrame);
+      tmpReferenceFootstepLocation2d.setByProjectionOntoXYPlane(tmpReferenceFootstepLocation);
+
+      setFootstepAdjustmentConditions(footstepIndex, recursionMultiplier, weight, tmpReferenceFootstepLocation2d);
+   }
 
    public void setFootstepAdjustmentConditions(int footstepIndex, double recursionMultiplier, double weight, FramePoint2d referenceFootstepLocation)
    {

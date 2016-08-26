@@ -1,11 +1,11 @@
-package us.ihmc.comControllers.footstepOptimization;
+package us.ihmc.comControllers.icpOptimization;
 
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 
 import java.util.ArrayList;
 
-public class StepRecursionMultiplierCalculator
+public class FootstepRecursionMultiplierCalculator
 {
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
 
@@ -18,7 +18,7 @@ public class StepRecursionMultiplierCalculator
 
    private final int maxNumberOfFootstepsToConsider;
 
-   public StepRecursionMultiplierCalculator(DoubleYoVariable omega, int maxNumberOfFootstepsToConsider, YoVariableRegistry parentRegistry)
+   public FootstepRecursionMultiplierCalculator(DoubleYoVariable omega, int maxNumberOfFootstepsToConsider, YoVariableRegistry parentRegistry)
    {
       this.omega = omega;
       this.maxNumberOfFootstepsToConsider = maxNumberOfFootstepsToConsider;

@@ -1,5 +1,6 @@
 package us.ihmc.comControllers.footstepOptimization;
 
+import us.ihmc.comControllers.icpOptimization.FootstepRecursionMultiplierCalculator;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.BipedSupportPolygons;
 import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerParameters;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ReferenceCentroidalMomentumPivotLocationsCalculator;
@@ -76,7 +77,7 @@ public class ICPAdjustmentController
    private final FrameVector desiredICPVelocity = new FrameVector();
 
    private final TargetTouchdownICPCalculator targetTouchdownICPCalculator;
-   private final StepRecursionMultiplierCalculator stepRecursionMultiplierCalculator;
+   private final FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator;
    private final ICPAdjustmentSolver icpAdjustmentSolver;
 
    private final ReferenceCentroidalMomentumPivotLocationsCalculator referenceCMPsCalculator;
@@ -100,7 +101,7 @@ public class ICPAdjustmentController
       yoMaxNumberOfFootstepsToConsider.set(icpControllerParameters.getMaximumNumberOfStepsToConsider());
 
       targetTouchdownICPCalculator = new TargetTouchdownICPCalculator(omega0, registry);
-      stepRecursionMultiplierCalculator = new StepRecursionMultiplierCalculator(omega0, yoMaxNumberOfFootstepsToConsider.getIntegerValue(), registry);
+      footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(omega0, yoMaxNumberOfFootstepsToConsider.getIntegerValue(), registry);
       icpAdjustmentSolver = new ICPAdjustmentSolver(icpControllerParameters);
 
       exitCMPDurationInPercentOfStepTime.set(icpPlannerParameters.getTimeSpentOnExitCMPInPercentOfStepTime());
@@ -225,7 +226,7 @@ public class ICPAdjustmentController
             computeRemainingTimeInState(totalTimeSpentOnExitCMP);
 
             perfectCMP.set(referenceCMPsCalculator.getExitCMPs().get(0).getFramePoint2dCopy());
-            stepRecursionMultiplierCalculator
+            footstepRecursionMultiplierCalculator
                   .computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, numberOfFootstepsToConsider.getIntegerValue(), useTwoCMPs.getBooleanValue());
          }
          else
@@ -233,7 +234,7 @@ public class ICPAdjustmentController
             computeRemainingTimeInState(steppingDuration);
 
             perfectCMP.set(referenceCMPsCalculator.getEntryCMPs().get(0).getFramePoint2dCopy());
-            stepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, numberOfFootstepsToConsider.getIntegerValue(), useTwoCMPs.getBooleanValue());
+            footstepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, numberOfFootstepsToConsider.getIntegerValue(), useTwoCMPs.getBooleanValue());
          }
 
          targetTouchdownICPCalculator.computeTargetTouchdownICP(remainingTime.getDoubleValue(), currentICP, perfectCMP.getFramePoint2dCopy());
@@ -299,7 +300,7 @@ public class ICPAdjustmentController
       finalEndingICP.getXYPlaneDistance(finalEndingICP2d);
 
       finalICPRecursion.set(finalEndingICP2d);
-      finalICPRecursion.scale(stepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier());
+      finalICPRecursion.scale(footstepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier());
    }
 
    private final FramePoint2d totalOffsetEffect = new FramePoint2d();
@@ -310,12 +311,12 @@ public class ICPAdjustmentController
       for (int i = 0; i < numberOfFootstepsToConsider.getIntegerValue(); i++)
       {
          totalOffsetEffect.set(exitOffsets.get(i));
-         totalOffsetEffect.scale(stepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs.getBooleanValue()));
+         totalOffsetEffect.scale(footstepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs.getBooleanValue()));
 
          twoCMPOffsetEffect.add(totalOffsetEffect);
 
          totalOffsetEffect.set(entryOffsets.get(i));
-         totalOffsetEffect.scale(stepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs.getBooleanValue()));
+         totalOffsetEffect.scale(footstepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs.getBooleanValue()));
 
          twoCMPOffsetEffect.add(totalOffsetEffect);
       }
@@ -387,8 +388,8 @@ public class ICPAdjustmentController
 
             if (useTwoCMPs)
             {
-               double entryMultiplier = stepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs);
-               double exitMultiplier = stepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs);
+               double entryMultiplier = footstepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs);
+               double exitMultiplier = footstepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs);
                icpAdjustmentSolver.setFootstepRecursionMultipliers(i, entryMultiplier + exitMultiplier);
 
                effectiveFinalICPRecursion.set(finalICPRecursion.getFramePoint2dCopy());
@@ -396,7 +397,7 @@ public class ICPAdjustmentController
             }
             else
             {
-               icpAdjustmentSolver.setFootstepRecursionMultipliers(i, stepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, useTwoCMPs));
+               icpAdjustmentSolver.setFootstepRecursionMultipliers(i, footstepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, useTwoCMPs));
 
                effectiveFinalICPRecursion.set(finalICPRecursion.getFramePoint2dCopy());
             }

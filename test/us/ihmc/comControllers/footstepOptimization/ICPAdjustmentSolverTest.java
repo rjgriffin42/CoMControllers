@@ -4,6 +4,7 @@ import org.ejml.data.DenseMatrix64F;
 import org.ejml.ops.CommonOps;
 import org.junit.Assert;
 import org.junit.Test;
+import us.ihmc.comControllers.icpOptimization.FootstepRecursionMultiplierCalculator;
 import us.ihmc.robotics.MathTools;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
@@ -22,7 +23,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
    private final YoVariableRegistry registry = new YoVariableRegistry("registry");
    private final DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
    private final TargetTouchdownICPCalculator targetTouchdownICPCalculator = new TargetTouchdownICPCalculator(omega, registry);
-   private final StepRecursionMultiplierCalculator stepRecursionMultiplierCalculator = new StepRecursionMultiplierCalculator(omega, maxNumberOfFootstepsToConsider, registry);
+   private final FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(omega, maxNumberOfFootstepsToConsider, registry);
 
    private static final double epsilon = 0.00001;
    private static final int maxNumberOfFootstepsToConsider = 5;
@@ -573,14 +574,15 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       targetTouchdownICPCalculator.computeTargetTouchdownICP(remainingTime, currentICP, perfectCMP);
 
       if (useTwoCMPs)
-         stepRecursionMultiplierCalculator.computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, numberOfFootstepsToConsider, useTwoCMPs);
+         footstepRecursionMultiplierCalculator
+               .computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, numberOfFootstepsToConsider, useTwoCMPs);
       else
-         stepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, numberOfFootstepsToConsider, useTwoCMPs);
+         footstepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, numberOfFootstepsToConsider, useTwoCMPs);
 
       targetTouchdownICPCalculator.getTargetTouchdownICP(targetTouchdownICP);
 
       finalICPRecursion.set(desiredFinalICP);
-      finalICPRecursion.scale(stepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier());
+      finalICPRecursion.scale(footstepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier());
 
       FramePoint2d perfectHeelCMP = new FramePoint2d();
       FramePoint2d perfectTargetHeelStrikeICP = new FramePoint2d();
@@ -589,7 +591,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
       {
          perfectHeelCMP.set(desiredFootsteps.get(i));
-         perfectHeelCMP.scale(stepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, useTwoCMPs));
+         perfectHeelCMP.scale(footstepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, useTwoCMPs));
 
          perfectTargetHeelStrikeICP.add(perfectHeelCMP);
       }
@@ -629,14 +631,15 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       targetTouchdownICPCalculator.computeTargetTouchdownICP(remainingTime, currentICP, perfectCMP);
 
       if (useTwoCMPs)
-         stepRecursionMultiplierCalculator.computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, numberOfFootstepsToConsider, useTwoCMPs);
+         footstepRecursionMultiplierCalculator
+               .computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, numberOfFootstepsToConsider, useTwoCMPs);
       else
-         stepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, numberOfFootstepsToConsider, useTwoCMPs);
+         footstepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, numberOfFootstepsToConsider, useTwoCMPs);
 
       targetTouchdownICPCalculator.getTargetTouchdownICP(targetTouchdownICP);
 
       finalICPRecursion.set(desiredFinalICP);
-      finalICPRecursion.scale(stepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier());
+      finalICPRecursion.scale(footstepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier());
 
       FramePoint2d perfectExitCMP = new FramePoint2d();
       FramePoint2d perfectEntryCMP = new FramePoint2d();
@@ -647,13 +650,13 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       {
          perfectExitCMP.set(desiredFootsteps.get(i));
          perfectExitCMP.add(exitOffset);
-         perfectExitCMP.scale(stepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs));
+         perfectExitCMP.scale(footstepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs));
 
          perfectTargetHeelStrikeICP.add(perfectExitCMP);
 
          perfectEntryCMP.set(desiredFootsteps.get(i));
          perfectEntryCMP.add(entryOffset);
-         perfectEntryCMP.scale(stepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs));
+         perfectEntryCMP.scale(footstepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs));
 
          perfectTargetHeelStrikeICP.add(perfectEntryCMP);
       }
@@ -675,12 +678,12 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
          for (int i = 0; i < numberOfFootstepsToConsider; i++)
          {
             totalCMPOffset.set(exitOffset);
-            totalCMPOffset.scale(stepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs));
+            totalCMPOffset.scale(footstepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs));
 
             twoCMPOffsetEffect.add(totalCMPOffset);
 
             totalCMPOffset.set(entryOffset);
-            totalCMPOffset.scale(stepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs));
+            totalCMPOffset.scale(footstepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs));
 
             twoCMPOffsetEffect.add(totalCMPOffset);
          }
@@ -719,12 +722,12 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
          for (int i = 0; i < numberOfFootstepsToConsider; i++)
          {
             totalCMPOffset.set(exitOffset);
-            totalCMPOffset.scale(stepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs));
+            totalCMPOffset.scale(footstepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs));
 
             twoCMPOffsetEffect.add(totalCMPOffset);
 
             totalCMPOffset.set(entryOffset);
-            totalCMPOffset.scale(stepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs));
+            totalCMPOffset.scale(footstepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs));
 
             twoCMPOffsetEffect.add(totalCMPOffset);
          }
@@ -740,14 +743,15 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       targetTouchdownICPCalculator.computeTargetTouchdownICP(remainingTime, currentICP, perfectCMP);
 
       if (useTwoCMPs)
-         stepRecursionMultiplierCalculator.computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, numberOfFootstepsToConsider, useTwoCMPs);
+         footstepRecursionMultiplierCalculator
+               .computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, numberOfFootstepsToConsider, useTwoCMPs);
       else
-         stepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, numberOfFootstepsToConsider, useTwoCMPs);
+         footstepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, numberOfFootstepsToConsider, useTwoCMPs);
 
       targetTouchdownICPCalculator.getTargetTouchdownICP(targetTouchdownICP);
 
       finalICPRecursion.set(desiredFinalICP);
-      finalICPRecursion.scale(stepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier());
+      finalICPRecursion.scale(footstepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier());
 
       if (useTwoCMPs)
          finalICPRecursion.add(twoCMPOffsetEffect);
@@ -781,14 +785,14 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
          double recursionMultiplier;
          if (useTwoCMPs)
          {
-            double entryRecursionMultiplier = stepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs);
-            double exitRecursionMultiplier = stepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs);
+            double entryRecursionMultiplier = footstepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs);
+            double exitRecursionMultiplier = footstepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs);
 
             recursionMultiplier = entryRecursionMultiplier + exitRecursionMultiplier;
          }
          else
          {
-            recursionMultiplier = stepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, useTwoCMPs);
+            recursionMultiplier = footstepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, useTwoCMPs);
          }
 
          super.setFootstepRecursionMultipliers(i, recursionMultiplier);
@@ -807,9 +811,10 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       {
          double recursionMultiplier;
          if (useTwoCMPs)
-            recursionMultiplier = stepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs) + stepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs);
+            recursionMultiplier = footstepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs) + footstepRecursionMultiplierCalculator
+                  .getTwoCMPRecursionExitMultiplier(i, useTwoCMPs);
          else
-            recursionMultiplier = stepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, useTwoCMPs);
+            recursionMultiplier = footstepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, useTwoCMPs);
 
          CommonOps.setIdentity(identity);
          CommonOps.scale(recursionMultiplier, identity);
