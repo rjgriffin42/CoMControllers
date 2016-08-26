@@ -675,7 +675,7 @@ public class SphereControlToolbox
 
          @Override public boolean useStepAdjustment()
          {
-            return true;
+            return false;
          }
 
          @Override public boolean scaleFirstStepWeightWithTime()

@@ -222,10 +222,6 @@ public class SphereICPOptimizationController implements GenericSphereController
             this.transitionToDefaultNextState();
 
          icpOptimizationController.compute(yoTime.getDoubleValue(), desiredCapturePoint2d, desiredCapturePointVelocity2d, capturePoint2d);
-         /*
-         FramePoint2d desiredCMP = icpController.doProportionalControl(null, capturePoint2d, desiredCapturePoint2d, finalDesiredCapturePoint2d,
-               desiredCapturePointVelocity2d, null, omega0.getDoubleValue());
-               */
          icpOptimizationController.getDesiredCMP(desiredCMP);
          yoDesiredCMP.setXY(desiredCMP);
       }
@@ -253,6 +249,7 @@ public class SphereICPOptimizationController implements GenericSphereController
 
    private class SingleSupportState extends State<SupportState>
    {
+      private final FramePoint2d desiredCMP = new FramePoint2d();
       public SingleSupportState()
       {
          super(SupportState.SINGLE);
@@ -260,9 +257,14 @@ public class SphereICPOptimizationController implements GenericSphereController
 
       @Override public void doAction()
       {
+         icpOptimizationController.compute(yoTime.getDoubleValue(), desiredCapturePoint2d, desiredCapturePointVelocity2d, capturePoint2d);
+         icpOptimizationController.getDesiredCMP(desiredCMP);
+         yoDesiredCMP.setXY(desiredCMP);
+         /*
          FramePoint2d desiredCMP = icpController.doProportionalControl(null, capturePoint2d, desiredCapturePoint2d, finalDesiredCapturePoint2d,
                desiredCapturePointVelocity2d, null, omega0.getDoubleValue());
          yoDesiredCMP.setXY(desiredCMP);
+               */
       }
 
       @Override public void doTransitionIntoAction()
@@ -283,6 +285,7 @@ public class SphereICPOptimizationController implements GenericSphereController
          icpPlanner.setSupportLeg(supportSide);
          icpPlanner.initializeForSingleSupport(yoTime.getDoubleValue());
 
+         icpOptimizationController.initializeForSingleSupport(yoTime.getDoubleValue());
 
          FootSpoof footSpoof = contactableFeet.get(supportSide.getOppositeSide());
          FramePose nextSupportPose = footPosesAtTouchdown.get(supportSide.getOppositeSide());
@@ -305,6 +308,7 @@ public class SphereICPOptimizationController implements GenericSphereController
 
    private class DoubleSupportState extends State<SupportState>
    {
+      private final FramePoint2d desiredCMP = new FramePoint2d();
       public DoubleSupportState()
       {
          super(SupportState.DOUBLE);
@@ -315,9 +319,14 @@ public class SphereICPOptimizationController implements GenericSphereController
          if (icpPlanner.isDone(yoTime.getDoubleValue()))
             transitionToDefaultNextState();
 
+         icpOptimizationController.compute(yoTime.getDoubleValue(), desiredCapturePoint2d, desiredCapturePointVelocity2d, capturePoint2d);
+         icpOptimizationController.getDesiredCMP(desiredCMP);
+         yoDesiredCMP.setXY(desiredCMP);
+         /*
          FramePoint2d desiredCMP = icpController.doProportionalControl(null, capturePoint2d, desiredCapturePoint2d, finalDesiredCapturePoint2d,
                desiredCapturePointVelocity2d, null, omega0.getDoubleValue());
          yoDesiredCMP.setXY(desiredCMP);
+         */
       }
 
       @Override public void doTransitionIntoAction()
@@ -342,6 +351,8 @@ public class SphereICPOptimizationController implements GenericSphereController
 
          icpPlanner.setTransferToSide(transferToSide);
          icpPlanner.initializeForTransfer(yoTime.getDoubleValue());
+
+         icpOptimizationController.initializeForTransfer(yoTime.getDoubleValue());
       }
 
       @Override public void doTransitionOutOfAction()

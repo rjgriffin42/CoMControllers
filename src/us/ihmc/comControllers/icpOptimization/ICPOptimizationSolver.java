@@ -361,6 +361,8 @@ public class ICPOptimizationSolver
 
    private void assembleTotalProblem()
    {
+      CommonOps.transpose(solverInput_Aeq, solverInput_AeqTrans);
+
       // add matrix minimization objective
       MatrixTools.setMatrixBlock(solverInput_G, 0, 0, solverInput_H, 0, 0, numberOfFreeVariables, numberOfFreeVariables, 1.0);
       MatrixTools.setMatrixBlock(solverInput_g, 0, 0, solverInput_h, 0, 0, numberOfFreeVariables, 1, 1.0);

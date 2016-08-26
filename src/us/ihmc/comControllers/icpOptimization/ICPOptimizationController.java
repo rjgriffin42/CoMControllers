@@ -41,6 +41,7 @@ public class ICPOptimizationController
    private final YoFramePoint2d controllerDesiredICP = new YoFramePoint2d("controllerDesiredICP", worldFrame, registry);
    private final YoFrameVector2d controllerDesiredICPVelocity = new YoFrameVector2d("controllerDesiredICPVelocity", worldFrame, registry);
    private final YoFramePoint2d controllerPerfectCMP = new YoFramePoint2d("controllerPerfectCMP", worldFrame, registry);
+   private final YoFramePoint2d controllerFeedbackCMP = new YoFramePoint2d("controllerFeedbackCMP", worldFrame, registry);
 
    private final DoubleYoVariable footstepWeight = new DoubleYoVariable("footstepWeight", registry);
    private final DoubleYoVariable firstStepWeight = new DoubleYoVariable("firstStepWeight", registry);
@@ -83,7 +84,22 @@ public class ICPOptimizationController
       isInTransfer.set(false);
    }
 
+   public void initializeForTransfer(double initialTime)
+   {
+      this.initialTime.set(initialTime);
+      isStanding.set(false);
+      isInTransfer.set(true);
+   }
+
+   public void initializeForSingleSupport(double initialTime)
+   {
+      this.initialTime.set(initialTime);
+      isStanding.set(false);
+      isInTransfer.set(false);
+   }
+
    private final FramePoint2d perfectCMP = new FramePoint2d();
+   private final FramePoint2d desiredCMP = new FramePoint2d();
 
    public void compute(double currentTime, FramePoint2d desiredICP, FrameVector2d desiredICPVelocity, FramePoint2d currentICP)
    {
@@ -106,23 +122,34 @@ public class ICPOptimizationController
          doControlForStanding();
       else
          doControlForStepping();
+
+      solver.getCMPFeedback(desiredCMP);
+      controllerFeedbackCMP.set(desiredCMP);
    }
 
    private void doControlForStanding()
+   {
+      doFeedbackOnlyControl();
+   }
+
+   private void doControlForStepping()
+   {
+      if (useFeedback.getBooleanValue() && !useStepAdjustment.getBooleanValue())
+      {
+         doFeedbackOnlyControl();
+         return;
+      }
+
+      if (useFeedback.getBooleanValue())
+         solver.setFeedbackConditions(scaledFeedbackWeight.getDoubleValue(), feedbackGain.getDoubleValue());
+   }
+
+   private void doFeedbackOnlyControl()
    {
       solver.submitProblemConditions(0, false, true, false);
       solver.setFeedbackConditions(scaledFeedbackWeight.getDoubleValue(), feedbackGain.getDoubleValue());
 
       solver.compute(controllerDesiredICP.getFrameTuple2d(), null, controllerCurrentICP.getFrameTuple2d(), controllerPerfectCMP.getFrameTuple2d(), 0.0, 0.0);
-   }
-
-   private void doControlForStepping()
-   {
-      solver.submitProblemConditions(numberOfFootstepsToConsider.getIntegerValue(), useStepAdjustment.getBooleanValue(), useFeedback.getBooleanValue(),
-            useTwoCMPsInControl.getBooleanValue());
-
-      if (useFeedback.getBooleanValue())
-         solver.setFeedbackConditions(scaledFeedbackWeight.getDoubleValue(), feedbackGain.getDoubleValue());
    }
 
    private void computeTimeInCurrentState(double currentTime)
@@ -159,6 +186,6 @@ public class ICPOptimizationController
 
    public void getDesiredCMP(FramePoint2d desiredCMPToPack)
    {
-      solver.getCMPFeedback(desiredCMPToPack);
+      controllerFeedbackCMP.getFrameTuple2d(desiredCMPToPack);
    }
 }
