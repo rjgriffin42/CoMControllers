@@ -67,9 +67,15 @@ public class ICPOptimizationSolver
    private boolean useStepAdjustment = true;
    private boolean useTwoCMPs = false;
 
+   private final double minimumFootstepWeight;
+   private final double minimumFeedbackWeight;
+
    public ICPOptimizationSolver(ICPOptimizationParameters icpOptimizationParameters)
    {
       maximumNumberOfFootstepsToConsider = icpOptimizationParameters.getMaximumNumberOfFootstepsToConsider();
+
+      minimumFootstepWeight = icpOptimizationParameters.getMinimumFootstepWeight();
+      minimumFeedbackWeight = icpOptimizationParameters.getMinimumFeedbackWeight();
 
       int maximumNumberOfFreeVariables = 2 * maximumNumberOfFootstepsToConsider + 2;
       int maximumNumberOfLagrangeMultipliers = 2;
@@ -207,6 +213,7 @@ public class ICPOptimizationSolver
    private void setFootstepWeight(int footstepIndex, double weight)
    {
       CommonOps.setIdentity(identity);
+      weight = Math.max(minimumFootstepWeight, weight);
       MatrixTools.addMatrixBlock(footstepWeights.get(footstepIndex), 0, 0, identity, 0, 0, 2, 2, weight);
    }
 
@@ -219,6 +226,8 @@ public class ICPOptimizationSolver
 
    public void setFeedbackConditions(double feedbackWeight, double feedbackGain)
    {
+      feedbackWeight = Math.max(minimumFeedbackWeight, feedbackWeight);
+
       CommonOps.setIdentity(this.feedbackWeight);
       CommonOps.setIdentity(this.feedbackGain);
 
@@ -230,9 +239,11 @@ public class ICPOptimizationSolver
                        double omega, double timeRemaining)
    {
       finalICPRecursion.changeFrame(worldFrame);
-      cmpOffsetRecursionEffect.changeFrame(worldFrame);
       currentICP.changeFrame(worldFrame);
       perfectCMP.changeFrame(worldFrame);
+
+      if (cmpOffsetRecursionEffect != null)
+         cmpOffsetRecursionEffect.changeFrame(worldFrame);
 
       this.finalICPRecursion.set(0, 0, finalICPRecursion.getX());
       this.finalICPRecursion.set(1, 0, finalICPRecursion.getY());

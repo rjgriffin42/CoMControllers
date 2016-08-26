@@ -30,6 +30,9 @@ public class ICPOptimizationController
    private final BooleanYoVariable isStanding = new BooleanYoVariable("isStanding", registry);
    private final BooleanYoVariable isInTransfer = new BooleanYoVariable("isInTransfer", registry);
 
+   private final DoubleYoVariable doubleSupportDuration = new DoubleYoVariable("doubleSupportDuration", registry);
+   private final DoubleYoVariable singleSupportDuration = new DoubleYoVariable("singleSupportDuration", registry);
+
    private final DoubleYoVariable initialTime = new DoubleYoVariable("initialTime", registry);
    private final DoubleYoVariable timeInCurrentState = new DoubleYoVariable("timeInCurrentState", registry);
    private final DoubleYoVariable timeRemainingInState = new DoubleYoVariable("timeRemainingInState", registry);
@@ -49,13 +52,31 @@ public class ICPOptimizationController
 
    private final ICPOptimizationSolver solver;
 
-   public ICPOptimizationController(ICPOptimizationParameters icpOptimizationParameters, DoubleYoVariable omega)
+   public ICPOptimizationController(ICPOptimizationParameters icpOptimizationParameters, DoubleYoVariable omega, YoVariableRegistry parentRegistry)
    {
       solver = new ICPOptimizationSolver(icpOptimizationParameters);
       this.omega = omega;
+
+      useFeedback.set(icpOptimizationParameters.useFeedback());
+      useStepAdjustment.set(icpOptimizationParameters.useStepAdjustment());
+
+      scaleFirstStepWeightWithTime.set(icpOptimizationParameters.scaleFirstStepWeightWithTime());
+      scaleFeedbackWeightWithGain.set(icpOptimizationParameters.scaleFeedbackWeightWithGain());
+
+      footstepWeight.set(icpOptimizationParameters.getFootstepWeight());
+      feedbackWeight.set(icpOptimizationParameters.getFeedbackWeight());
+      feedbackGain.set(icpOptimizationParameters.getFeedbackGain());
+
+      parentRegistry.addChild(registry);
    }
 
-   public void initializeStanding(double initialTime)
+   public void setStepDurations(double doubleSupportDuration, double singleSupportDuration)
+   {
+      this.doubleSupportDuration.set(doubleSupportDuration);
+      this.singleSupportDuration.set(singleSupportDuration);
+   }
+
+   public void initializeForStanding(double initialTime)
    {
       this.initialTime.set(initialTime);
       isStanding.set(true);
@@ -64,7 +85,7 @@ public class ICPOptimizationController
 
    private final FramePoint2d perfectCMP = new FramePoint2d();
 
-   public void compute(double time, FramePoint2d desiredICP, FrameVector2d desiredICPVelocity, FramePoint2d currentICP)
+   public void compute(double currentTime, FramePoint2d desiredICP, FrameVector2d desiredICPVelocity, FramePoint2d currentICP)
    {
       desiredICP.changeFrame(worldFrame);
       desiredICPVelocity.changeFrame(worldFrame);
@@ -77,14 +98,67 @@ public class ICPOptimizationController
       CapturePointTools.computeDesiredCentroidalMomentumPivot(desiredICP, desiredICPVelocity, omega.getDoubleValue(), perfectCMP);
       controllerPerfectCMP.set(perfectCMP);
 
+      computeTimeInCurrentState(currentTime);
+      scaleFirstStepWeightWithTime();
+      scaleFeedbackWeightWithGain();
+
       if (isStanding.getBooleanValue())
+         doControlForStanding();
+      else
+         doControlForStepping();
+   }
+
+   private void doControlForStanding()
+   {
+      solver.submitProblemConditions(0, false, true, false);
+      solver.setFeedbackConditions(scaledFeedbackWeight.getDoubleValue(), feedbackGain.getDoubleValue());
+
+      solver.compute(controllerDesiredICP.getFrameTuple2d(), null, controllerCurrentICP.getFrameTuple2d(), controllerPerfectCMP.getFrameTuple2d(), 0.0, 0.0);
+   }
+
+   private void doControlForStepping()
+   {
+      solver.submitProblemConditions(numberOfFootstepsToConsider.getIntegerValue(), useStepAdjustment.getBooleanValue(), useFeedback.getBooleanValue(),
+            useTwoCMPsInControl.getBooleanValue());
+
+      if (useFeedback.getBooleanValue())
+         solver.setFeedbackConditions(scaledFeedbackWeight.getDoubleValue(), feedbackGain.getDoubleValue());
+   }
+
+   private void computeTimeInCurrentState(double currentTime)
+   {
+      timeInCurrentState.set(currentTime - initialTime.getDoubleValue());
+      // todo compute remaining time
+   }
+
+   private void scaleFirstStepWeightWithTime()
+   {
+      if (scaleFirstStepWeightWithTime.getBooleanValue())
       {
-         solver.submitProblemConditions(0, false, true, false);
+         double alpha = 1.0; //timeRemainingInState.getDoubleValue() / singleSupportDuration; // todo
+         firstStepWeight.set(footstepWeight.getDoubleValue() / alpha);
       }
       else
       {
-         solver.submitProblemConditions(numberOfFootstepsToConsider.getIntegerValue(), useStepAdjustment.getBooleanValue(), useFeedback.getBooleanValue(),
-                                        useTwoCMPsInControl.getBooleanValue());
+         firstStepWeight.set(footstepWeight.getDoubleValue());
       }
+   }
+
+   private void scaleFeedbackWeightWithGain()
+   {
+      if (scaleFeedbackWeightWithGain.getBooleanValue())
+      {
+         double alpha = 1.0; //Math.pow(feedbackGain.getDoubleValue(), 2); // todo
+         scaledFeedbackWeight.set(feedbackWeight.getDoubleValue() / alpha);
+      }
+      else
+      {
+         scaledFeedbackWeight.set(feedbackWeight.getDoubleValue());
+      }
+   }
+
+   public void getDesiredCMP(FramePoint2d desiredCMPToPack)
+   {
+      solver.getCMPFeedback(desiredCMPToPack);
    }
 }

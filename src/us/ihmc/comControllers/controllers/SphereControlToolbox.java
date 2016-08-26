@@ -2,6 +2,7 @@ package us.ihmc.comControllers.controllers;
 
 import us.ihmc.SdfLoader.models.FullRobotModel;
 import us.ihmc.comControllers.footstepOptimization.ICPAdjustmentControllerParameters;
+import us.ihmc.comControllers.icpOptimization.ICPOptimizationParameters;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.BipedSupportPolygons;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.YoPlaneContactState;
 import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerParameters;
@@ -115,7 +116,7 @@ public class SphereControlToolbox
    private final YoGraphicsListRegistry yoGraphicsListRegistry;
 
    private CapturePointPlannerParameters capturePointPlannerParameters;
-   private ICPAdjustmentControllerParameters icpAdjustmentControllerParameters;
+   private ICPOptimizationParameters icpOptimizationParameters;
 
    private DoubleYoVariable yoTime;
 
@@ -189,7 +190,7 @@ public class SphereControlToolbox
       centerOfMassJacobian = new CenterOfMassJacobian(elevator);
 
       capturePointPlannerParameters = createICPPlannerParameters();
-      icpAdjustmentControllerParameters = createICPAdjustmentControllerParameters();
+      icpOptimizationParameters = createICPOptimizationParameters();
 
       parentRegistry.addChild(registry);
    }
@@ -327,9 +328,9 @@ public class SphereControlToolbox
       return capturePointPlannerParameters;
    }
 
-   public ICPAdjustmentControllerParameters getICPAdjustmentControllerParameters()
+   public ICPOptimizationParameters getICPOptimizationParameters()
    {
-      return icpAdjustmentControllerParameters;
+      return icpOptimizationParameters;
    }
 
    public double getDoubleSupportDuration()
@@ -643,18 +644,13 @@ public class SphereControlToolbox
       };
    }
 
-   public ICPAdjustmentControllerParameters createICPAdjustmentControllerParameters()
+   public ICPOptimizationParameters createICPOptimizationParameters()
    {
-      return new ICPAdjustmentControllerParameters()
+      return new ICPOptimizationParameters()
       {
-         @Override public int getMaximumNumberOfStepsToConsider()
+         @Override public int getMaximumNumberOfFootstepsToConsider()
          {
             return 5;
-         }
-
-         @Override public int getNumberOfStepsToConsider()
-         {
-            return 1;
          }
 
          @Override public double getFootstepWeight()
@@ -667,27 +663,37 @@ public class SphereControlToolbox
             return 5.0;
          }
 
+         @Override public double getFeedbackGain()
+         {
+            return 2.0;
+         }
+
          @Override public boolean useFeedback()
          {
             return true;
          }
 
-         @Override public boolean scaleFirstStepWithTime()
+         @Override public boolean useStepAdjustment()
+         {
+            return true;
+         }
+
+         @Override public boolean scaleFirstStepWeightWithTime()
          {
             return false;
          }
 
-         @Override public double minimumRemainingTime()
+         @Override public boolean scaleFeedbackWeightWithGain()
          {
-            return 0.001;
+            return false;
          }
 
-         @Override public double minimumFootstepWeight()
+         @Override public double getMinimumFootstepWeight()
          {
             return 0.0001;
          }
 
-         @Override public double minimumFeedbackWeight()
+         @Override public double getMinimumFeedbackWeight()
          {
             return 0.0001;
          }

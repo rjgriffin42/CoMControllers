@@ -1,10 +1,7 @@
 package us.ihmc.comControllers;
 
 import us.ihmc.SdfLoader.models.FullRobotModel;
-import us.ihmc.comControllers.controllers.BasicSphereController;
-import us.ihmc.comControllers.controllers.GenericSphereController;
-import us.ihmc.comControllers.controllers.SphereControlToolbox;
-import us.ihmc.comControllers.controllers.SphereICPController;
+import us.ihmc.comControllers.controllers.*;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.simulationconstructionset.ExternalForcePoint;
 import us.ihmc.simulationconstructionset.RobotTools;
@@ -12,9 +9,9 @@ import us.ihmc.simulationconstructionset.robotController.RobotController;
 
 public class SphereController implements RobotController
 {
-   private enum SphereControllerEnum {BASIC, ICP}
+   private enum SphereControllerEnum {BASIC, ICP, ICP_OPTIMIZATION}
 
-   private static final SphereControllerEnum controllerType = SphereControllerEnum.ICP;
+   private static final SphereControllerEnum controllerType = SphereControllerEnum.ICP_OPTIMIZATION;
 
    private final YoVariableRegistry registry = new YoVariableRegistry("SphereController");
 
@@ -39,6 +36,9 @@ public class SphereController implements RobotController
          break;
       case ICP:
          sphereController = new SphereICPController(controlToolbox, registry);
+         break;
+      case ICP_OPTIMIZATION:
+         sphereController = new SphereICPOptimizationController(controlToolbox, registry);
          break;
       default:
          sphereController = new BasicSphereController(controlToolbox, registry);

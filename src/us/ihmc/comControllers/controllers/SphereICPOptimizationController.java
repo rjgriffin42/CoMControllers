@@ -1,6 +1,7 @@
 package us.ihmc.comControllers.controllers;
 
 import us.ihmc.comControllers.footstepOptimization.ICPAdjustmentController;
+import us.ihmc.comControllers.icpOptimization.ICPOptimizationController;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.YoPlaneContactState;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ICPControlGains;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ICPPlanner;
@@ -30,7 +31,7 @@ import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicsListRegi
 
 import javax.vecmath.Vector3d;
 
-public class SphereICPAdjustmentController implements GenericSphereController
+public class SphereICPOptimizationController implements GenericSphereController
 {
    private static final ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
 
@@ -65,7 +66,7 @@ public class SphereICPAdjustmentController implements GenericSphereController
 
    private final YoFramePoint yoDesiredCMP;
 
-   private final ICPAdjustmentController icpAdjustmentController;
+   private final ICPOptimizationController icpOptimizationController;
    private final ICPProportionalController icpController;
    private final ICPControlGains icpGains;
    private final DoubleYoVariable omega0 = new DoubleYoVariable("omega0", registry);
@@ -77,7 +78,7 @@ public class SphereICPAdjustmentController implements GenericSphereController
 
    private final DoubleYoVariable yoTime;
 
-   public SphereICPAdjustmentController(SphereControlToolbox controlToolbox, YoVariableRegistry parentRegistry)
+   public SphereICPOptimizationController(SphereControlToolbox controlToolbox, YoVariableRegistry parentRegistry)
    {
       this.controlToolbox = controlToolbox;
 
@@ -111,8 +112,7 @@ public class SphereICPAdjustmentController implements GenericSphereController
       icpGains.setKpParallelToMotion(2.0);
 
       icpController = new ICPProportionalController(icpGains, controlToolbox.getControlDT(), registry);
-      icpAdjustmentController = new ICPAdjustmentController(controlToolbox.getBipedSupportPolygons(), controlToolbox.getContactableFeet(),
-            controlToolbox.getCapturePointPlannerParameters(), controlToolbox.getICPAdjustmentControllerParameters(), omega0, registry);
+      icpOptimizationController = new ICPOptimizationController(controlToolbox.getICPOptimizationParameters(), omega0, registry);
 
       stateMachine = new StateMachine<>("supportStateMachine", "supportStateTime", SupportState.class, controlToolbox.getYoTime(), registry);
       StandingState standingState = new StandingState();
@@ -209,6 +209,8 @@ public class SphereICPAdjustmentController implements GenericSphereController
 
    private class StandingState extends State<SupportState>
    {
+      private final FramePoint2d desiredCMP = new FramePoint2d();
+
       public StandingState()
       {
          super(SupportState.STANDING);
@@ -219,8 +221,12 @@ public class SphereICPAdjustmentController implements GenericSphereController
          if (controlToolbox.hasFootsteps())
             this.transitionToDefaultNextState();
 
+         icpOptimizationController.compute(yoTime.getDoubleValue(), desiredCapturePoint2d, desiredCapturePointVelocity2d, capturePoint2d);
+         /*
          FramePoint2d desiredCMP = icpController.doProportionalControl(null, capturePoint2d, desiredCapturePoint2d, finalDesiredCapturePoint2d,
                desiredCapturePointVelocity2d, null, omega0.getDoubleValue());
+               */
+         icpOptimizationController.getDesiredCMP(desiredCMP);
          yoDesiredCMP.setXY(desiredCMP);
       }
 
@@ -232,6 +238,8 @@ public class SphereICPAdjustmentController implements GenericSphereController
          icpPlanner.holdCurrentICP(yoTime.getDoubleValue(), desiredCapturePoint);
          icpPlanner.initializeForStanding(yoTime.getDoubleValue());
          icpPlanner.setDesiredCapturePointState(desiredICP, desiredICPVelocity);
+
+         icpOptimizationController.initializeForStanding(yoTime.getDoubleValue());
 
          for (RobotSide robotSide : RobotSide.values)
             contactStates.get(robotSide).setFullyConstrained();
