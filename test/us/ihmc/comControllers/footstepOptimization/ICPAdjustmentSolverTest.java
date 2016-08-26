@@ -43,6 +43,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
    private static final double footstepWeight = 100.0;
    private static final double feedbackWeight = 2.0;
+   private static final double feedbackGain = 2.0;
 
    private static final double stepLength = 0.2;
    private static final double stanceWidth = 0.1;
@@ -283,7 +284,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       final boolean useFeedback = false;
       final boolean useTwoCMPs = false;
 
-      setPerfectOneCMPConditions(numberOfFootstepsToConsider, useFeedback, useTwoCMPs);
+      setPerfectOneCMPConditions(numberOfFootstepsToConsider, useFeedback, useStepAdjustment, useTwoCMPs);
 
       super.setProblemConditions(numberOfFootstepsToConsider, useFeedback, useStepAdjustment, useTwoCMPs);
       super.reset();
@@ -320,7 +321,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       final boolean useStepAdjustment = true;
       final boolean useTwoCMPs = false;
 
-      setPerfectOneCMPConditions(numberOfFootstepsToConsider, useFeedback, useTwoCMPs);
+      setPerfectOneCMPConditions(numberOfFootstepsToConsider, useFeedback, useStepAdjustment, useTwoCMPs);
 
       super.setProblemConditions(numberOfFootstepsToConsider, useFeedback, useStepAdjustment, useTwoCMPs);
       super.reset();
@@ -544,10 +545,14 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       checkSolutions(numberOfFootstepsToConsider);
    }
 
-   private void setPerfectOneCMPConditions(int numberOfFootstepsToConsider, boolean useFeedback, boolean useTwoCMPs)
+   private void setPerfectOneCMPConditions(int numberOfFootstepsToConsider, boolean useFeedback, boolean useStepAdjustment, boolean useTwoCMPs)
    {
       perfectCMP.setToZero(worldFrame);
       currentICP.setToZero(worldFrame);
+
+      double remainingTime = this.remainingTime;
+      if (!useStepAdjustment)
+         remainingTime = 1 / omega.getDoubleValue() * Math.log( feedbackGain / ( 1 + feedbackGain ) );
 
       for (int i = 0; i < maxNumberOfFootstepsToConsider + 1; i++)
          desiredFootsteps.get(i).setToZero();
@@ -814,8 +819,16 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       }
 
       DenseMatrix64F rightHandSide = new DenseMatrix64F(2, 1);
-      rightHandSide.set(0, 0, targetTouchdownICP.getX() - finalICPRecursion.getX());
-      rightHandSide.set(1, 0, targetTouchdownICP.getY() - finalICPRecursion.getY());
+      if (numberOfFootstepsToConsider > 0)
+      {
+         rightHandSide.set(0, 0, targetTouchdownICP.getX() - finalICPRecursion.getX());
+         rightHandSide.set(1, 0, targetTouchdownICP.getY() - finalICPRecursion.getY());
+      }
+      else
+      {
+         rightHandSide.set(0, 0, targetTouchdownICP.getX());
+         rightHandSide.set(1, 0, targetTouchdownICP.getY());
+      }
       JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, tmpDynamics_beq, rightHandSide, epsilon);
 
       JUnitTools.assertMatrixEquals("Number of steps = " + numberOfFootstepsToConsider, tmpDynamics_Aeq, solverInput_Aeq, epsilon);

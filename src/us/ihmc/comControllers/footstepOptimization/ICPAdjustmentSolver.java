@@ -310,10 +310,10 @@ public class ICPAdjustmentSolver
 
    public void computeMatrices()
    {
-      if (!hasPerfectCMP || !hasTargetTouchdownICP || !hasFinalICPRecursion)
+      if (!hasPerfectCMP || !hasTargetTouchdownICP )
          throw new RuntimeException("Have not provided all required inputs to solve the problem.");
 
-      if (useStepAdjustment && (!hasFootstepRecursionMutliplier || !hasReferenceFootstep || !hasFootstepWeight))
+      if (useStepAdjustment && (!hasFootstepRecursionMutliplier || !hasReferenceFootstep || !hasFootstepWeight || !hasFinalICPRecursion))
          throw new RuntimeException("Need footstep information to solve this problem.");
 
       computeFootstepCostMatrices();
@@ -383,9 +383,9 @@ public class ICPAdjustmentSolver
          MatrixTools.setMatrixBlock(tmpDynamics_Aeq, totalFootstepVariables, 0, ones, 0, 0, 2, 2, -feedbackDynamicEffect);
 
       MatrixTools.setMatrixBlock(tmpDynamics_beq, 0, 0, targetICP, 0, 0, 2, 1, 1.0);
-      CommonOps.subtract(tmpDynamics_beq, finalICPRecursion, tmpDynamics_beq);
 
-      CommonOps.subtract(targetICP, finalICPRecursion, tmpDynamics_beq);
+      if (!useStepAdjustment)
+         CommonOps.subtract(tmpDynamics_beq, finalICPRecursion, tmpDynamics_beq);
    }
 
    public void solve()

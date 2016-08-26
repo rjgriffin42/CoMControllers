@@ -46,6 +46,7 @@ public class ICPAdjustmentController
    private final DoubleYoVariable timeInCurrentState = new DoubleYoVariable("timeInCurrentState", registry);
    private final DoubleYoVariable remainingTime = new DoubleYoVariable("remainingTime", registry);
    private final BooleanYoVariable isInDoubleSupport = new BooleanYoVariable("isInDoubleSupport", registry);
+   private final BooleanYoVariable isStanding = new BooleanYoVariable("isStanding", registry);
 
    private final ArrayList<DoubleYoVariable> stepWeights = new ArrayList<>();
 
@@ -64,6 +65,7 @@ public class ICPAdjustmentController
 
    private final YoFramePoint2d finalICPRecursion = new YoFramePoint2d("finalICPRecursion", worldFrame, registry);
    private final YoFramePoint2d twoCMPOffsetEffect = new YoFramePoint2d("twoCMPOffsetEffect", worldFrame, registry);
+   private final YoFramePoint2d desiredICPToHold = new YoFramePoint2d("desiredICPToHold", worldFrame, registry);
 
    private final YoFramePoint2d currentICP = new YoFramePoint2d("currentICP", worldFrame, registry);
    private final YoFramePoint2d perfectCMP = new YoFramePoint2d("perfectCMP", worldFrame, registry);
@@ -176,14 +178,28 @@ public class ICPAdjustmentController
       singleSupportDuration.set(time);
    }
 
+   public void setDesiredICPToHold(FramePoint2d desiredICPToHold)
+   {
+      desiredICPToHold.changeFrame(worldFrame);
+      this.desiredICPToHold.set(desiredICPToHold);
+   }
+
+   public void initializeForStanding()
+   {
+      isStanding.set(true);
+      isInDoubleSupport.set(false);
+   }
+
    public void initializeForDoubleSupport(double initialTime)
    {
+      isStanding.set(false);
       isInDoubleSupport.set(true);
       this.initialTime.set(initialTime);
    }
 
    public void initializeForSingleSupport(double initialTime)
    {
+      isStanding.set(false);
       isInDoubleSupport.set(false);
       this.initialTime.set(initialTime);
    }
@@ -199,36 +215,38 @@ public class ICPAdjustmentController
 
       clipNumberOfStepsToConsider();
 
-
-      if (useTwoCMPs.getBooleanValue())
+      if (!isStanding.getBooleanValue())
       {
-         double totalTimeSpentOnExitCMP = steppingDuration * exitCMPDurationInPercentOfStepTime.getDoubleValue();
-         double totalTimeSpentOnEntryCMP = steppingDuration * (1.0 - exitCMPDurationInPercentOfStepTime.getDoubleValue());
+         if (useTwoCMPs.getBooleanValue())
+         {
+            double totalTimeSpentOnExitCMP = steppingDuration * exitCMPDurationInPercentOfStepTime.getDoubleValue();
+            double totalTimeSpentOnEntryCMP = steppingDuration * (1.0 - exitCMPDurationInPercentOfStepTime.getDoubleValue());
 
-         computeRemainingTimeInState(totalTimeSpentOnExitCMP);
+            computeRemainingTimeInState(totalTimeSpentOnExitCMP);
 
-         perfectCMP.set(referenceCMPsCalculator.getExitCMPs().get(0).getFramePoint2dCopy());
-         stepRecursionMultiplierCalculator.computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP,
-               numberOfFootstepsToConsider.getIntegerValue(), useTwoCMPs.getBooleanValue());
-      }
-      else
-      {
-         computeRemainingTimeInState(steppingDuration);
+            perfectCMP.set(referenceCMPsCalculator.getExitCMPs().get(0).getFramePoint2dCopy());
+            stepRecursionMultiplierCalculator
+                  .computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, numberOfFootstepsToConsider.getIntegerValue(), useTwoCMPs.getBooleanValue());
+         }
+         else
+         {
+            computeRemainingTimeInState(steppingDuration);
 
-         perfectCMP.set(referenceCMPsCalculator.getEntryCMPs().get(0).getFramePoint2dCopy());
-         stepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, numberOfFootstepsToConsider.getIntegerValue(), useTwoCMPs.getBooleanValue());
-      }
+            perfectCMP.set(referenceCMPsCalculator.getEntryCMPs().get(0).getFramePoint2dCopy());
+            stepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, numberOfFootstepsToConsider.getIntegerValue(), useTwoCMPs.getBooleanValue());
+         }
 
-      targetTouchdownICPCalculator.computeTargetTouchdownICP(remainingTime.getDoubleValue(), currentICP, perfectCMP.getFramePoint2dCopy());
+         targetTouchdownICPCalculator.computeTargetTouchdownICP(remainingTime.getDoubleValue(), currentICP, perfectCMP.getFramePoint2dCopy());
 
-      computeFeedbackDynamicEffect(remainingTime.getDoubleValue());
-      computeEffectiveFirstStepWeight(remainingTime.getDoubleValue(), steppingDuration, scaleFirstStepWeightWithTime.getBooleanValue());
-      computeTargetICPRecursionBackward();
+         computeFeedbackDynamicEffect(remainingTime.getDoubleValue());
+         computeEffectiveFirstStepWeight(remainingTime.getDoubleValue(), steppingDuration, scaleFirstStepWeightWithTime.getBooleanValue());
+         computeTargetICPRecursionBackward();
 
-      if (useTwoCMPs.getBooleanValue())
-      {
-         computeTwoCMPOffsets();
-         computeEntryAndExitOffsetEffects();
+         if (useTwoCMPs.getBooleanValue())
+         {
+            computeTwoCMPOffsets();
+            computeEntryAndExitOffsetEffects();
+         }
       }
 
       submitInformationToSolver();
@@ -344,51 +362,61 @@ public class ICPAdjustmentController
 
    private void submitInformationToSolver()
    {
-      icpAdjustmentSolver.setProblemConditions(numberOfFootstepsToConsider.getIntegerValue(), useFeedback.getBooleanValue(),
-            useStepAdjustment.getBooleanValue(), useTwoCMPs.getBooleanValue());
-      icpAdjustmentSolver.reset();
-
-      boolean useTwoCMPs = this.useTwoCMPs.getBooleanValue();
-
-      for (int i = 0; i < numberOfFootstepsToConsider.getIntegerValue(); i++)
+      if (isStanding.getBooleanValue())
       {
-         Footstep upcomingFootstep = upcomingFootsteps.get(i);
-         upcomingFootstep.getPositionIncludingFrame(footstepLocation);
-         upcomingFootstep.getOrientationInWorldFrame(footstepOrientation);
+         icpAdjustmentSolver.setProblemConditions(0, true, false, false);
+      }
+      else
+      {
+         icpAdjustmentSolver.setProblemConditions(numberOfFootstepsToConsider.getIntegerValue(), useFeedback.getBooleanValue(), useStepAdjustment.getBooleanValue(),
+               useTwoCMPs.getBooleanValue());
+         icpAdjustmentSolver.reset();
 
-         footstepLocation2d.setToZero(worldFrame);
-         footstepLocation2d.setByProjectionOntoXYPlane(footstepLocation);
+         boolean useTwoCMPs = this.useTwoCMPs.getBooleanValue();
 
-         icpAdjustmentSolver.setReferenceFootstepLocation(i, footstepLocation2d);
-
-         if (useTwoCMPs)
+         for (int i = 0; i < numberOfFootstepsToConsider.getIntegerValue(); i++)
          {
-            double entryMultiplier = stepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs);
-            double exitMultiplier = stepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs);
-            icpAdjustmentSolver.setFootstepRecursionMultipliers(i, entryMultiplier + exitMultiplier);
+            Footstep upcomingFootstep = upcomingFootsteps.get(i);
+            upcomingFootstep.getPositionIncludingFrame(footstepLocation);
+            upcomingFootstep.getOrientationInWorldFrame(footstepOrientation);
 
-            effectiveFinalICPRecursion.set(finalICPRecursion.getFramePoint2dCopy());
-            effectiveFinalICPRecursion.add(twoCMPOffsetEffect.getFramePoint2dCopy());
+            footstepLocation2d.setToZero(worldFrame);
+            footstepLocation2d.setByProjectionOntoXYPlane(footstepLocation);
+
+            icpAdjustmentSolver.setReferenceFootstepLocation(i, footstepLocation2d);
+
+            if (useTwoCMPs)
+            {
+               double entryMultiplier = stepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPs);
+               double exitMultiplier = stepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPs);
+               icpAdjustmentSolver.setFootstepRecursionMultipliers(i, entryMultiplier + exitMultiplier);
+
+               effectiveFinalICPRecursion.set(finalICPRecursion.getFramePoint2dCopy());
+               effectiveFinalICPRecursion.add(twoCMPOffsetEffect.getFramePoint2dCopy());
+            }
+            else
+            {
+               icpAdjustmentSolver.setFootstepRecursionMultipliers(i, stepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, useTwoCMPs));
+
+               effectiveFinalICPRecursion.set(finalICPRecursion.getFramePoint2dCopy());
+            }
+
+            if (i == 0)
+               icpAdjustmentSolver.setFootstepWeight(i, effectiveFirstStepWeight.getDoubleValue());
+            else
+               icpAdjustmentSolver.setFootstepWeight(i, stepWeights.get(i).getDoubleValue());
          }
-         else
-         {
-            icpAdjustmentSolver.setFootstepRecursionMultipliers(i, stepRecursionMultiplierCalculator.getOneCMPRecursionMultiplier(i, useTwoCMPs));
 
-            effectiveFinalICPRecursion.set(finalICPRecursion.getFramePoint2dCopy());
-         }
+         icpAdjustmentSolver.setFinalICPRecursion(effectiveFinalICPRecursion);
+         icpAdjustmentSolver.setTargetTouchdownICP(targetTouchdownICP);
 
-         if (i == 0)
-            icpAdjustmentSolver.setFootstepWeight(i, effectiveFirstStepWeight.getDoubleValue());
-         else
-            icpAdjustmentSolver.setFootstepWeight(i, stepWeights.get(i).getDoubleValue());
+         targetTouchdownICPCalculator.getTargetTouchdownICP(targetTouchdownICP);
       }
 
       icpAdjustmentSolver.setFeedbackWeight(feedbackWeight.getDoubleValue());
       icpAdjustmentSolver.setFeedbackDynamicEffect(feedbackDynamicEffect.getDoubleValue());
-      icpAdjustmentSolver.setFinalICPRecursion(effectiveFinalICPRecursion);
 
-      targetTouchdownICPCalculator.getTargetTouchdownICP(targetTouchdownICP);
-      icpAdjustmentSolver.setTargetTouchdownICP(targetTouchdownICP);
+      icpAdjustmentSolver.setTargetTouchdownICP(desiredICPToHold.getFramePoint2dCopy());
       icpAdjustmentSolver.setPerfectCMP(perfectCMP.getFramePoint2dCopy());
 
       icpAdjustmentSolver.computeMatrices();
