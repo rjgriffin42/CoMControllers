@@ -5,6 +5,7 @@ import us.ihmc.commonWalkingControlModules.momentumBasedController.CapturePointC
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.BooleanYoVariable;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
+import us.ihmc.robotics.dataStructures.variable.IntegerYoVariable;
 import us.ihmc.robotics.geometry.FramePoint2d;
 import us.ihmc.robotics.geometry.FrameVector2d;
 import us.ihmc.robotics.math.frames.YoFramePoint2d;
@@ -17,9 +18,14 @@ public class ICPOptimizationController
 
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
 
+   private final IntegerYoVariable numberOfFootstepsToConsider = new IntegerYoVariable("numberOfFootstepsToConsider", registry);
+
    private final BooleanYoVariable useTwoCMPsInControl = new BooleanYoVariable("useTwoCMPsInControl", registry);
    private final BooleanYoVariable useFeedback = new BooleanYoVariable("useFeedback", registry);
    private final BooleanYoVariable useStepAdjustment = new BooleanYoVariable("useStepAdjustment", registry);
+
+   private final BooleanYoVariable scaleFirstStepWeightWithTime = new BooleanYoVariable("scaleFirstStepWeightWithTime", registry);
+   private final BooleanYoVariable scaleFeedbackWeightWithGain = new BooleanYoVariable("scaleFeedbackWeightWithGain", registry);
 
    private final BooleanYoVariable isStanding = new BooleanYoVariable("isStanding", registry);
    private final BooleanYoVariable isInTransfer = new BooleanYoVariable("isInTransfer", registry);
@@ -32,6 +38,12 @@ public class ICPOptimizationController
    private final YoFramePoint2d controllerDesiredICP = new YoFramePoint2d("controllerDesiredICP", worldFrame, registry);
    private final YoFrameVector2d controllerDesiredICPVelocity = new YoFrameVector2d("controllerDesiredICPVelocity", worldFrame, registry);
    private final YoFramePoint2d controllerPerfectCMP = new YoFramePoint2d("controllerPerfectCMP", worldFrame, registry);
+
+   private final DoubleYoVariable footstepWeight = new DoubleYoVariable("footstepWeight", registry);
+   private final DoubleYoVariable firstStepWeight = new DoubleYoVariable("firstStepWeight", registry);
+   private final DoubleYoVariable feedbackWeight = new DoubleYoVariable("feedbackWeight", registry);
+   private final DoubleYoVariable scaledFeedbackWeight = new DoubleYoVariable("scaledFeedbackWeight", registry);
+   private final DoubleYoVariable feedbackGain = new DoubleYoVariable("feedbackGain", registry);
 
    private final DoubleYoVariable omega;
 
@@ -68,6 +80,11 @@ public class ICPOptimizationController
       if (isStanding.getBooleanValue())
       {
          solver.submitProblemConditions(0, false, true, false);
+      }
+      else
+      {
+         solver.submitProblemConditions(numberOfFootstepsToConsider.getIntegerValue(), useStepAdjustment.getBooleanValue(), useFeedback.getBooleanValue(),
+                                        useTwoCMPsInControl.getBooleanValue());
       }
    }
 }
