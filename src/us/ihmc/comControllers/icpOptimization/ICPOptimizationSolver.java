@@ -300,7 +300,6 @@ public class ICPOptimizationSolver
       computeCostToGo();
    }
 
-
    private void addFeedbackTask()
    {
       MatrixTools.addMatrixBlock(feedbackCost_H, 0, 0, feedbackWeight, 0, 0, 2, 2, 1.0);
