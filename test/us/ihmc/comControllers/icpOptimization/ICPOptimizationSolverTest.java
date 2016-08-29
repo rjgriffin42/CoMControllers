@@ -1,6 +1,7 @@
 package us.ihmc.comControllers.icpOptimization;
 
 import org.junit.Test;
+import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerParameters;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.smoothICPGenerator.CapturePointTools;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
@@ -39,7 +40,7 @@ public class ICPOptimizationSolverTest
       cmpGoal.scale(icpOptimizationParameters.getFeedbackGain());
       cmpGoal.add(perfectCMP);
 
-      ICPOptimizationController icpOptimizationController = new ICPOptimizationController(icpOptimizationParameters, omega, registry);
+      ICPOptimizationController icpOptimizationController = new ICPOptimizationController(icpPlannerParameters, icpOptimizationParameters, null, null, omega, registry);
       icpOptimizationController.initializeForStanding(0.0);
 
       icpOptimizationController.compute(0.5, icpDesired, icpDesiredVelocity, icpActual);
@@ -98,6 +99,59 @@ public class ICPOptimizationSolverTest
       @Override public double getMinimumFeedbackWeight()
       {
          return 0.0001;
+      }
+   };
+
+   private static final CapturePointPlannerParameters icpPlannerParameters = new CapturePointPlannerParameters()
+   {
+      @Override public double getDoubleSupportInitialTransferDuration()
+      {
+         return 1.0;
+      }
+
+      @Override public double getEntryCMPInsideOffset()
+      {
+         return 0;
+      }
+
+      @Override public double getExitCMPInsideOffset()
+      {
+         return 0;
+      }
+
+      @Override public double getEntryCMPForwardOffset()
+      {
+         return 0;
+      }
+
+      @Override public double getExitCMPForwardOffset()
+      {
+         return 0;
+      }
+
+      @Override public boolean useTwoCMPsPerSupport()
+      {
+         return false;
+      }
+
+      @Override public double getMaxEntryCMPForwardOffset()
+      {
+         return 0;
+      }
+
+      @Override public double getMinEntryCMPForwardOffset()
+      {
+         return 0;
+      }
+
+      @Override public double getMaxExitCMPForwardOffset()
+      {
+         return 0;
+      }
+
+      @Override public double getMinExitCMPForwardOffset()
+      {
+         return 0;
       }
    };
 }

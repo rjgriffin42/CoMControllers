@@ -9,119 +9,41 @@ import us.ihmc.tools.testing.TestPlanAnnotations.DeployableTestMethod;
 
 public class FootstepRecursionMultiplierCalculatorTest
 {
+   private static final int maximumNumberOfStepsToConsider = 5;
+   private final YoVariableRegistry registry = new YoVariableRegistry("robert");
+   private final DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
+
+   private final DoubleYoVariable doubleSupportDuration = new DoubleYoVariable("doubleSupportDuration", registry);
+   private final DoubleYoVariable singleSupportDuration = new DoubleYoVariable("singleSupportDuration", registry);
+   private final DoubleYoVariable exitCMPDurationInPercentOfStepTime = new DoubleYoVariable("timeSpentOnExitCMPInPercentOfStepTime", registry);
+   private final DoubleYoVariable doubleSupportSplitFraction = new DoubleYoVariable("doubleSupportSplitFraction", registry);
+
+   private final FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(doubleSupportDuration,
+         singleSupportDuration, exitCMPDurationInPercentOfStepTime, doubleSupportSplitFraction, omega, maximumNumberOfStepsToConsider, registry);
+
    private final double epsilon = 0.0001;
-
-   @DeployableTestMethod(estimatedDuration = 1.0)
-   @Test(timeout = 21000)
-   public void testErrorsInCalculatingOneCMP()
-   {
-      int maxNumberOfStepsToConsider = 5;
-      int stepsToConsider = 3;
-
-      YoVariableRegistry registry = new YoVariableRegistry("robert");
-      DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
-      omega.set(3.0);
-
-      double steppingDuration = 2.0;
-
-      FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(omega, maxNumberOfStepsToConsider, registry);
-
-      boolean pass = false;
-      try
-      {
-         footstepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, stepsToConsider, true);
-      }
-      catch(RuntimeException e)
-      {
-         pass = true;
-      }
-
-      Assert.assertTrue(pass);
-   }
-
-   @DeployableTestMethod(estimatedDuration = 1.0)
-   @Test(timeout = 21000)
-   public void testErrorsInCalculatingTwoCMP()
-   {
-      int maxNumberOfStepsToConsider = 5;
-      int stepsToConsider = 3;
-
-
-      YoVariableRegistry registry = new YoVariableRegistry("robert");
-      DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
-      omega.set(3.0);
-
-      double steppingDuration = 2.0;
-      double timeSpentOnExitCMPRatio = 0.5;
-      double totalTimeSpentOnExitCMP = timeSpentOnExitCMPRatio * steppingDuration;
-      double totalTimeSpentOnEntryCMP = (1 - timeSpentOnExitCMPRatio) * steppingDuration;
-
-      FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(omega, maxNumberOfStepsToConsider, registry);
-
-      boolean pass = false;
-      try
-      {
-         footstepRecursionMultiplierCalculator.computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, stepsToConsider, false);
-      }
-      catch(RuntimeException e)
-      {
-         pass = true;
-      }
-
-      Assert.assertTrue(pass);
-   }
-
-   @DeployableTestMethod(estimatedDuration = 1.0)
-   @Test(timeout = 21000)
-   public void testErrorsInCalculatingOneCMPTooManySteps()
-   {
-      int maxNumberOfStepsToConsider = 5;
-      int stepsToConsider = 6;
-
-      YoVariableRegistry registry = new YoVariableRegistry("robert");
-      DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
-      omega.set(3.0);
-
-      double steppingDuration = 2.0;
-
-      FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(omega, maxNumberOfStepsToConsider, registry);
-
-      boolean pass = false;
-      try
-      {
-         footstepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, stepsToConsider, false);
-      }
-      catch(RuntimeException e)
-      {
-         pass = true;
-      }
-
-      Assert.assertTrue(pass);
-   }
 
    @DeployableTestMethod(estimatedDuration = 1.0)
    @Test(timeout = 21000)
    public void testErrorsInCalculatingTwoCMPTooManySteps()
    {
-      int maxNumberOfStepsToConsider = 5;
       int stepsToConsider = 6;
 
-
-      YoVariableRegistry registry = new YoVariableRegistry("robert");
-      DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
       omega.set(3.0);
 
-      double steppingDuration = 2.0;
+      double doubleSupportDuration = 0.5;
+      double singleSupportDuration = 1.5;
       double timeSpentOnExitCMPRatio = 0.5;
-      double totalTimeSpentOnExitCMP = timeSpentOnExitCMPRatio * steppingDuration;
-      double totalTimeSpentOnEntryCMP = (1 - timeSpentOnExitCMPRatio) * steppingDuration;
 
-      FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(omega, maxNumberOfStepsToConsider, registry);
+      this.doubleSupportDuration.set(doubleSupportDuration);
+      this.singleSupportDuration.set(singleSupportDuration);
+      this.exitCMPDurationInPercentOfStepTime.set(timeSpentOnExitCMPRatio);
+      this.doubleSupportSplitFraction.set(0.5);
 
       boolean pass = false;
       try
       {
-         footstepRecursionMultiplierCalculator.computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, stepsToConsider, true);
+         footstepRecursionMultiplierCalculator.computeRecursionMultipliers(stepsToConsider, false, true);
       }
       catch(RuntimeException e)
       {
@@ -135,23 +57,25 @@ public class FootstepRecursionMultiplierCalculatorTest
    @Test(timeout = 21000)
    public void testCalculatingTwoCMPs()
    {
-      int maxNumberOfStepsToConsider = 5;
       int stepsToConsider = 2;
 
-      YoVariableRegistry registry = new YoVariableRegistry("robert");
-      DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
       omega.set(3.0);
 
-      double steppingDuration = 2.0;
-      double timeSpentOnExitCMPRatio = 0.3;
+      double doubleSupportDuration = 0.5;
+      double singleSupportDuration = 1.5;
+      double steppingDuration = doubleSupportDuration + singleSupportDuration;
+      double timeSpentOnExitCMPRatio = 0.5;
+      double totalTimeSpentOnEntryCMP = (1.0 - timeSpentOnExitCMPRatio) * steppingDuration;
       double totalTimeSpentOnExitCMP = timeSpentOnExitCMPRatio * steppingDuration;
-      double totalTimeSpentOnEntryCMP = (1 - timeSpentOnExitCMPRatio) * steppingDuration;
 
-      FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(omega, maxNumberOfStepsToConsider, registry);
+      this.doubleSupportDuration.set(doubleSupportDuration);
+      this.singleSupportDuration.set(singleSupportDuration);
+      this.exitCMPDurationInPercentOfStepTime.set(timeSpentOnExitCMPRatio);
+      this.doubleSupportSplitFraction.set(0.5);
 
-      footstepRecursionMultiplierCalculator.computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, stepsToConsider, true);
+      footstepRecursionMultiplierCalculator.computeRecursionMultipliers(stepsToConsider, false, true);
 
-      double totalTime = stepsToConsider * steppingDuration;
+      double totalTime = stepsToConsider * (doubleSupportDuration + singleSupportDuration);
       double finalICPRecursionMultiplier = Math.exp(-omega.getDoubleValue() * totalTime);
 
       Assert.assertEquals("", finalICPRecursionMultiplier, footstepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier(), epsilon);
@@ -176,18 +100,21 @@ public class FootstepRecursionMultiplierCalculatorTest
    @Test(timeout = 21000)
    public void testCalculatingOneCMPs()
    {
-      int maxNumberOfStepsToConsider = 5;
       int stepsToConsider = 2;
 
-      YoVariableRegistry registry = new YoVariableRegistry("robert");
-      DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
       omega.set(3.0);
 
-      double steppingDuration = 2.0;
+      double doubleSupportDuration = 0.5;
+      double singleSupportDuration = 1.5;
+      double steppingDuration = doubleSupportDuration + singleSupportDuration;
+      double timeSpentOnExitCMPRatio = 0.5;
 
-      FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(omega, maxNumberOfStepsToConsider, registry);
+      this.doubleSupportDuration.set(doubleSupportDuration);
+      this.singleSupportDuration.set(singleSupportDuration);
+      this.exitCMPDurationInPercentOfStepTime.set(timeSpentOnExitCMPRatio);
+      this.doubleSupportSplitFraction.set(0.5);
 
-      footstepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, stepsToConsider, false);
+      footstepRecursionMultiplierCalculator.computeRecursionMultipliers(stepsToConsider, false, false);
 
       double totalTime = stepsToConsider * steppingDuration;
       double finalICPRecursionMultiplier = Math.exp(-omega.getDoubleValue() * totalTime);

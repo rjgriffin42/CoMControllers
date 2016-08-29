@@ -22,8 +22,15 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 {
    private final YoVariableRegistry registry = new YoVariableRegistry("registry");
    private final DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
+
+   private final DoubleYoVariable yoDoubleSupportDuration = new DoubleYoVariable("doubleSupportDuration", registry);
+   private final DoubleYoVariable yoSingleSupportDuration = new DoubleYoVariable("singleSupportDuration", registry);
+   private final DoubleYoVariable exitCMPDurationInPercentOfStepTime = new DoubleYoVariable("exitCMPDurationInPercentOfStepTime", registry);
+   private final DoubleYoVariable doubleSupportSplitFraction = new DoubleYoVariable("doubleSupportSplitFraction", registry);
+
    private final TargetTouchdownICPCalculator targetTouchdownICPCalculator = new TargetTouchdownICPCalculator(omega, registry);
-   private final FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(omega, maxNumberOfFootstepsToConsider, registry);
+   private final FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(yoDoubleSupportDuration,
+         yoSingleSupportDuration, exitCMPDurationInPercentOfStepTime, doubleSupportSplitFraction, omega, maxNumberOfFootstepsToConsider, registry);
 
    private static final double epsilon = 0.00001;
    private static final int maxNumberOfFootstepsToConsider = 5;
@@ -61,6 +68,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
    public ICPAdjustmentSolverTest()
    {
+
       super( new ICPAdjustmentControllerParameters()
       {
          @Override public int getMaximumNumberOfStepsToConsider()
@@ -115,6 +123,11 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       omega.set(3.0);
       entryOffset.setX(-0.05);
       exitOffset.setX(0.05);
+
+      yoDoubleSupportDuration.set(doubleSupportDuration);
+      yoSingleSupportDuration.set(singleSupportDuration);
+      exitCMPDurationInPercentOfStepTime.set(0.5);
+      doubleSupportSplitFraction.set(0.5);
    }
 
    @DeployableTestMethod(estimatedDuration = 1.0)
@@ -573,11 +586,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       desiredFinalICP.set(desiredFootsteps.get(numberOfFootstepsToConsider));
       targetTouchdownICPCalculator.computeTargetTouchdownICP(remainingTime, currentICP, perfectCMP);
 
-      if (useTwoCMPs)
-         footstepRecursionMultiplierCalculator
-               .computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, numberOfFootstepsToConsider, useTwoCMPs);
-      else
-         footstepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, numberOfFootstepsToConsider, useTwoCMPs);
+      footstepRecursionMultiplierCalculator.computeRecursionMultipliers(numberOfFootstepsToConsider, false, useTwoCMPs);
 
       targetTouchdownICPCalculator.getTargetTouchdownICP(targetTouchdownICP);
 
@@ -630,11 +639,7 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
       desiredFinalICP.set(desiredFootsteps.get(numberOfFootstepsToConsider));
       targetTouchdownICPCalculator.computeTargetTouchdownICP(remainingTime, currentICP, perfectCMP);
 
-      if (useTwoCMPs)
-         footstepRecursionMultiplierCalculator
-               .computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, numberOfFootstepsToConsider, useTwoCMPs);
-      else
-         footstepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, numberOfFootstepsToConsider, useTwoCMPs);
+      footstepRecursionMultiplierCalculator.computeRecursionMultipliers(numberOfFootstepsToConsider, false, useTwoCMPs);
 
       targetTouchdownICPCalculator.getTargetTouchdownICP(targetTouchdownICP);
 
@@ -744,9 +749,9 @@ public class ICPAdjustmentSolverTest extends ICPAdjustmentSolver
 
       if (useTwoCMPs)
          footstepRecursionMultiplierCalculator
-               .computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, numberOfFootstepsToConsider, useTwoCMPs);
+               .computeRecursionMultipliers(numberOfFootstepsToConsider, false, useTwoCMPs);
       else
-         footstepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, numberOfFootstepsToConsider, useTwoCMPs);
+         footstepRecursionMultiplierCalculator.computeRecursionMultipliers(numberOfFootstepsToConsider, false, useTwoCMPs);
 
       targetTouchdownICPCalculator.getTargetTouchdownICP(targetTouchdownICP);
 
