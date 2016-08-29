@@ -316,11 +316,27 @@ public class ICPOptimizationController
          stanceCMPProjection.set(stanceExitCMP2d);
       }
    }
-   
+
+   private final FramePoint2d totalOffsetEffect = new FramePoint2d();
    private void computeCMPOffsetRecursionEffect()
    {
       computeTwoCMPOffsets();
-      // // TODO: 8/26/16  
+
+      totalOffsetEffect.setToZero();
+      cmpOffsetRecursionEffect.setToZero();
+
+      for (int i = 0; i < numberOfFootstepsToConsider.getIntegerValue(); i++)
+      {
+         totalOffsetEffect.set(exitOffsets.get(i).getFrameTuple2d());
+         totalOffsetEffect.scale(footstepRecursionMultiplierCalculator.getTwoCMPRecursionExitMultiplier(i, useTwoCMPsInControl.getBooleanValue()));
+
+         cmpOffsetRecursionEffect.add(totalOffsetEffect);
+
+         totalOffsetEffect.set(entryOffsets.get(i).getFrameTuple2d());
+         totalOffsetEffect.scale(footstepRecursionMultiplierCalculator.getTwoCMPRecursionEntryMultiplier(i, useTwoCMPsInControl.getBooleanValue()));
+
+         cmpOffsetRecursionEffect.add(totalOffsetEffect);
+      }
    }
 
    private final FramePoint footstepLocation = new FramePoint();
@@ -392,7 +408,7 @@ public class ICPOptimizationController
    {
       if (scaleFirstStepWeightWithTime.getBooleanValue())
       {
-         double alpha = 1.0; //timeRemainingInState.getDoubleValue() / singleSupportDuration; // todo
+         double alpha = timeRemainingInState.getDoubleValue() / singleSupportDuration.getDoubleValue();
          firstStepWeight.set(footstepWeight.getDoubleValue() / alpha);
       }
       else
@@ -405,7 +421,7 @@ public class ICPOptimizationController
    {
       if (scaleFeedbackWeightWithGain.getBooleanValue())
       {
-         double alpha = 1.0; //Math.pow(feedbackGain.getDoubleValue(), 2); // todo
+         double alpha = Math.pow(feedbackGain.getDoubleValue(), 2);
          scaledFeedbackWeight.set(feedbackWeight.getDoubleValue() / alpha);
       }
       else

@@ -202,7 +202,7 @@ public class SphereControlToolbox
          String sidePrefix = robotSide.getCamelCaseNameForStartOfExpression();
          double xToAnkle = 0.0;
          double yToAnkle = 0.0;
-         double zToAnkle = 0.084;
+         double zToAnkle = 0.0;
          List<Point2d> contactPointsInSoleFrame = new ArrayList<>();
          contactPointsInSoleFrame.add(new Point2d(footLengthForControl / 2.0, toeWidthForControl / 2.0));
          contactPointsInSoleFrame.add(new Point2d(footLengthForControl / 2.0, -toeWidthForControl / 2.0));
@@ -432,7 +432,10 @@ public class SphereControlToolbox
 
    public Footstep peekAtFootstep(int i)
    {
-      return footsteps.get(i);
+      if (i >= footsteps.size())
+         return null;
+      else
+         return footsteps.get(i);
    }
 
    private final FrameConvexPolygon2d footstepPolygon = new FrameConvexPolygon2d();

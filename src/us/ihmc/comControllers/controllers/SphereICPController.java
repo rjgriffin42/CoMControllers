@@ -268,7 +268,6 @@ public class SphereICPController implements GenericSphereController
          icpPlanner.setSupportLeg(supportSide);
          icpPlanner.initializeForSingleSupport(yoTime.getDoubleValue());
 
-
          FootSpoof footSpoof = contactableFeet.get(supportSide.getOppositeSide());
          FramePose nextSupportPose = footPosesAtTouchdown.get(supportSide.getOppositeSide());
          nextSupportPose.setToZero(nextFootstep.getSoleReferenceFrame());
