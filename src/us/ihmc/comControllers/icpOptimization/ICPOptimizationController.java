@@ -27,6 +27,7 @@ import java.util.ArrayList;
 public class ICPOptimizationController
 {
    private static final String namePrefix = "icpOptimizationCalculator";
+   private static final String yoNamePrefix = "controller";
    private static final ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
 
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
@@ -40,11 +41,13 @@ public class ICPOptimizationController
    private final BooleanYoVariable scaleFirstStepWeightWithTime = new BooleanYoVariable("scaleFirstStepWeightWithTime", registry);
    private final BooleanYoVariable scaleFeedbackWeightWithGain = new BooleanYoVariable("scaleFeedbackWeightWithGain", registry);
 
-   private final BooleanYoVariable isStanding = new BooleanYoVariable("isStanding", registry);
-   private final BooleanYoVariable isInTransfer = new BooleanYoVariable("isInTransfer", registry);
+   private final BooleanYoVariable isStanding = new BooleanYoVariable(yoNamePrefix + "IsStanding", registry);
+   private final BooleanYoVariable isInTransfer = new BooleanYoVariable(yoNamePrefix + "IsInTransfer", registry);
+   private final BooleanYoVariable isInitialTransfer = new BooleanYoVariable(yoNamePrefix + "IsInitialTransfer", registry);
 
-   private final DoubleYoVariable doubleSupportDuration = new DoubleYoVariable("doubleSupportDuration", registry);
-   private final DoubleYoVariable singleSupportDuration = new DoubleYoVariable("singleSupportDuration", registry);
+   private final DoubleYoVariable doubleSupportDuration = new DoubleYoVariable(yoNamePrefix + "DoubleSupportDuration", registry);
+   private final DoubleYoVariable singleSupportDuration = new DoubleYoVariable(yoNamePrefix + "SingleSupportDuration", registry);
+   private final DoubleYoVariable initialDoubleSupportDuration = new DoubleYoVariable(yoNamePrefix + "InitialTransferDuration", registry);
    private final DoubleYoVariable exitCMPDurationInPercentOfStepTime = new DoubleYoVariable("timeSpentOnExitCMPInPercentOfStepTime", registry);
    private final DoubleYoVariable doubleSupportSplitFraction = new DoubleYoVariable("doubleSupportSplitFraction", registry);
    private final BooleanYoVariable stepTimesInitialized = new BooleanYoVariable("stepTimesInitialized", registry);
@@ -95,6 +98,8 @@ public class ICPOptimizationController
 
       maximumNumberOfFootstepsToConsider = icpOptimizationParameters.getMaximumNumberOfFootstepsToConsider();
       numberOfFootstepsToConsider.set(icpOptimizationParameters.numberOfFootstepsToConsider());
+
+      initialDoubleSupportDuration.set(icpPlannerParameters.getDoubleSupportInitialTransferDuration());
 
       solver = new ICPOptimizationSolver(icpOptimizationParameters, registry);
       referenceCMPsCalculator = new ReferenceCentroidalMomentumPivotLocationsCalculator(namePrefix, bipedSupportPolygons, contactableFeet,
@@ -161,6 +166,9 @@ public class ICPOptimizationController
       this.initialTime.set(initialTime);
       isStanding.set(true);
       isInTransfer.set(false);
+      isInitialTransfer.set(true);
+
+      footstepRecursionMultiplierCalculator.resetTimes();
    }
 
    public void initializeForTransfer(double initialTime)
@@ -168,6 +176,15 @@ public class ICPOptimizationController
       this.initialTime.set(initialTime);
       isStanding.set(false);
       isInTransfer.set(true);
+
+      footstepRecursionMultiplierCalculator.resetTimes();
+      if (isInitialTransfer.getBooleanValue())
+         footstepRecursionMultiplierCalculator.submitTimes(0, initialDoubleSupportDuration.getDoubleValue(), singleSupportDuration.getDoubleValue());
+      else
+         footstepRecursionMultiplierCalculator.submitTimes(0, doubleSupportDuration.getDoubleValue(), singleSupportDuration.getDoubleValue());
+
+      for (int i = 1; i < numberOfFootstepsToConsider.getIntegerValue() + 1; i++)
+         footstepRecursionMultiplierCalculator.submitTimes(i, doubleSupportDuration.getDoubleValue(), singleSupportDuration.getDoubleValue());
 
       footstepRecursionMultiplierCalculator.computeRecursionMultipliers(numberOfFootstepsToConsider.getIntegerValue(), isInTransfer.getBooleanValue(),
             useTwoCMPsInControl.getBooleanValue());
@@ -178,6 +195,13 @@ public class ICPOptimizationController
       this.initialTime.set(initialTime);
       isStanding.set(false);
       isInTransfer.set(false);
+      isInitialTransfer.set(false);
+
+      footstepRecursionMultiplierCalculator.resetTimes();
+      footstepRecursionMultiplierCalculator.submitTimes(0, 0.0, singleSupportDuration.getDoubleValue());
+
+      for (int i = 1; i < numberOfFootstepsToConsider.getIntegerValue() + 1; i++)
+         footstepRecursionMultiplierCalculator.submitTimes(i, doubleSupportDuration.getDoubleValue(), singleSupportDuration.getDoubleValue());
 
       footstepRecursionMultiplierCalculator.computeRecursionMultipliers(numberOfFootstepsToConsider.getIntegerValue(), isInTransfer.getBooleanValue(),
             useTwoCMPsInControl.getBooleanValue());
