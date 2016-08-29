@@ -656,19 +656,25 @@ public class SphereControlToolbox
             return 5;
          }
 
+         @Override
+         public int numberOfFootstepsToConsider()
+         {
+            return 0;
+         }
+
          @Override public double getFootstepWeight()
          {
-            return 20.0;
+            return 20000.0;
          }
 
          @Override public double getFeedbackWeight()
          {
-            return 5.0;
+            return 0.00005;
          }
 
          @Override public double getFeedbackGain()
          {
-            return 2.0;
+            return 1.0;
          }
 
          @Override public boolean useFeedback()
@@ -678,7 +684,7 @@ public class SphereControlToolbox
 
          @Override public boolean useStepAdjustment()
          {
-            return false;
+            return true;
          }
 
          @Override public boolean scaleFirstStepWeightWithTime()
@@ -688,7 +694,7 @@ public class SphereControlToolbox
 
          @Override public boolean scaleFeedbackWeightWithGain()
          {
-            return false;
+            return true;
          }
 
          @Override public double getMinimumFootstepWeight()
@@ -699,6 +705,11 @@ public class SphereControlToolbox
          @Override public double getMinimumFeedbackWeight()
          {
             return 0.0001;
+         }
+
+         @Override public double getMinimumTimeRemaining()
+         {
+            return 0.001;
          }
       };
    }

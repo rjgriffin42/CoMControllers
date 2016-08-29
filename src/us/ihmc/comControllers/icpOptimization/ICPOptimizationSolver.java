@@ -5,11 +5,15 @@ import org.ejml.factory.LinearSolverFactory;
 import org.ejml.interfaces.linsol.LinearSolver;
 import org.ejml.ops.CommonOps;
 import us.ihmc.humanoidRobotics.footstep.Footstep;
+import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.geometry.FramePoint;
 import us.ihmc.robotics.geometry.FramePoint2d;
 import us.ihmc.robotics.geometry.FrameVector2d;
 import us.ihmc.robotics.linearAlgebra.MatrixTools;
+import us.ihmc.robotics.math.frames.YoMatrix;
 import us.ihmc.robotics.referenceFrames.ReferenceFrame;
+import us.ihmc.simulationconstructionset.mathfunctions.Matrix;
+import us.ihmc.tools.io.printing.PrintTools;
 
 import java.util.ArrayList;
 
@@ -73,7 +77,7 @@ public class ICPOptimizationSolver
    private final double minimumFootstepWeight;
    private final double minimumFeedbackWeight;
 
-   public ICPOptimizationSolver(ICPOptimizationParameters icpOptimizationParameters)
+   public ICPOptimizationSolver(ICPOptimizationParameters icpOptimizationParameters, YoVariableRegistry parentRegistry)
    {
       maximumNumberOfFootstepsToConsider = icpOptimizationParameters.getMaximumNumberOfFootstepsToConsider();
 
@@ -84,6 +88,7 @@ public class ICPOptimizationSolver
       int maximumNumberOfLagrangeMultipliers = 2;
 
       int size = maximumNumberOfFreeVariables + maximumNumberOfLagrangeMultipliers;
+
       solverInput_G = new DenseMatrix64F(size, size);
       solverInput_g = new DenseMatrix64F(size, 1);
 
@@ -124,6 +129,12 @@ public class ICPOptimizationSolver
          throw new RuntimeException("No possible feedback mechanism available.");
       }
 
+      if (this.useFeedback == useFeedback && this.useStepAdjustment == useStepAdjustment && this.useTwoCMPs == useTwoCMPs && this.numberOfFootstepsToConsider == numberOfFootstepsToConsider)
+      {
+         reset();
+         return;
+      }
+
       this.useFeedback = useFeedback;
       this.useStepAdjustment = useStepAdjustment;
       this.useTwoCMPs = useTwoCMPs;
@@ -134,28 +145,22 @@ public class ICPOptimizationSolver
          this.numberOfFootstepsToConsider = numberOfFootstepsToConsider;
 
       numberOfFootstepVariables = 2 * this.numberOfFootstepsToConsider;
-      numberOfFreeVariables = numberOfFootstepsToConsider + 2;
+      numberOfFreeVariables = numberOfFootstepVariables + 2;
 
       reset();
+      reshape();
    }
 
    private void reset()
    {
-      int size = numberOfFreeVariables + numberOfLagrangeMultipliers;
       solverInput_G.zero();
       solverInput_g.zero();
-      solverInput_G.reshape(size, size);
-      solverInput_g.reshape(size, 1);
 
       solverInput_H.zero();
       solverInput_h.zero();
-      solverInput_H.reshape(numberOfFreeVariables, numberOfFreeVariables);
-      solverInput_h.reshape(numberOfFreeVariables, 1);
 
       footstepCost_H.zero();
       footstepCost_h.zero();
-      footstepCost_H.reshape(numberOfFootstepVariables, numberOfFootstepVariables);
-      footstepCost_h.reshape(numberOfFootstepVariables, 1);
 
       feedbackCost_H.zero();
       feedbackCost_h.zero();
@@ -163,15 +168,9 @@ public class ICPOptimizationSolver
       solverInput_Aeq.zero();
       solverInput_AeqTrans.zero();
       solverInput_beq.zero();
-      solverInput_Aeq.reshape(numberOfFreeVariables, numberOfLagrangeMultipliers);
-      solverInput_AeqTrans.reshape(numberOfLagrangeMultipliers, numberOfFreeVariables);
-      solverInput_beq.reshape(numberOfLagrangeMultipliers, 1);
 
       dynamics_Aeq.zero();
       dynamics_beq.zero();
-      solverInput_Aeq.reshape(numberOfFreeVariables, 2);
-      solverInput_AeqTrans.reshape(2, numberOfFreeVariables);
-      solverInput_beq.reshape(2, 1);
 
       for (int i = 0; i < maximumNumberOfFootstepsToConsider; i++)
       {
@@ -193,6 +192,26 @@ public class ICPOptimizationSolver
       footstepLocationSolution.zero();
       feedbackDeltaSolution.zero();
       feedbackLocation.zero();
+   }
+
+   private void reshape()
+   {
+      int size = numberOfFreeVariables + numberOfLagrangeMultipliers;
+      solverInput_G.reshape(size, size);
+      solverInput_g.reshape(size, 1);
+
+      solverInput_H.reshape(numberOfFreeVariables, numberOfFreeVariables);
+      solverInput_h.reshape(numberOfFreeVariables, 1);
+
+      footstepCost_H.reshape(numberOfFootstepVariables, numberOfFootstepVariables);
+      footstepCost_h.reshape(numberOfFootstepVariables, 1);
+
+      solverInput_Aeq.reshape(numberOfFreeVariables, numberOfLagrangeMultipliers);
+      solverInput_AeqTrans.reshape(numberOfLagrangeMultipliers, numberOfFreeVariables);
+      solverInput_beq.reshape(numberOfLagrangeMultipliers, 1);
+
+      dynamics_Aeq.reshape(numberOfFreeVariables, 2);
+
       solution.reshape(numberOfFreeVariables + numberOfLagrangeMultipliers, 1);
       lagrangeMultiplierSolution.reshape(numberOfLagrangeMultipliers, 1);
       footstepLocationSolution.reshape(numberOfFootstepVariables, 1);
@@ -337,7 +356,7 @@ public class ICPOptimizationSolver
       computeDynamicConstraint();
 
       MatrixTools.addMatrixBlock(solverInput_Aeq, 0, 0, dynamics_Aeq, 0, 0, numberOfFreeVariables, 2, 1.0);
-      MatrixTools.addMatrixBlock(solverInput_beq, 0, 0, dynamics_beq, 0, 0, numberOfFreeVariables, 1, 1.0);
+      MatrixTools.addMatrixBlock(solverInput_beq, 0, 0, dynamics_beq, 0, 0, 2, 1, 1.0);
    }
 
    private void computeDynamicConstraint()
@@ -394,6 +413,14 @@ public class ICPOptimizationSolver
    {
       solver.setA(solverInput_G);
       solver.solve(solverInput_g, solutionToPack);
+
+      if (MatrixTools.containsNaN(solutionToPack))
+      {
+         PrintTools.debug("number of steps = " + numberOfFootstepsToConsider);
+         PrintTools.debug("solverInput_G = " + solverInput_G);
+         PrintTools.debug("solverInput_g = " + solverInput_g);
+         throw new RuntimeException("had a NaN");
+      }
    }
 
    private void extractFootstepSolutions(DenseMatrix64F footstepLocationSolutionToPack)

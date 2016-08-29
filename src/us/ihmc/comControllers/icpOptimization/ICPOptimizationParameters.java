@@ -4,6 +4,8 @@ public interface ICPOptimizationParameters
 {
    public int getMaximumNumberOfFootstepsToConsider();
 
+   public int numberOfFootstepsToConsider();
+
    public double getFootstepWeight();
 
    public double getFeedbackWeight();
@@ -21,4 +23,6 @@ public interface ICPOptimizationParameters
    public double getMinimumFootstepWeight();
 
    public double getMinimumFeedbackWeight();
+
+   public double getMinimumTimeRemaining();
 }

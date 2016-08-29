@@ -9,6 +9,7 @@ import us.ihmc.humanoidRobotics.footstep.Footstep;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.BooleanYoVariable;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
+import us.ihmc.robotics.dataStructures.variable.EnumYoVariable;
 import us.ihmc.robotics.dataStructures.variable.IntegerYoVariable;
 import us.ihmc.robotics.geometry.FramePoint;
 import us.ihmc.robotics.geometry.FramePoint2d;
@@ -31,7 +32,6 @@ public class ICPOptimizationController
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
 
    private final IntegerYoVariable numberOfFootstepsToConsider = new IntegerYoVariable("numberOfFootstepsToConsider", registry);
-   private final IntegerYoVariable numberOfFootstepsInPlan = new IntegerYoVariable("numberOfFootstepsInPlan", registry);
 
    private final BooleanYoVariable useTwoCMPsInControl = new BooleanYoVariable("useTwoCMPsInControl", registry);
    private final BooleanYoVariable useFeedback = new BooleanYoVariable("useFeedback", registry);
@@ -47,6 +47,10 @@ public class ICPOptimizationController
    private final DoubleYoVariable singleSupportDuration = new DoubleYoVariable("singleSupportDuration", registry);
    private final DoubleYoVariable exitCMPDurationInPercentOfStepTime = new DoubleYoVariable("timeSpentOnExitCMPInPercentOfStepTime", registry);
    private final DoubleYoVariable doubleSupportSplitFraction = new DoubleYoVariable("doubleSupportSplitFraction", registry);
+   private final BooleanYoVariable stepTimesInitialized = new BooleanYoVariable("stepTimesInitialized", registry);
+
+   private final EnumYoVariable<RobotSide> transferToSide = new EnumYoVariable<>("controllerTransferToSide", registry, RobotSide.class, true);
+   private final EnumYoVariable<RobotSide> supportSide = new EnumYoVariable<>("controllerSupportSide", registry, RobotSide.class, true);
 
    private final DoubleYoVariable initialTime = new DoubleYoVariable("initialTime", registry);
    private final DoubleYoVariable timeInCurrentState = new DoubleYoVariable("timeInCurrentState", registry);
@@ -79,17 +83,20 @@ public class ICPOptimizationController
    private final ReferenceCentroidalMomentumPivotLocationsCalculator referenceCMPsCalculator;
 
    private final CapturePointPlannerParameters icpPlannerParameters;
+   private final ICPOptimizationParameters icpOptimizationParameters;
    private final int maximumNumberOfFootstepsToConsider;
 
    public ICPOptimizationController(CapturePointPlannerParameters icpPlannerParameters, ICPOptimizationParameters icpOptimizationParameters,
          BipedSupportPolygons bipedSupportPolygons, SideDependentList<? extends ContactablePlaneBody> contactableFeet, DoubleYoVariable omega, YoVariableRegistry parentRegistry)
    {
       this.icpPlannerParameters = icpPlannerParameters;
+      this.icpOptimizationParameters = icpOptimizationParameters;
       this.omega = omega;
 
       maximumNumberOfFootstepsToConsider = icpOptimizationParameters.getMaximumNumberOfFootstepsToConsider();
+      numberOfFootstepsToConsider.set(icpOptimizationParameters.numberOfFootstepsToConsider());
 
-      solver = new ICPOptimizationSolver(icpOptimizationParameters);
+      solver = new ICPOptimizationSolver(icpOptimizationParameters, registry);
       referenceCMPsCalculator = new ReferenceCentroidalMomentumPivotLocationsCalculator(namePrefix, bipedSupportPolygons, contactableFeet,
             maximumNumberOfFootstepsToConsider, registry);
       referenceCMPsCalculator.initializeParameters(icpPlannerParameters);
@@ -123,6 +130,7 @@ public class ICPOptimizationController
    {
       this.doubleSupportDuration.set(doubleSupportDuration);
       this.singleSupportDuration.set(singleSupportDuration);
+      stepTimesInitialized.set(true);
    }
 
    public void clearPlan()
@@ -130,14 +138,22 @@ public class ICPOptimizationController
       upcomingFootsteps.clear();
       footstepRecursionMultiplierCalculator.reset();
       referenceCMPsCalculator.clear();
-      numberOfFootstepsInPlan.set(0);
    }
 
    public void addFootstepToPlan(Footstep footstep)
    {
       upcomingFootsteps.add(footstep);
       referenceCMPsCalculator.addUpcomingFootstep(footstep);
-      numberOfFootstepsInPlan.increment();
+   }
+
+   public void setSupportLeg(RobotSide robotSide)
+   {
+      supportSide.set(robotSide);
+   }
+
+   public void setTransferToSide(RobotSide robotSide)
+   {
+      transferToSide.set(robotSide);
    }
 
    public void initializeForStanding(double initialTime)
@@ -172,6 +188,9 @@ public class ICPOptimizationController
 
    public void compute(double currentTime, FramePoint2d desiredICP, FrameVector2d desiredICPVelocity, FramePoint2d currentICP)
    {
+      if (!stepTimesInitialized.getBooleanValue())
+         throw new RuntimeException("Step timing has never been initialized!");
+
       desiredICP.changeFrame(worldFrame);
       desiredICPVelocity.changeFrame(worldFrame);
       currentICP.changeFrame(worldFrame);
@@ -189,8 +208,8 @@ public class ICPOptimizationController
       scaleFirstStepWeightWithTime();
       scaleFeedbackWeightWithGain();
 
-      if (isStanding.getBooleanValue())
-         doControlForStanding();
+      if (isStanding.getBooleanValue() || isInTransfer.getBooleanValue())
+         doFeedbackOnlyControl();
       else
          doControlForStepping();
 
@@ -211,6 +230,28 @@ public class ICPOptimizationController
          return;
       }
 
+      referenceCMPsCalculator.setUseTwoCMPsPerSupport(useTwoCMPsInControl.getBooleanValue());
+      if (isInTransfer.getBooleanValue())
+      {
+         RobotSide transferToSide = this.transferToSide.getEnumValue();
+         if (transferToSide == null)
+            transferToSide = RobotSide.LEFT;
+         referenceCMPsCalculator.computeReferenceCMPsStartingFromDoubleSupport(isStanding.getBooleanValue(), transferToSide);
+      }
+      else
+      {
+         RobotSide supportSide = this.supportSide.getEnumValue();
+         referenceCMPsCalculator.computeReferenceCMPsStartingFromSingleSupport(supportSide);
+      }
+      referenceCMPsCalculator.update();
+
+      int numberOfFootstepsToConsider = this.numberOfFootstepsToConsider.getIntegerValue();
+      numberOfFootstepsToConsider = Math.min(numberOfFootstepsToConsider, upcomingFootsteps.size());
+      numberOfFootstepsToConsider = Math.min(numberOfFootstepsToConsider, maximumNumberOfFootstepsToConsider);
+
+      solver.submitProblemConditions(numberOfFootstepsToConsider, useStepAdjustment.getBooleanValue(), useFeedback.getBooleanValue(),
+                                     useTwoCMPsInControl.getBooleanValue());
+
       if (useFeedback.getBooleanValue())
       {
          solver.setFeedbackConditions(scaledFeedbackWeight.getDoubleValue(), feedbackGain.getDoubleValue());
@@ -218,10 +259,6 @@ public class ICPOptimizationController
 
       if (useStepAdjustment.getBooleanValue())
       {
-         int numberOfFootstepsToConsider = this.numberOfFootstepsToConsider.getIntegerValue();
-         numberOfFootstepsToConsider = Math.min(numberOfFootstepsToConsider, numberOfFootstepsInPlan.getIntegerValue());
-         numberOfFootstepsToConsider = Math.min(numberOfFootstepsToConsider, maximumNumberOfFootstepsToConsider);
-
          for (int footstepIndex = 0; footstepIndex < numberOfFootstepsToConsider; footstepIndex++)
             submitFootstepConditionsToSolver(footstepIndex);
       }
@@ -278,7 +315,8 @@ public class ICPOptimizationController
    private final FramePoint2d finalEndingICP2d = new FramePoint2d(worldFrame);
    private void computeFinalICPRecursion()
    {
-      FramePoint finalEndingICP = referenceCMPsCalculator.getEntryCMPs().get(numberOfFootstepsToConsider.getIntegerValue()).getFrameTuple();
+      // // FIXME: 8/29/16 
+      FramePoint finalEndingICP = referenceCMPsCalculator.getEntryCMPs().get(numberOfFootstepsToConsider.getIntegerValue() + 1).getFrameTuple();
       finalEndingICP.changeFrame(worldFrame);
       finalEndingICP2d.setByProjectionOntoXYPlane(finalEndingICP);
 
@@ -308,12 +346,12 @@ public class ICPOptimizationController
       }
       else
       {
-         FramePoint stanceExitCMP = referenceCMPsCalculator.getExitCMPs().get(0).getFrameTuple();
-         stanceExitCMP2d.setByProjectionOntoXYPlane(stanceExitCMP);
+         FramePoint stanceEntryCMP = referenceCMPsCalculator.getEntryCMPs().get(0).getFrameTuple();
+         stanceEntryCMP2d.setByProjectionOntoXYPlane(stanceEntryCMP);
 
-         stanceExitCMP2d.scale(footstepRecursionMultiplierCalculator.getOneCMPStanceProjectionMultiplier(useTwoCMPsInControl.getBooleanValue()));
+         stanceEntryCMP2d.scale(footstepRecursionMultiplierCalculator.getOneCMPStanceProjectionMultiplier(useTwoCMPsInControl.getBooleanValue()));
 
-         stanceCMPProjection.set(stanceExitCMP2d);
+         stanceCMPProjection.set(stanceEntryCMP2d);
       }
    }
 
@@ -387,20 +425,14 @@ public class ICPOptimizationController
       }
       else
       {
-         double steppingDuration = doubleSupportDuration.getDoubleValue() + singleSupportDuration.getDoubleValue();
-         double totalTimeSpentOnExitCMP = steppingDuration * exitCMPDurationInPercentOfStepTime.getDoubleValue();
-         double totalTimeSpentOnEntryCMP = steppingDuration * (1.0 - exitCMPDurationInPercentOfStepTime.getDoubleValue());
-
+         double remainingTime;
          if (isInTransfer.getBooleanValue())
-         {
-            double remainingTime = totalTimeSpentOnExitCMP - timeInCurrentState.getDoubleValue();
-            timeRemainingInState.set(remainingTime);
-         }
+            remainingTime = doubleSupportDuration.getDoubleValue() - timeInCurrentState.getDoubleValue();
          else
-         {
-            double remainingTime = totalTimeSpentOnEntryCMP - timeInCurrentState.getDoubleValue();
-            timeRemainingInState.set(remainingTime);
-         }
+            remainingTime = singleSupportDuration.getDoubleValue() - timeInCurrentState.getDoubleValue();
+
+         remainingTime = Math.max(icpOptimizationParameters.getMinimumTimeRemaining(), remainingTime);
+         timeRemainingInState.set(remainingTime);
       }
    }
 

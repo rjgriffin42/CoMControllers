@@ -56,6 +56,12 @@ public class ICPOptimizationSolverTest
          return 5;
       }
 
+      @Override
+      public int numberOfFootstepsToConsider()
+      {
+         return 1;
+      }
+
       @Override public double getFootstepWeight()
       {
          return 5.0;
@@ -99,6 +105,11 @@ public class ICPOptimizationSolverTest
       @Override public double getMinimumFeedbackWeight()
       {
          return 0.0001;
+      }
+
+      @Override public double getMinimumTimeRemaining()
+      {
+         return 0.001;
       }
    };
 

@@ -1,6 +1,5 @@
 package us.ihmc.comControllers.controllers;
 
-import us.ihmc.comControllers.footstepOptimization.ICPAdjustmentController;
 import us.ihmc.comControllers.icpOptimization.ICPOptimizationController;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.YoPlaneContactState;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ICPControlGains;
@@ -114,6 +113,7 @@ public class SphereICPOptimizationController implements GenericSphereController
       icpController = new ICPProportionalController(icpGains, controlToolbox.getControlDT(), registry);
       icpOptimizationController = new ICPOptimizationController(controlToolbox.getCapturePointPlannerParameters(), controlToolbox.getICPOptimizationParameters(),
             controlToolbox.getBipedSupportPolygons(), controlToolbox.getContactableFeet(), omega0, registry);
+      icpOptimizationController.setStepDurations(controlToolbox.getDoubleSupportDuration(), controlToolbox.getSingleSupportDuration());
 
       stateMachine = new StateMachine<>("supportStateMachine", "supportStateTime", SupportState.class, controlToolbox.getYoTime(), registry);
       StandingState standingState = new StandingState();
@@ -282,10 +282,15 @@ public class SphereICPOptimizationController implements GenericSphereController
          icpPlanner.addFootstepToPlan(nextNextFootstep);
          icpPlanner.addFootstepToPlan(nextNextNextFootstep);
 
+         icpOptimizationController.addFootstepToPlan(nextFootstep);
+         icpOptimizationController.addFootstepToPlan(nextNextFootstep);
+         icpOptimizationController.addFootstepToPlan(nextNextNextFootstep);
+
          RobotSide supportSide = nextFootstep.getRobotSide().getOppositeSide();
          icpPlanner.setSupportLeg(supportSide);
          icpPlanner.initializeForSingleSupport(yoTime.getDoubleValue());
 
+         icpOptimizationController.setSupportLeg(supportSide);
          icpOptimizationController.initializeForSingleSupport(yoTime.getDoubleValue());
 
          FootSpoof footSpoof = contactableFeet.get(supportSide.getOppositeSide());
@@ -348,11 +353,16 @@ public class SphereICPOptimizationController implements GenericSphereController
          icpPlanner.addFootstepToPlan(nextNextFootstep);
          icpPlanner.addFootstepToPlan(nextNextNextFootstep);
 
+         icpOptimizationController.addFootstepToPlan(nextFootstep);
+         icpOptimizationController.addFootstepToPlan(nextNextFootstep);
+         icpOptimizationController.addFootstepToPlan(nextNextNextFootstep);
+
          RobotSide transferToSide = nextFootstep.getRobotSide().getOppositeSide();
 
          icpPlanner.setTransferToSide(transferToSide);
          icpPlanner.initializeForTransfer(yoTime.getDoubleValue());
 
+         icpOptimizationController.setTransferToSide(transferToSide);
          icpOptimizationController.initializeForTransfer(yoTime.getDoubleValue());
       }
 
