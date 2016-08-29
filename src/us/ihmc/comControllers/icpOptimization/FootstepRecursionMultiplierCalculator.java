@@ -119,7 +119,7 @@ public class FootstepRecursionMultiplierCalculator
 
       for (int i = 0; i < numberOfStepsToConsider; i++)
       {
-         double multiplier = Math.exp(timeToFinish + -omega.getDoubleValue() * i * steppingDuration);
+         double multiplier = Math.exp(-omega.getDoubleValue() * (timeToFinish + (i + 1) * steppingDuration));
          twoCMPRecursionEntryMultipliers.get(i).set(multiplier * entryRecursion);
          twoCMPRecursionExitMultipliers.get(i).set(multiplier * exitRecursion);
       }

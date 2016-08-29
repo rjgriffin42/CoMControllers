@@ -2,6 +2,7 @@ package us.ihmc.comControllers.generatedTestSuites;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite.SuiteClasses;
+import us.ihmc.comControllers.icpOptimization.FootstepRecursionMultiplierCalculatorTest;
 import us.ihmc.tools.testing.TestPlanSuite;
 import us.ihmc.tools.testing.TestPlanSuite.TestSuiteTarget;
 import us.ihmc.tools.testing.TestPlanTarget;
