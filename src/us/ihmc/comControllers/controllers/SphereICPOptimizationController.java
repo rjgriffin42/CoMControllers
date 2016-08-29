@@ -112,7 +112,8 @@ public class SphereICPOptimizationController implements GenericSphereController
       icpGains.setKpParallelToMotion(2.0);
 
       icpController = new ICPProportionalController(icpGains, controlToolbox.getControlDT(), registry);
-      icpOptimizationController = new ICPOptimizationController(controlToolbox.getICPOptimizationParameters(), omega0, registry);
+      icpOptimizationController = new ICPOptimizationController(controlToolbox.getCapturePointPlannerParameters(), controlToolbox.getICPOptimizationParameters(),
+            controlToolbox.getBipedSupportPolygons(), controlToolbox.getContactableFeet(), omega0, registry);
 
       stateMachine = new StateMachine<>("supportStateMachine", "supportStateTime", SupportState.class, controlToolbox.getYoTime(), registry);
       StandingState standingState = new StandingState();

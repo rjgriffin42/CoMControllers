@@ -43,6 +43,7 @@ public class ICPAdjustmentController
    private final IntegerYoVariable yoMaxNumberOfFootstepsToConsider = new IntegerYoVariable("maxNumberOfFootstepsToConsider", registry);
 
    private final DoubleYoVariable exitCMPDurationInPercentOfStepTime = new DoubleYoVariable(namePrefix + "TimeSpentOnExitCMPInPercentOfStepTime", registry);
+   private final DoubleYoVariable doubleSupportSplitFraction = new DoubleYoVariable(namePrefix + "DoubleSupportSplitFraction", registry);
    private final DoubleYoVariable initialTime = new DoubleYoVariable("initialTime", registry);
    private final DoubleYoVariable timeInCurrentState = new DoubleYoVariable("timeInCurrentState", registry);
    private final DoubleYoVariable remainingTime = new DoubleYoVariable("remainingTime", registry);
@@ -101,7 +102,8 @@ public class ICPAdjustmentController
       yoMaxNumberOfFootstepsToConsider.set(icpControllerParameters.getMaximumNumberOfStepsToConsider());
 
       targetTouchdownICPCalculator = new TargetTouchdownICPCalculator(omega0, registry);
-      footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(omega0, yoMaxNumberOfFootstepsToConsider.getIntegerValue(), registry);
+      footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(doubleSupportDuration, singleSupportDuration,
+            exitCMPDurationInPercentOfStepTime, doubleSupportSplitFraction, omega0, yoMaxNumberOfFootstepsToConsider.getIntegerValue(), registry);
       icpAdjustmentSolver = new ICPAdjustmentSolver(icpControllerParameters);
 
       exitCMPDurationInPercentOfStepTime.set(icpPlannerParameters.getTimeSpentOnExitCMPInPercentOfStepTime());
@@ -221,21 +223,20 @@ public class ICPAdjustmentController
          if (useTwoCMPs.getBooleanValue())
          {
             double totalTimeSpentOnExitCMP = steppingDuration * exitCMPDurationInPercentOfStepTime.getDoubleValue();
-            double totalTimeSpentOnEntryCMP = steppingDuration * (1.0 - exitCMPDurationInPercentOfStepTime.getDoubleValue());
 
             computeRemainingTimeInState(totalTimeSpentOnExitCMP);
 
             perfectCMP.set(referenceCMPsCalculator.getExitCMPs().get(0).getFramePoint2dCopy());
-            footstepRecursionMultiplierCalculator
-                  .computeRecursionMultipliers(totalTimeSpentOnExitCMP, totalTimeSpentOnEntryCMP, numberOfFootstepsToConsider.getIntegerValue(), useTwoCMPs.getBooleanValue());
          }
          else
          {
             computeRemainingTimeInState(steppingDuration);
 
             perfectCMP.set(referenceCMPsCalculator.getEntryCMPs().get(0).getFramePoint2dCopy());
-            footstepRecursionMultiplierCalculator.computeRecursionMultipliers(steppingDuration, numberOfFootstepsToConsider.getIntegerValue(), useTwoCMPs.getBooleanValue());
          }
+
+         footstepRecursionMultiplierCalculator.computeRecursionMultipliers(numberOfFootstepsToConsider.getIntegerValue(), isInDoubleSupport.getBooleanValue(),
+               useTwoCMPs.getBooleanValue());
 
          targetTouchdownICPCalculator.computeTargetTouchdownICP(remainingTime.getDoubleValue(), currentICP, perfectCMP.getFramePoint2dCopy());
 

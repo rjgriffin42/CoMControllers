@@ -41,6 +41,7 @@ public class ICPOptimizationSolver
 
    protected final DenseMatrix64F finalICPRecursion = new DenseMatrix64F(2, 1);
    protected final DenseMatrix64F cmpOffsetRecursionEffect = new DenseMatrix64F(2, 1);
+   protected final DenseMatrix64F stanceCMPProjection = new DenseMatrix64F(2, 1);
    protected final DenseMatrix64F currentICP = new DenseMatrix64F(2, 1);
    protected final DenseMatrix64F perfectCMP = new DenseMatrix64F(2, 1);
    protected double omega;
@@ -250,11 +251,12 @@ public class ICPOptimizationSolver
    }
 
    public void compute(FramePoint2d finalICPRecursion, FramePoint2d cmpOffsetRecursionEffect, FramePoint2d currentICP, FramePoint2d perfectCMP,
-                       double omega, double timeRemaining)
+                       FramePoint2d stanceCMPProjection, double omega, double timeRemaining)
    {
       finalICPRecursion.changeFrame(worldFrame);
       currentICP.changeFrame(worldFrame);
       perfectCMP.changeFrame(worldFrame);
+      stanceCMPProjection.changeFrame(worldFrame);
 
       if (cmpOffsetRecursionEffect != null)
          cmpOffsetRecursionEffect.changeFrame(worldFrame);
@@ -267,6 +269,9 @@ public class ICPOptimizationSolver
 
       this.perfectCMP.set(0, 0, perfectCMP.getX());
       this.perfectCMP.set(1, 0, perfectCMP.getY());
+
+      this.stanceCMPProjection.set(0, 0, stanceCMPProjection.getX());
+      this.stanceCMPProjection.set(1, 0, stanceCMPProjection.getY());
 
       this.timeRemaining = timeRemaining;
       this.omega = omega;
@@ -345,10 +350,9 @@ public class ICPOptimizationSolver
          addFootstepRecursionsToDynamicConstraint();
 
       CommonOps.scale(currentStateProjection, currentICP);
-      CommonOps.scale((1.0 - currentStateProjection), perfectCMP);
 
       CommonOps.subtractEquals(currentICP, finalICPRecursion);
-      CommonOps.subtractEquals(currentICP, perfectCMP);
+      CommonOps.subtractEquals(currentICP, stanceCMPProjection);
 
       if (useTwoCMPs)
          CommonOps.subtractEquals(currentICP, cmpOffsetRecursionEffect);
