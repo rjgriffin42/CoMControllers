@@ -236,6 +236,7 @@ public class SphereICPOptimizationController implements GenericSphereController
          icpPlanner.initializeForStanding(yoTime.getDoubleValue());
          icpPlanner.setDesiredCapturePointState(desiredICP, desiredICPVelocity);
 
+         icpPlanner.clearPlan();
          icpOptimizationController.initializeForStanding(yoTime.getDoubleValue());
 
          for (RobotSide robotSide : RobotSide.values)
@@ -271,6 +272,7 @@ public class SphereICPOptimizationController implements GenericSphereController
       @Override public void doTransitionIntoAction()
       {
          icpPlanner.clearPlan();
+         icpOptimizationController.clearPlan();
 
          Footstep nextFootstep = controlToolbox.getFootstep(0);
          Footstep nextNextFootstep = controlToolbox.peekAtFootstep(0);
@@ -290,8 +292,7 @@ public class SphereICPOptimizationController implements GenericSphereController
          icpPlanner.setSupportLeg(supportSide);
          icpPlanner.initializeForSingleSupport(yoTime.getDoubleValue());
 
-         icpOptimizationController.setSupportLeg(supportSide);
-         icpOptimizationController.initializeForSingleSupport(yoTime.getDoubleValue());
+         icpOptimizationController.initializeForSingleSupport(yoTime.getDoubleValue(), supportSide);
 
          FootSpoof footSpoof = contactableFeet.get(supportSide.getOppositeSide());
          FramePose nextSupportPose = footPosesAtTouchdown.get(supportSide.getOppositeSide());
@@ -338,6 +339,7 @@ public class SphereICPOptimizationController implements GenericSphereController
       @Override public void doTransitionIntoAction()
       {
          icpPlanner.clearPlan();
+         icpOptimizationController.clearPlan();
 
          for (RobotSide robotSide : RobotSide.values)
             contactStates.get(robotSide).setFullyConstrained();
@@ -362,8 +364,7 @@ public class SphereICPOptimizationController implements GenericSphereController
          icpPlanner.setTransferToSide(transferToSide);
          icpPlanner.initializeForTransfer(yoTime.getDoubleValue());
 
-         icpOptimizationController.setTransferToSide(transferToSide);
-         icpOptimizationController.initializeForTransfer(yoTime.getDoubleValue());
+         icpOptimizationController.initializeForTransfer(yoTime.getDoubleValue(), transferToSide);
       }
 
       @Override public void doTransitionOutOfAction()

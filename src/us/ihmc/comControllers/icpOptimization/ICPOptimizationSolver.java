@@ -19,7 +19,11 @@ import java.util.ArrayList;
 
 public class ICPOptimizationSolver
 {
+   private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
    private static final ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
+
+   protected final YoMatrix yoSolverInput_G;
+   protected final YoMatrix yoSolverInputLinear_g;
 
    protected final DenseMatrix64F solverInput_G;
    protected final DenseMatrix64F solverInput_g;
@@ -63,6 +67,9 @@ public class ICPOptimizationSolver
    protected final DenseMatrix64F feedbackDeltaSolution;
    protected final DenseMatrix64F feedbackLocation;
 
+   private final DenseMatrix64F tmpCost;
+   private final DenseMatrix64F costToGo;
+
    protected final int maximumNumberOfFootstepsToConsider;
 
    protected int numberOfFootstepsToConsider;
@@ -88,6 +95,9 @@ public class ICPOptimizationSolver
       int maximumNumberOfLagrangeMultipliers = 2;
 
       int size = maximumNumberOfFreeVariables + maximumNumberOfLagrangeMultipliers;
+
+      yoSolverInput_G = new YoMatrix("solverInput_G", size, size, registry);
+      yoSolverInputLinear_g = new YoMatrix("solverInputLinear_g", size, 1, registry);
 
       solverInput_G = new DenseMatrix64F(size, size);
       solverInput_g = new DenseMatrix64F(size, 1);
@@ -120,6 +130,11 @@ public class ICPOptimizationSolver
       footstepLocationSolution = new DenseMatrix64F(2 * maximumNumberOfFootstepsToConsider, 1);
       feedbackDeltaSolution = new DenseMatrix64F(2, 1);
       feedbackLocation = new DenseMatrix64F(2, 1);
+
+      tmpCost = new DenseMatrix64F(maximumNumberOfFreeVariables + maximumNumberOfLagrangeMultipliers, 1);
+      costToGo = new DenseMatrix64F(1, 1);
+
+      parentRegistry.addChild(registry);
    }
 
    public void submitProblemConditions(int numberOfFootstepsToConsider, boolean useStepAdjustment, boolean useFeedback, boolean useTwoCMPs)
@@ -407,6 +422,9 @@ public class ICPOptimizationSolver
       MatrixTools.setMatrixBlock(solverInput_G, 0, numberOfFreeVariables, solverInput_Aeq, 0, 0, numberOfFreeVariables, numberOfLagrangeMultipliers, 1.0);
       MatrixTools.setMatrixBlock(solverInput_G, numberOfFreeVariables, 0, solverInput_AeqTrans, 0, 0, numberOfLagrangeMultipliers, numberOfFreeVariables, 1.0);
       MatrixTools.setMatrixBlock(solverInput_g, numberOfLagrangeMultipliers, 0, solverInput_beq, 0, 0, numberOfLagrangeMultipliers, 1, 1.0);
+
+      yoSolverInput_G.set(solverInput_G);
+      yoSolverInputLinear_g.set(solverInput_g);
    }
 
    private void solve(DenseMatrix64F solutionToPack)
@@ -444,9 +462,17 @@ public class ICPOptimizationSolver
       CommonOps.addEquals(feedbackLocation, feedbackDeltaSolution);
    }
 
+   private final DenseMatrix64F tmpCostScalar = new DenseMatrix64F(1, 1);
    private void computeCostToGo()
    {
-      //todo
+      costToGo.zero();
+      tmpCost.zero();
+      tmpCost.reshape(numberOfFreeVariables + numberOfLagrangeMultipliers, 1);
+
+      CommonOps.mult(solverInput_G, solution, tmpCost);
+      CommonOps.multTransA(solution, tmpCost, costToGo);
+      CommonOps.multTransA(solverInput_g, solution, tmpCostScalar);
+      CommonOps.add(tmpCostScalar, costToGo, costToGo);
    }
 
    public void getFootstepSolutionLocation(int footstepIndex, FramePoint2d footstepLocationToPack)
@@ -472,6 +498,6 @@ public class ICPOptimizationSolver
 
    public double getCostToGo()
    {
-      return 0.0; // todo
+      return costToGo.get(0, 0);
    }
 }

@@ -80,10 +80,12 @@ public class ICPOptimizationControllerTest
          icpOptimizationController.addFootstepToPlan(footsteps.get(i));
          icpPlanner.addFootstepToPlan(footsteps.get(i));
       }
-      icpPlanner.setSupportLeg(footsteps.get(0).getRobotSide().getOppositeSide());
 
+      RobotSide supportSide = footsteps.get(0).getRobotSide().getOppositeSide();
+
+      icpPlanner.setSupportLeg(supportSide);
       icpPlanner.initializeForSingleSupport(0.0);
-      icpOptimizationController.initializeForSingleSupport(0.0);
+      icpOptimizationController.initializeForSingleSupport(0.0, supportSide);
 
       icpPlanner.updateCurrentPlan();
       double currentTime = 0.5;
