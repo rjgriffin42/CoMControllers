@@ -26,6 +26,8 @@ import java.util.ArrayList;
 
 public class ICPOptimizationController
 {
+   private static final boolean DEBUG = true;
+
    private static final String namePrefix = "icpOptimizationCalculator";
    private static final String yoNamePrefix = "controller";
    private static final ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
@@ -63,6 +65,8 @@ public class ICPOptimizationController
    private final YoFramePoint2d controllerDesiredICP = new YoFramePoint2d("controllerDesiredICP", worldFrame, registry);
    private final YoFrameVector2d controllerDesiredICPVelocity = new YoFrameVector2d("controllerDesiredICPVelocity", worldFrame, registry);
    private final YoFramePoint2d controllerPerfectCMP = new YoFramePoint2d("controllerPerfectCMP", worldFrame, registry);
+
+   private final YoFramePoint2d predictedFinalICP;
 
    private final YoFramePoint2d controllerFeedbackCMP = new YoFramePoint2d("controllerFeedbackCMP", worldFrame, registry);
    private final YoFrameVector2d controllerFeedbackCMPDelta = new YoFrameVector2d("controllerFeedbackCMPDelta", worldFrame, registry);
@@ -136,6 +140,15 @@ public class ICPOptimizationController
          exitOffsets.add(new YoFrameVector2d("exitOffset" + i, worldFrame, registry));
       }
 
+      if (DEBUG)
+      {
+         predictedFinalICP = new YoFramePoint2d("predictedFinalICP", worldFrame, registry);
+      }
+      else
+      {
+         predictedFinalICP = null;
+      }
+
       parentRegistry.addChild(registry);
    }
 
@@ -177,6 +190,7 @@ public class ICPOptimizationController
          transferToSide = RobotSide.LEFT;
       isInTransfer.set(true);
 
+      // fixme submitting these must be smarter
       footstepRecursionMultiplierCalculator.resetTimes();
       if (isInitialTransfer.getBooleanValue())
          footstepRecursionMultiplierCalculator.submitTimes(0, initialDoubleSupportDuration.getDoubleValue(), singleSupportDuration.getDoubleValue());
@@ -192,6 +206,8 @@ public class ICPOptimizationController
       referenceCMPsCalculator.setUseTwoCMPsPerSupport(useTwoCMPsInControl.getBooleanValue());
       referenceCMPsCalculator.computeReferenceCMPsStartingFromDoubleSupport(isStanding.getBooleanValue(), transferToSide);
       referenceCMPsCalculator.update();
+
+      computeFinalICPRecursion();
    }
 
    public void initializeForSingleSupport(double initialTime, RobotSide supportSide)
@@ -202,11 +218,13 @@ public class ICPOptimizationController
       isInTransfer.set(false);
       isInitialTransfer.set(false);
 
+      // fixme submitting these must be smarter
       footstepRecursionMultiplierCalculator.resetTimes();
       footstepRecursionMultiplierCalculator.submitTimes(0, 0.0, singleSupportDuration.getDoubleValue());
 
       for (int i = 1; i < numberOfFootstepsToConsider.getIntegerValue() + 1; i++)
          footstepRecursionMultiplierCalculator.submitTimes(i, doubleSupportDuration.getDoubleValue(), singleSupportDuration.getDoubleValue());
+      footstepRecursionMultiplierCalculator.submitTimes(numberOfFootstepsToConsider.getIntegerValue() + 1, doubleSupportDuration.getDoubleValue(), singleSupportDuration.getDoubleValue());
 
       footstepRecursionMultiplierCalculator.computeRecursionMultipliers(numberOfFootstepsToConsider.getIntegerValue(), isInTransfer.getBooleanValue(),
             useTwoCMPsInControl.getBooleanValue());
@@ -214,6 +232,8 @@ public class ICPOptimizationController
       referenceCMPsCalculator.setUseTwoCMPsPerSupport(useTwoCMPsInControl.getBooleanValue());
       referenceCMPsCalculator.computeReferenceCMPsStartingFromSingleSupport(supportSide);
       referenceCMPsCalculator.update();
+
+      computeFinalICPRecursion();
    }
 
    private final FramePoint2d perfectCMP = new FramePoint2d();
@@ -260,6 +280,7 @@ public class ICPOptimizationController
       doFeedbackOnlyControl();
    }
 
+   private final FramePoint2d tmpCMP = new FramePoint2d();
    private void doControlForStepping()
    {
       if (useFeedback.getBooleanValue() && !useStepAdjustment.getBooleanValue())
@@ -286,8 +307,18 @@ public class ICPOptimizationController
             submitFootstepConditionsToSolver(footstepIndex);
       }
 
-      computeFinalICPRecursion();
+      //computeFinalICPRecursion();
       computeStanceCMPProjection();
+
+      if (DEBUG)
+      {
+         predictedFinalICP.set(controllerCurrentICP);
+         predictedFinalICP.scale(Math.exp(omega.getDoubleValue() * timeRemainingInState.getDoubleValue()));
+         tmpCMP.set(perfectCMP);
+         tmpCMP.scale(1.0 - Math.exp(omega.getDoubleValue() * timeRemainingInState.getDoubleValue()));
+         predictedFinalICP.add(tmpCMP);
+      }
+
 
       if (useTwoCMPsInControl.getBooleanValue())
       {
@@ -338,7 +369,13 @@ public class ICPOptimizationController
    private final FramePoint2d finalEndingICP2d = new FramePoint2d(worldFrame);
    private void computeFinalICPRecursion()
    {
-      FramePoint finalEndingICP = referenceCMPsCalculator.getEntryCMPs().get(numberOfFootstepsToConsider.getIntegerValue() + 1).getFrameTuple();
+      int stepIndexToPoll;
+      if (isInTransfer.getBooleanValue())
+         stepIndexToPoll = numberOfFootstepsToConsider.getIntegerValue() + 2;
+      else
+         stepIndexToPoll = numberOfFootstepsToConsider.getIntegerValue() + 1;
+
+      FramePoint finalEndingICP = referenceCMPsCalculator.getEntryCMPs().get(stepIndexToPoll).getFrameTuple();
       finalEndingICP.changeFrame(worldFrame);
       finalEndingICP2d.setByProjectionOntoXYPlane(finalEndingICP);
 
@@ -354,10 +391,16 @@ public class ICPOptimizationController
       footstepRecursionMultiplierCalculator.computeStanceFootProjectionMultipliers(timeRemainingInState.getDoubleValue(), useTwoCMPsInControl.getBooleanValue(),
             isInTransfer.getBooleanValue());
 
+      int indexToPoll;
+      if (isInTransfer.getBooleanValue())
+         indexToPoll = 1;
+      else
+         indexToPoll = 0;
+
       if (useTwoCMPsInControl.getBooleanValue())
       {
-         FramePoint stanceEntryCMP = referenceCMPsCalculator.getEntryCMPs().get(0).getFrameTuple();
-         FramePoint stanceExitCMP = referenceCMPsCalculator.getExitCMPs().get(0).getFrameTuple();
+         FramePoint stanceEntryCMP = referenceCMPsCalculator.getEntryCMPs().get(indexToPoll).getFrameTuple();
+         FramePoint stanceExitCMP = referenceCMPsCalculator.getExitCMPs().get(indexToPoll).getFrameTuple();
          stanceEntryCMP2d.setByProjectionOntoXYPlane(stanceEntryCMP);
          stanceExitCMP2d.setByProjectionOntoXYPlane(stanceExitCMP);
 
@@ -372,7 +415,7 @@ public class ICPOptimizationController
       }
       else
       {
-         FramePoint stanceEntryCMP = referenceCMPsCalculator.getEntryCMPs().get(0).getFrameTuple();
+         FramePoint stanceEntryCMP = referenceCMPsCalculator.getEntryCMPs().get(indexToPoll).getFrameTuple();
          stanceEntryCMP2d.setByProjectionOntoXYPlane(stanceEntryCMP);
 
          this.stanceOneCMP.set(stanceEntryCMP2d);

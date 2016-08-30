@@ -674,7 +674,7 @@ public class SphereControlToolbox
 
          @Override public double getFeedbackGain()
          {
-            return 1.0;
+            return 2.0;
          }
 
          @Override public boolean useFeedback()
