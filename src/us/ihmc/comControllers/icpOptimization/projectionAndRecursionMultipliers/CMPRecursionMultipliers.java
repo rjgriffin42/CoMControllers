@@ -1,0 +1,135 @@
+package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers;
+
+import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
+import us.ihmc.robotics.dataStructures.variable.BooleanYoVariable;
+import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
+
+import java.util.ArrayList;
+
+public class CMPRecursionMultipliers
+{
+   private static final String entryName = "CMPEntryRecursionMultiplier";
+   private static final String exitName = "CMPExitRecursionMultiplier";
+   private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
+
+   private final ArrayList<DoubleYoVariable> exitMultipliers = new ArrayList<>();
+   private final ArrayList<DoubleYoVariable> entryMultipliers = new ArrayList<>();
+
+   private final BooleanYoVariable useTwoCMPs;
+   private final BooleanYoVariable isInTransfer;
+
+   private final DoubleYoVariable omega;
+   private final DoubleYoVariable doubleSupportSplitFraction;
+   private final DoubleYoVariable exitCMPDurationInPercentOfStepTime;
+
+   private final int maximumNumberOfFootstepsToConsider;
+
+   public CMPRecursionMultipliers(String namePrefix, int maximumNumberOfFootstepsToConsider, DoubleYoVariable omega,
+         DoubleYoVariable doubleSupportSplitFraction, DoubleYoVariable exitCMPDurationInPercentOfStepTime, BooleanYoVariable useTwoCMPs, BooleanYoVariable isInTransfer,
+         YoVariableRegistry parentRegistry)
+   {
+      this.maximumNumberOfFootstepsToConsider = maximumNumberOfFootstepsToConsider;
+      this.omega = omega;
+      this.doubleSupportSplitFraction = doubleSupportSplitFraction;
+      this.exitCMPDurationInPercentOfStepTime = exitCMPDurationInPercentOfStepTime;
+      this.useTwoCMPs = useTwoCMPs;
+      this.isInTransfer = isInTransfer;
+
+      for (int i = 0; i < maximumNumberOfFootstepsToConsider; i++)
+      {
+         entryMultipliers.add(new DoubleYoVariable(namePrefix + entryName + i, registry));
+         exitMultipliers.add(new DoubleYoVariable(namePrefix + exitName + i, registry));
+      }
+
+      parentRegistry.addChild(registry);
+   }
+
+   public void reset()
+   {
+      for (int i = 0; i < maximumNumberOfFootstepsToConsider; i++)
+      {
+         entryMultipliers.get(i).set(0.0);
+         exitMultipliers.get(i).set(0.);
+      }
+   }
+
+   public void compute(int numberOfStepsToConsider, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations)
+   {
+      if (numberOfStepsToConsider > doubleSupportDurations.size())
+         throw new RuntimeException("Double Support Durations list is not long enough");
+      if (numberOfStepsToConsider > singleSupportDurations.size())
+         throw new RuntimeException("Single Support Durations list is not long enough");
+
+      if (useTwoCMPs.getBooleanValue())
+         computeWithTwoCMPs(numberOfStepsToConsider, doubleSupportDurations, singleSupportDurations);
+      else
+         computeWithOneCMP(numberOfStepsToConsider, doubleSupportDurations, singleSupportDurations);
+   }
+
+   private void computeWithOneCMP(int numberOfStepsToConsider, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations)
+   {
+      double timeToFinish = doubleSupportSplitFraction.getDoubleValue() * doubleSupportDurations.get(1).getDoubleValue();
+
+      if (isInTransfer.getBooleanValue())
+         timeToFinish += singleSupportDurations.get(0).getDoubleValue();
+
+      double recursionTime = timeToFinish;
+      for (int i = 0; i < numberOfStepsToConsider; i++)
+      {
+         double steppingDuration = doubleSupportDurations.get(i + 1).getDoubleValue() + singleSupportDurations.get(i + 1).getDoubleValue();
+         double stepRecursion = 1.0 - Math.exp(-omega.getDoubleValue() * steppingDuration);
+
+         double previousStepDuration = 0.0;
+         if (i > 0)
+            previousStepDuration = doubleSupportDurations.get(i).getDoubleValue() + singleSupportDurations.get(i).getDoubleValue();
+
+         recursionTime += previousStepDuration;
+         exitMultipliers.get(i).set(Math.exp(-omega.getDoubleValue() * recursionTime) * stepRecursion);
+         entryMultipliers.get(i).set(0.0);
+      }
+   }
+
+   private void computeWithTwoCMPs(int numberOfStepsToConsider, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations)
+   {
+      double firstStepTime = doubleSupportDurations.get(0).getDoubleValue() + singleSupportDurations.get(0).getDoubleValue();
+      double timeSpentOnInitialDoubleSupportUpcoming = doubleSupportSplitFraction.getDoubleValue() * doubleSupportDurations.get(1).getDoubleValue();
+      double timeSpentOnEndDoubleSupportCurrent = (1.0 - doubleSupportSplitFraction.getDoubleValue()) * doubleSupportDurations.get(0).getDoubleValue();
+
+      double timeToFinish;
+      if (isInTransfer.getBooleanValue())
+         timeToFinish = -timeSpentOnEndDoubleSupportCurrent + firstStepTime;
+      else
+         timeToFinish = timeSpentOnInitialDoubleSupportUpcoming;
+
+      double recursionTime = timeToFinish;
+      for (int i = 0; i < numberOfStepsToConsider; i++)
+      {
+         double steppingDuration = singleSupportDurations.get(i + 1).getDoubleValue() + doubleSupportDurations.get(i + 1).getDoubleValue();
+         double previousStepDuration = 0.0;
+         if (i > 0)
+            previousStepDuration = doubleSupportDurations.get(i).getDoubleValue() + singleSupportDurations.get(i).getDoubleValue();
+
+         recursionTime += previousStepDuration;
+         double multiplier = Math.exp(-omega.getDoubleValue() * recursionTime);
+
+         double totalTimeSpentOnExitCMP = exitCMPDurationInPercentOfStepTime.getDoubleValue() * steppingDuration;
+         double totalTimeSpentOnEntryCMP = (1.0 - exitCMPDurationInPercentOfStepTime.getDoubleValue()) * steppingDuration;
+
+         double exitRecursion = Math.exp(-omega.getDoubleValue() * totalTimeSpentOnEntryCMP) * (1.0 - Math.exp(-omega.getDoubleValue() * totalTimeSpentOnExitCMP));
+         double entryRecursion = 1.0 - Math.exp(-omega.getDoubleValue() * totalTimeSpentOnEntryCMP);
+
+         entryMultipliers.get(i).set(multiplier * entryRecursion);
+         exitMultipliers.get(i).set(multiplier * exitRecursion);
+      }
+   }
+
+   public double getExitMultiplier(int footstepIndex)
+   {
+      return exitMultipliers.get(footstepIndex).getDoubleValue();
+   }
+
+   public double getEntryMultiplier(int footstepIndex)
+   {
+      return entryMultipliers.get(footstepIndex).getDoubleValue();
+   }
+}

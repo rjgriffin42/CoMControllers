@@ -134,7 +134,7 @@ public class ICPOptimizationController
       doubleSupportSplitFraction.set(icpPlannerParameters.getDoubleSupportSplitFraction());
 
       footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(exitCMPDurationInPercentOfStepTime, doubleSupportSplitFraction, omega,
-            maximumNumberOfFootstepsToConsider, registry);
+            isInTransfer, useTwoCMPsInControl, maximumNumberOfFootstepsToConsider, registry);
 
       for (int i = 0; i < maximumNumberOfFootstepsToConsider; i++)
       {
@@ -343,14 +343,14 @@ public class ICPOptimizationController
       double footstepRecursionMultiplier;
       if (useTwoCMPsInControl.getBooleanValue())
       {
-         double entryMutliplier = footstepRecursionMultiplierCalculator.getCMPRecursionEntryMultiplier(footstepIndex, useTwoCMPsInControl.getBooleanValue());
-         double exitMutliplier = footstepRecursionMultiplierCalculator.getCMPRecursionExitMultiplier(footstepIndex, useTwoCMPsInControl.getBooleanValue());
+         double entryMutliplier = footstepRecursionMultiplierCalculator.getCMPRecursionEntryMultiplier(footstepIndex);
+         double exitMutliplier = footstepRecursionMultiplierCalculator.getCMPRecursionExitMultiplier(footstepIndex);
 
          footstepRecursionMultiplier = entryMutliplier + exitMutliplier;
       }
       else
       {
-         footstepRecursionMultiplier = footstepRecursionMultiplierCalculator.getCMPRecursionExitMultiplier(footstepIndex, useTwoCMPsInControl.getBooleanValue());
+         footstepRecursionMultiplier = footstepRecursionMultiplierCalculator.getCMPRecursionExitMultiplier(footstepIndex);
       }
 
       solver.setFootstepAdjustmentConditions(footstepIndex, footstepRecursionMultiplier, footstepWeight, upcomingFootsteps.get(footstepIndex));
@@ -453,12 +453,12 @@ public class ICPOptimizationController
       for (int i = 0; i < numberOfFootstepsToConsider.getIntegerValue(); i++)
       {
          totalOffsetEffect.set(yoExitOffsets.get(i).getFrameTuple2d());
-         totalOffsetEffect.scale(footstepRecursionMultiplierCalculator.getCMPRecursionExitMultiplier(i, useTwoCMPsInControl.getBooleanValue()));
+         totalOffsetEffect.scale(footstepRecursionMultiplierCalculator.getCMPRecursionExitMultiplier(i));
 
          cmpOffsetRecursionEffect.add(totalOffsetEffect);
 
          totalOffsetEffect.set(yoEntryOffsets.get(i).getFrameTuple2d());
-         totalOffsetEffect.scale(footstepRecursionMultiplierCalculator.getCMPRecursionEntryMultiplier(i, useTwoCMPsInControl.getBooleanValue()));
+         totalOffsetEffect.scale(footstepRecursionMultiplierCalculator.getCMPRecursionEntryMultiplier(i));
 
          cmpOffsetRecursionEffect.add(totalOffsetEffect);
       }
