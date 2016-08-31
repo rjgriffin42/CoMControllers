@@ -51,6 +51,7 @@ public class ICPOptimizationSolver
    protected final DenseMatrix64F cmpOffsetRecursionEffect = new DenseMatrix64F(2, 1);
    protected final DenseMatrix64F stanceCMPProjection = new DenseMatrix64F(2, 1);
    protected final DenseMatrix64F currentICP = new DenseMatrix64F(2, 1);
+   protected final DenseMatrix64F referenceICP = new DenseMatrix64F(2, 1);
    protected final DenseMatrix64F perfectCMP = new DenseMatrix64F(2, 1);
    protected double omega;
    protected double timeRemaining;
@@ -197,6 +198,7 @@ public class ICPOptimizationSolver
       finalICPRecursion.zero();
       cmpOffsetRecursionEffect.zero();
       currentICP.zero();
+      referenceICP.zero();
       perfectCMP.zero();
 
       feedbackWeight.zero();
@@ -421,7 +423,7 @@ public class ICPOptimizationSolver
       // add constraints
       MatrixTools.setMatrixBlock(solverInput_G, 0, numberOfFreeVariables, solverInput_Aeq, 0, 0, numberOfFreeVariables, numberOfLagrangeMultipliers, 1.0);
       MatrixTools.setMatrixBlock(solverInput_G, numberOfFreeVariables, 0, solverInput_AeqTrans, 0, 0, numberOfLagrangeMultipliers, numberOfFreeVariables, 1.0);
-      MatrixTools.setMatrixBlock(solverInput_g, numberOfLagrangeMultipliers, 0, solverInput_beq, 0, 0, numberOfLagrangeMultipliers, 1, 1.0);
+      MatrixTools.setMatrixBlock(solverInput_g, numberOfFreeVariables, 0, solverInput_beq, 0, 0, numberOfLagrangeMultipliers, 1, 1.0);
 
       yoSolverInput_G.set(solverInput_G);
       yoSolverInputLinear_g.set(solverInput_g);
@@ -448,7 +450,7 @@ public class ICPOptimizationSolver
 
    private void extractFeedbackDeltaSolution(DenseMatrix64F feedbackSolutionToPack)
    {
-      MatrixTools.setMatrixBlock(feedbackSolutionToPack, 0, 0, solution, numberOfFootstepsToConsider, 0, 2, 1, 1.0);
+      MatrixTools.setMatrixBlock(feedbackSolutionToPack, 0, 0, solution, numberOfFootstepVariables, 0, 2, 1, 1.0);
    }
 
    private void extractLagrangeMultiplierSolution(DenseMatrix64F lagrangeMultiplierSolutionToPack)

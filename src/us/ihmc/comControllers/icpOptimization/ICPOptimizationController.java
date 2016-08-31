@@ -86,6 +86,7 @@ public class ICPOptimizationController
    private final ArrayList<Footstep> upcomingFootsteps = new ArrayList<>();
    private final ArrayList<YoFrameVector2d> entryOffsets = new ArrayList<>();
    private final ArrayList<YoFrameVector2d> exitOffsets = new ArrayList<>();
+   private final ArrayList<YoFramePoint2d> footstepSolutions = new ArrayList<>();
 
    private final DoubleYoVariable footstepWeight = new DoubleYoVariable("footstepWeight", registry);
    private final DoubleYoVariable firstStepWeight = new DoubleYoVariable("firstStepWeight", registry);
@@ -140,6 +141,7 @@ public class ICPOptimizationController
       {
          entryOffsets.add(new YoFrameVector2d("entryOffset" + i, worldFrame, registry));
          exitOffsets.add(new YoFrameVector2d("exitOffset" + i, worldFrame, registry));
+         footstepSolutions.add(new YoFramePoint2d("footstepSolutionLocation" + i, worldFrame, registry));
       }
 
       if (DEBUG)
@@ -210,8 +212,6 @@ public class ICPOptimizationController
       referenceCMPsCalculator.setUseTwoCMPsPerSupport(useTwoCMPsInControl.getBooleanValue());
       referenceCMPsCalculator.computeReferenceCMPsStartingFromDoubleSupport(isStanding.getBooleanValue(), transferToSide);
       referenceCMPsCalculator.update();
-
-      computeFinalICPRecursion();
    }
 
    public void initializeForSingleSupport(double initialTime, RobotSide supportSide)
@@ -237,8 +237,6 @@ public class ICPOptimizationController
       referenceCMPsCalculator.setUseTwoCMPsPerSupport(useTwoCMPsInControl.getBooleanValue());
       referenceCMPsCalculator.computeReferenceCMPsStartingFromSingleSupport(supportSide);
       referenceCMPsCalculator.update();
-
-      computeFinalICPRecursion();
    }
 
    private final FramePoint2d perfectCMP = new FramePoint2d();
@@ -285,7 +283,7 @@ public class ICPOptimizationController
       doFeedbackOnlyControl();
    }
 
-   private final FramePoint2d tmpCMP = new FramePoint2d();
+   private final FramePoint2d locationSolution = new FramePoint2d();
    private void doControlForStepping()
    {
       if (useFeedback.getBooleanValue() && !useStepAdjustment.getBooleanValue())
@@ -312,17 +310,8 @@ public class ICPOptimizationController
             submitFootstepConditionsToSolver(footstepIndex);
       }
 
-      //computeFinalICPRecursion();
+      computeFinalICPRecursion();
       computeStanceCMPProjection();
-
-      if (DEBUG)
-      {
-         predictedFinalICP.set(controllerCurrentICP);
-         predictedFinalICP.scale(Math.exp(omega.getDoubleValue() * timeRemainingInState.getDoubleValue()));
-         tmpCMP.set(perfectCMP);
-         tmpCMP.scale(1.0 - Math.exp(omega.getDoubleValue() * timeRemainingInState.getDoubleValue()));
-         predictedFinalICP.add(tmpCMP);
-      }
 
 
       if (useTwoCMPsInControl.getBooleanValue())
@@ -335,6 +324,12 @@ public class ICPOptimizationController
       {
          solver.compute(finalICPRecursion.getFrameTuple2d(), null, controllerCurrentICP.getFrameTuple2d(), controllerPerfectCMP.getFrameTuple2d(),
                stanceCMPProjection.getFrameTuple2d(), omega.getDoubleValue(), timeRemainingInState.getDoubleValue());
+      }
+
+      for (int i = 0; i < numberOfFootstepsToConsider; i++)
+      {
+         solver.getFootstepSolutionLocation(i, locationSolution);
+         footstepSolutions.get(i).set(locationSolution);
       }
    }
 
@@ -574,8 +569,18 @@ public class ICPOptimizationController
       }
    }
 
+   public int getNumberOfFootstepsToConsider()
+   {
+      return numberOfFootstepsToConsider.getIntegerValue();
+   }
+
    public void getDesiredCMP(FramePoint2d desiredCMPToPack)
    {
       controllerFeedbackCMP.getFrameTuple2d(desiredCMPToPack);
+   }
+
+   public void getFootstepSolution(int footstepIndex, FramePoint2d footstepSolutionToPack)
+   {
+      footstepSolutions.get(footstepIndex).getFrameTuple2d(footstepSolutionToPack);
    }
 }
