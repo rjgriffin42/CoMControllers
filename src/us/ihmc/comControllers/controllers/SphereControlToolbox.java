@@ -51,7 +51,7 @@ public class SphereControlToolbox
    private static final double singleSupportDuration = 1.0; /// 0.7;
    private static final double doubleSupportDuration = 0.2; // 0.4; //0.25;
    private static final double doubleSupportSplitFraction = 0.5;
-   private static final boolean useTwoCMPs = false;
+   private static final boolean useTwoCMPs = true;
 
    private static final double maxDurationForSmoothingEntryToExitCMPSwitch = 1.0;
    private static final double timeSpentOnExitCMPInPercentOfStepTime = 0.5; // singleSupportDuration

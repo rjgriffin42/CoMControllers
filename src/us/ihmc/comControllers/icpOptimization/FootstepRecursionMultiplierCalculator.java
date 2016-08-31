@@ -19,6 +19,7 @@ public class FootstepRecursionMultiplierCalculator
    private final DoubleYoVariable oneCMPPreviousStanceProjectionMultiplier;
    private final DoubleYoVariable twoCMPStanceProjectionExitMultiplier;
    private final DoubleYoVariable twoCMPStanceProjectionEntryMultiplier;
+   private final DoubleYoVariable twoCMPPreviousStanceProjectionExitMultiplier;
 
    private final DoubleYoVariable doubleSupportDuration;
    private final DoubleYoVariable singleSupportDuration;
@@ -54,6 +55,7 @@ public class FootstepRecursionMultiplierCalculator
       oneCMPPreviousStanceProjectionMultiplier = new DoubleYoVariable("oneCMPPreviousStanceProjectionMultiplier", registry);
       twoCMPStanceProjectionExitMultiplier = new DoubleYoVariable("twoCMPStanceProjectionExitMultiplier", registry);
       twoCMPStanceProjectionEntryMultiplier = new DoubleYoVariable("twoCMPStanceProjectionEntryMultiplier", registry);
+      twoCMPPreviousStanceProjectionExitMultiplier = new DoubleYoVariable("twoCMPPreviousStanceProjectionExitMultiplier", registry);
 
       finalICPRecursionMultiplier = new DoubleYoVariable("finalICPRecursionMultiplier", registry);
 
@@ -155,34 +157,50 @@ public class FootstepRecursionMultiplierCalculator
    public void computeStanceFootProjectionMultipliers(double timeRemaining, boolean useTwoCMPs, boolean isInTransfer, boolean isInTransferEntry)
    {
       if (useTwoCMPs)
-         computeStanceFootTwoCMPProjectionMultipliers(timeRemaining, isInTransfer);
+         computeStanceFootTwoCMPProjectionMultipliers(timeRemaining, isInTransfer, isInTransferEntry);
       else
          computeStanceFootOneCMPProjectionMultipliers(timeRemaining, isInTransfer, isInTransferEntry);
    }
 
-   private void computeStanceFootTwoCMPProjectionMultipliers(double timeRemaining, boolean isInTransfer)
+   private void computeStanceFootTwoCMPProjectionMultipliers(double timeRemaining, boolean isInTransfer, boolean isInTransferEntry)
    {
-      double timeSpentOnInitialDoubleSupport = doubleSupportSplitFraction.getDoubleValue() * doubleSupportDuration.getDoubleValue();
-      double timeSpentOnEndDoubleSupport = (1.0 - doubleSupportSplitFraction.getDoubleValue()) * doubleSupportDuration.getDoubleValue();
+      double timeSpentOnInitialDoubleSupport = doubleSupportSplitFraction.getDoubleValue() * doubleSupportDurations.get(1).getDoubleValue();
+      double timeSpentOnEndOfCurrentDoubleSupport = (1.0 - doubleSupportSplitFraction.getDoubleValue()) * doubleSupportDurations.get(0).getDoubleValue();
 
-      double steppingDuration = doubleSupportDuration.getDoubleValue() + singleSupportDuration.getDoubleValue();
+      double steppingDuration = doubleSupportDurations.get(0).getDoubleValue() + singleSupportDurations.get(0).getDoubleValue();
       double totalTimeSpentOnEntryCMP = (1.0 - exitCMPDurationInPercentOfStepTime.getDoubleValue()) * steppingDuration;
+      double totalTimeSpentOnExitCMP = exitCMPDurationInPercentOfStepTime.getDoubleValue() * steppingDuration;
 
-      double entryProjection, exitProjection;
+      double entryProjection, exitProjection, previousExitProjection;
       double remainingProjection = Math.exp(omega.getDoubleValue() * timeRemaining);
       if (isInTransfer)
       {
-         entryProjection = remainingProjection - Math.exp(-omega.getDoubleValue() * (totalTimeSpentOnEntryCMP - timeSpentOnEndDoubleSupport));
-         exitProjection = Math.exp(-omega.getDoubleValue() * (totalTimeSpentOnEntryCMP - timeSpentOnEndDoubleSupport)) *
-               (1.0 - Math.exp(-omega.getDoubleValue() * totalTimeSpentOnEntryCMP));
+         if (isInTransferEntry)
+         {
+            entryProjection = Math.exp(-omega.getDoubleValue() * timeSpentOnEndOfCurrentDoubleSupport) -
+                  Math.exp(-omega.getDoubleValue() * (totalTimeSpentOnEntryCMP - timeSpentOnEndOfCurrentDoubleSupport));
+            exitProjection = Math.exp(-omega.getDoubleValue() * (totalTimeSpentOnEntryCMP - timeSpentOnEndOfCurrentDoubleSupport)) *
+                  (1.0 - Math.exp(-omega.getDoubleValue() * totalTimeSpentOnExitCMP));
+            previousExitProjection = remainingProjection - Math.exp(omega.getDoubleValue() * timeSpentOnEndOfCurrentDoubleSupport);
+         }
+         else
+         {
+            entryProjection = remainingProjection - Math.exp(-omega.getDoubleValue() * (totalTimeSpentOnEntryCMP - timeSpentOnEndOfCurrentDoubleSupport));
+            exitProjection = Math.exp(-omega.getDoubleValue() * (totalTimeSpentOnEntryCMP - timeSpentOnEndOfCurrentDoubleSupport)) * (1.0 - Math
+                  .exp(-omega.getDoubleValue() * totalTimeSpentOnExitCMP));
+            previousExitProjection = 0.0;
+         }
+
       }
       else
       {
          entryProjection = 0.0;
          exitProjection = remainingProjection - Math.exp(-omega.getDoubleValue() * timeSpentOnInitialDoubleSupport);
+         previousExitProjection = 0.0;
       }
       twoCMPStanceProjectionEntryMultiplier.set(entryProjection);
       twoCMPStanceProjectionExitMultiplier.set(exitProjection);
+      twoCMPPreviousStanceProjectionExitMultiplier.set(previousExitProjection);
    }
 
    private void computeStanceFootOneCMPProjectionMultipliers(double timeRemaining, boolean isInTransfer, boolean isInTransferEntry)
@@ -257,6 +275,14 @@ public class FootstepRecursionMultiplierCalculator
          throw new RuntimeException("Trying to get one CMP recursion multiplier.");
 
       return twoCMPStanceProjectionExitMultiplier.getDoubleValue();
+   }
+
+   public double getTwoCMPPreviousStanceProjectionExitMutliplier(boolean useTwoCMPs)
+   {
+      if (!useTwoCMPs)
+         throw new RuntimeException("Trying to get one CMP recursion multiplier.");
+
+      return twoCMPPreviousStanceProjectionExitMultiplier.getDoubleValue();
    }
 
    public double getOneCMPStanceProjectionMultiplier(boolean useTwoCMPs)

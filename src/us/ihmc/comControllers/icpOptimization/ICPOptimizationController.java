@@ -389,7 +389,7 @@ public class ICPOptimizationController
       finalICPRecursion.scale(footstepRecursionMultiplierCalculator.getFinalICPRecursionMultiplier());
    }
 
-   private final FramePoint2d previousStanceEntryCMP2d = new FramePoint2d(worldFrame);
+   private final FramePoint2d previousStanceExitCMP2d = new FramePoint2d(worldFrame);
    private final FramePoint2d stanceEntryCMP2d = new FramePoint2d(worldFrame);
    private final FramePoint2d stanceExitCMP2d = new FramePoint2d(worldFrame);
    private void computeStanceCMPProjection()
@@ -397,52 +397,62 @@ public class ICPOptimizationController
       footstepRecursionMultiplierCalculator.computeStanceFootProjectionMultipliers(timeRemainingInState.getDoubleValue(), useTwoCMPsInControl.getBooleanValue(),
             isInTransfer.getBooleanValue(), isInTransferEntry.getBooleanValue());
 
-      int indexToPoll;
-      if (isInTransfer.getBooleanValue())
-         indexToPoll = 1;
-      else
-         indexToPoll = 0;
-
       if (useTwoCMPsInControl.getBooleanValue())
       {
-         FramePoint stanceEntryCMP = referenceCMPsCalculator.getEntryCMPs().get(indexToPoll).getFrameTuple();
-         FramePoint stanceExitCMP = referenceCMPsCalculator.getExitCMPs().get(indexToPoll).getFrameTuple();
-         stanceEntryCMP2d.setByProjectionOntoXYPlane(stanceEntryCMP);
-         stanceExitCMP2d.setByProjectionOntoXYPlane(stanceExitCMP);
+         if (isInTransfer.getBooleanValue())
+         {
+            FramePoint stanceEntryCMP = referenceCMPsCalculator.getEntryCMPs().get(1).getFrameTuple();
+            FramePoint stanceExitCMP = referenceCMPsCalculator.getExitCMPs().get(1).getFrameTuple();
+            FramePoint previousStanceExitCMP = referenceCMPsCalculator.getExitCMPs().get(0).getFrameTuple();
+            stanceEntryCMP2d.setByProjectionOntoXYPlane(stanceEntryCMP);
+            stanceExitCMP2d.setByProjectionOntoXYPlane(stanceExitCMP);
+            previousStanceExitCMP2d.setByProjectionOntoXYPlane(previousStanceExitCMP);
+         }
+         else
+         {
+            FramePoint stanceEntryCMP = referenceCMPsCalculator.getEntryCMPs().get(1).getFrameTuple();
+            FramePoint stanceExitCMP = referenceCMPsCalculator.getExitCMPs().get(1).getFrameTuple();
+            stanceEntryCMP2d.setByProjectionOntoXYPlane(stanceEntryCMP);
+            stanceExitCMP2d.setByProjectionOntoXYPlane(stanceExitCMP);
+            previousStanceExitCMP2d.setToZero();
+         }
 
          this.stanceEntryTwoCMP.set(stanceEntryCMP2d);
          this.stanceExitTwoCMP.set(stanceExitCMP2d);
+         this.previousStanceOneCMP.set(previousStanceExitCMP2d);
 
          stanceEntryCMP2d.scale(footstepRecursionMultiplierCalculator.getTwoCMPStanceProjectionEntryMutliplier(useTwoCMPsInControl.getBooleanValue()));
          stanceExitCMP2d.scale(footstepRecursionMultiplierCalculator.getTwoCMPStanceProjectionExitMutliplier(useTwoCMPsInControl.getBooleanValue()));
+         previousStanceExitCMP2d.scale(footstepRecursionMultiplierCalculator.getTwoCMPPreviousStanceProjectionExitMutliplier(useTwoCMPsInControl.getBooleanValue()));
 
          stanceCMPProjection.set(stanceEntryCMP2d);
          stanceCMPProjection.add(stanceExitCMP2d);
+         stanceCMPProjection.add(previousStanceExitCMP2d);
       }
       else
       {
          if (isInTransfer.getBooleanValue())
          {
             FramePoint stanceEntryCMP = referenceCMPsCalculator.getEntryCMPs().get(1).getFrameTuple();
-            FramePoint previousStanceEntryCMP = referenceCMPsCalculator.getEntryCMPs().get(0).getFrameTuple();
+            FramePoint previousStanceExitCMP = referenceCMPsCalculator.getEntryCMPs().get(0).getFrameTuple();
             stanceEntryCMP2d.setByProjectionOntoXYPlane(stanceEntryCMP);
-            previousStanceEntryCMP2d.setByProjectionOntoXYPlane(previousStanceEntryCMP);
+            previousStanceExitCMP2d.setByProjectionOntoXYPlane(previousStanceExitCMP);
          }
          else
          {
             FramePoint stanceEntryCMP = referenceCMPsCalculator.getEntryCMPs().get(0).getFrameTuple();
             stanceEntryCMP2d.setByProjectionOntoXYPlane(stanceEntryCMP);
-            previousStanceEntryCMP2d.setToZero();
+            previousStanceExitCMP2d.setToZero();
          }
 
          this.stanceOneCMP.set(stanceEntryCMP2d);
-         this.previousStanceOneCMP.set(previousStanceEntryCMP2d);
+         this.previousStanceOneCMP.set(previousStanceExitCMP2d);
 
          stanceEntryCMP2d.scale(footstepRecursionMultiplierCalculator.getOneCMPStanceProjectionMultiplier(useTwoCMPsInControl.getBooleanValue()));
-         previousStanceEntryCMP2d.scale(footstepRecursionMultiplierCalculator.getOneCMPPreviousStanceProjectionMultiplier(useTwoCMPsInControl.getBooleanValue()));
+         previousStanceExitCMP2d.scale(footstepRecursionMultiplierCalculator.getOneCMPPreviousStanceProjectionMultiplier(useTwoCMPsInControl.getBooleanValue()));
 
          stanceCMPProjection.set(stanceEntryCMP2d);
-         stanceCMPProjection.add(previousStanceEntryCMP2d);
+         stanceCMPProjection.add(previousStanceExitCMP2d);
       }
    }
 
