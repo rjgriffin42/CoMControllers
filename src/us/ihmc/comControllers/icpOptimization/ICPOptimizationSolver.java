@@ -345,7 +345,7 @@ public class ICPOptimizationSolver
       computeCostToGo();
    }
 
-   private void addFeedbackTask()
+   protected void addFeedbackTask()
    {
       MatrixTools.addMatrixBlock(feedbackCost_H, 0, 0, feedbackWeight, 0, 0, 2, 2, 1.0);
       feedbackCost_h.zero();
@@ -355,7 +355,7 @@ public class ICPOptimizationSolver
    }
 
    private final DenseMatrix64F tmpFootstepObjective = new DenseMatrix64F(2, 1);
-   private void addStepAdjustmentTask()
+   protected void addStepAdjustmentTask()
    {
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
       {
