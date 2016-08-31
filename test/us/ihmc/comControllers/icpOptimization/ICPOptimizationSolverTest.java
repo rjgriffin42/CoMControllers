@@ -1,5 +1,6 @@
 package us.ihmc.comControllers.icpOptimization;
 
+import org.junit.Assert;
 import org.ejml.data.DenseMatrix64F;
 import org.junit.Test;
 import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerParameters;
@@ -8,14 +9,15 @@ import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.robotics.geometry.FramePoint2d;
 import us.ihmc.robotics.geometry.FrameVector2d;
-import us.ihmc.robotics.linearAlgebra.MatrixTools;
 import us.ihmc.robotics.referenceFrames.ReferenceFrame;
 import us.ihmc.tools.testing.JUnitTools;
 import us.ihmc.tools.testing.TestPlanAnnotations.DeployableTestMethod;
 
+import java.util.Random;
+
 public class ICPOptimizationSolverTest extends ICPOptimizationSolver
 {
-   private static final YoVariableRegistry rootRegistry = new YoVariableRegistry("robert");
+   private static final YoVariableRegistry rootRegistry = new YoVariableRegistry("rootRobert");
 
    private static final ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
    private static final double epsilon = 0.0001;
@@ -23,6 +25,79 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
    public ICPOptimizationSolverTest()
    {
       super(icpOptimizationParameters, rootRegistry);
+   }
+
+   @DeployableTestMethod(estimatedDuration = 1.0)
+   @Test(timeout = 2000)
+   public void testSetFeedbackConditions()
+   {
+      Random random = new Random();
+      double feedbackWeight = 10.0 * random.nextDouble();
+      double feedbackGain = 10.0 * random.nextDouble();
+
+      super.setFeedbackConditions(feedbackWeight, feedbackGain);
+
+      Assert.assertEquals("", feedbackWeight, this.feedbackWeight.get(0, 0), epsilon);
+      Assert.assertEquals("", feedbackWeight, this.feedbackWeight.get(1, 1), epsilon);
+
+      Assert.assertEquals("", feedbackGain, this.feedbackGain.get(1, 1), epsilon);
+      Assert.assertEquals("", feedbackGain, this.feedbackGain.get(1, 1), epsilon);
+   }
+
+   @DeployableTestMethod(estimatedDuration = 1.0)
+   @Test(timeout = 2000)
+   public void testDimensions()
+   {
+      for (int i = 1; i < this.maximumNumberOfFootstepsToConsider; i++)
+      {
+         testDimension(i, false, true, false);
+         testDimension(i, true, true, false);
+         testDimension(i, true, false, false);
+      }
+   }
+
+   public void testDimension(int numberOfFootstepsToConsider, boolean useStepAdjustment, boolean useFeedback, boolean useTwoCMPs)
+   {
+      super.submitProblemConditions(numberOfFootstepsToConsider, useStepAdjustment, useFeedback, useTwoCMPs);
+
+      double numberOfLagrangeMultipliers = 2;
+      double numberOfFootstepVariables = 2 * numberOfFootstepsToConsider;
+      double totalNumberOfFreeVariables = numberOfFootstepVariables;
+
+      if (useFeedback)
+         totalNumberOfFreeVariables += 2;
+
+      String name = "Number of Steps: " + numberOfFootstepsToConsider + ". Use step adjustment: " + useStepAdjustment + ". Use Feedback: " + useFeedback;
+      Assert.assertEquals(name, numberOfFootstepVariables, this.numberOfFootstepVariables, epsilon);
+      Assert.assertEquals(name, numberOfLagrangeMultipliers, this.numberOfLagrangeMultipliers, epsilon);
+      Assert.assertEquals(name, totalNumberOfFreeVariables, this.numberOfFreeVariables, epsilon);
+   }
+
+   @DeployableTestMethod(estimatedDuration = 1.0)
+   @Test(timeout = 2000)
+   public void testConditionError()
+   {
+      testCondition(0, true, false, true);
+      testCondition(0, true, false, false);
+      testCondition(0, false, false, true);
+      testCondition(0, false, false, false);
+      testCondition(1, false, false, true);
+      testCondition(1, false, false, false);
+   }
+
+   public void testCondition(int numberOfFootstepsToConsider, boolean useStepAdjustment, boolean useFeedback, boolean useTwoCMPs)
+   {
+      boolean hasError = false;
+      try
+      {
+         super.submitProblemConditions(numberOfFootstepsToConsider, useStepAdjustment, useFeedback, useTwoCMPs);
+      }
+      catch (RuntimeException e)
+      {
+         hasError = true;
+      }
+
+      Assert.assertTrue(hasError);
    }
 
    @DeployableTestMethod(estimatedDuration = 1.0)

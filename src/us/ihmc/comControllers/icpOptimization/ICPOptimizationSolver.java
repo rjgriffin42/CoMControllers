@@ -140,7 +140,7 @@ public class ICPOptimizationSolver
 
    public void submitProblemConditions(int numberOfFootstepsToConsider, boolean useStepAdjustment, boolean useFeedback, boolean useTwoCMPs)
    {
-      if (!useFeedback && !useStepAdjustment)
+      if (!useFeedback && (!useStepAdjustment || numberOfFootstepsToConsider < 1))
       {
          throw new RuntimeException("No possible feedback mechanism available.");
       }
