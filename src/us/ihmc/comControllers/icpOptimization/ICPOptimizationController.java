@@ -308,12 +308,12 @@ public class ICPOptimizationController
       {
          computeCMPOffsetRecursionEffect();
          solver.compute(finalICPRecursion.getFrameTuple2d(), cmpOffsetRecursionEffect.getFrameTuple2d(), controllerCurrentICP.getFrameTuple2d(),
-               controllerPerfectCMP.getFrameTuple2d(), stanceCMPProjection.getFrameTuple2d(), omega.getDoubleValue(), timeRemainingInState.getDoubleValue());
+               controllerPerfectCMP.getFrameTuple2d(), stanceCMPProjection.getFrameTuple2d(), footstepRecursionMultiplierCalculator.getCurrentStateProjectionMultiplier());
       }
       else
       {
          solver.compute(finalICPRecursion.getFrameTuple2d(), null, controllerCurrentICP.getFrameTuple2d(), controllerPerfectCMP.getFrameTuple2d(),
-               stanceCMPProjection.getFrameTuple2d(), omega.getDoubleValue(), timeRemainingInState.getDoubleValue());
+               stanceCMPProjection.getFrameTuple2d(), footstepRecursionMultiplierCalculator.getCurrentStateProjectionMultiplier());
       }
 
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
@@ -329,7 +329,7 @@ public class ICPOptimizationController
       solver.submitProblemConditions(0, false, true, false);
       solver.setFeedbackConditions(scaledFeedbackWeight.getDoubleValue(), feedbackGain.getDoubleValue());
 
-      solver.compute(controllerDesiredICP.getFrameTuple2d(), null, controllerCurrentICP.getFrameTuple2d(), controllerPerfectCMP.getFrameTuple2d(), blankFramePoint, 0.0, 0.0);
+      solver.compute(controllerDesiredICP.getFrameTuple2d(), null, controllerCurrentICP.getFrameTuple2d(), controllerPerfectCMP.getFrameTuple2d(), blankFramePoint, 1.0);
    }
 
    private void submitFootstepConditionsToSolver(int footstepIndex)
@@ -379,7 +379,7 @@ public class ICPOptimizationController
    private final FramePoint2d stanceExitCMP2d = new FramePoint2d(worldFrame);
    private void computeStanceCMPProjection()
    {
-      footstepRecursionMultiplierCalculator.computeStanceFootRemainingProjectionMultipliers(timeRemainingInState.getDoubleValue(), useTwoCMPsInControl.getBooleanValue(),
+      footstepRecursionMultiplierCalculator.computeRemainingProjectionMultipliers(timeRemainingInState.getDoubleValue(), useTwoCMPsInControl.getBooleanValue(),
             isInTransfer.getBooleanValue(), isInTransferEntry.getBooleanValue());
 
       if (useTwoCMPsInControl.getBooleanValue())

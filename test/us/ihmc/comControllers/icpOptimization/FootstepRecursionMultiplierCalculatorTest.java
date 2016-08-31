@@ -100,7 +100,7 @@ public class FootstepRecursionMultiplierCalculatorTest
       }
 
       double timeRemaining = 0.5 * singleSupportDuration;
-      footstepRecursionMultiplierCalculator.computeStanceFootRemainingProjectionMultipliers(timeRemaining, true, false, false);
+      footstepRecursionMultiplierCalculator.computeRemainingProjectionMultipliers(timeRemaining, true, false, false);
 
       double entryStanceProjectionMultiplier = footstepRecursionMultiplierCalculator.getStanceEntryCMPProjectionMultiplier();
       double exitStanceProjectionMultiplier = footstepRecursionMultiplierCalculator.getStanceExitCMPProjectionMultiplier();
@@ -161,7 +161,7 @@ public class FootstepRecursionMultiplierCalculatorTest
       }
 
       double timeRemaining = 0.5 * doubleSupportDuration;
-      footstepRecursionMultiplierCalculator.computeStanceFootRemainingProjectionMultipliers(timeRemaining, true, true, false);
+      footstepRecursionMultiplierCalculator.computeRemainingProjectionMultipliers(timeRemaining, true, true, false);
 
       double entryStanceProjectionMultiplier = footstepRecursionMultiplierCalculator.getStanceEntryCMPProjectionMultiplier();
       double exitStanceProjectionMultiplier = footstepRecursionMultiplierCalculator.getStanceExitCMPProjectionMultiplier();
@@ -212,7 +212,7 @@ public class FootstepRecursionMultiplierCalculatorTest
       }
 
       double timeRemaining = 0.5 * singleSupportDuration;
-      footstepRecursionMultiplierCalculator.computeStanceFootRemainingProjectionMultipliers(timeRemaining, false, false, false);
+      footstepRecursionMultiplierCalculator.computeRemainingProjectionMultipliers(timeRemaining, false, false, false);
       double stanceProjectionMultiplier = footstepRecursionMultiplierCalculator.getStanceExitCMPProjectionMultiplier();
       double desiredStanceProjectionMutliplier = Math.exp(omega.getDoubleValue() * timeRemaining) - Math.exp(-omega.getDoubleValue() * initialDoubleSupportDuration);
 
@@ -257,7 +257,7 @@ public class FootstepRecursionMultiplierCalculatorTest
       }
 
       double timeRemaining = 0.5 * doubleSupportDuration;
-      footstepRecursionMultiplierCalculator.computeStanceFootRemainingProjectionMultipliers(timeRemaining, false, true, false);
+      footstepRecursionMultiplierCalculator.computeRemainingProjectionMultipliers(timeRemaining, false, true, false);
       double stanceProjectionMultiplier = footstepRecursionMultiplierCalculator.getStanceExitCMPProjectionMultiplier();
       double desiredStanceProjectionMutliplier = Math.exp(omega.getDoubleValue() * timeRemaining) - Math.exp(-omega.getDoubleValue() * (initialDoubleSupportDuration + singleSupportDuration));
 

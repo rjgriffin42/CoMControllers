@@ -172,7 +172,8 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
       finalICPRecursion.set(finalICP);
       finalICPRecursion.scale(finalICPRecursionMultiplier);
 
-      double cmpProjectionMultiplier = Math.exp(omega * remainingTime) - Math.exp(-omega * initialDoubleSupportDuration);
+      double currentStateProjection = Math.exp(omega * remainingTime);
+      double cmpProjectionMultiplier = currentStateProjection - Math.exp(-omega * initialDoubleSupportDuration);
       FramePoint2d perfectCMP = new FramePoint2d(worldFrame, 0.0, -0.155);
       FramePoint2d cmpProjection = new FramePoint2d();
       cmpProjection.set(perfectCMP);
@@ -180,11 +181,11 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
 
       FramePoint2d currentICP = new FramePoint2d(worldFrame, 0.1, 0.06);
 
-      compute(finalICPRecursion, null, currentICP, perfectCMP, cmpProjection, omega, timeRemaining);
+      compute(finalICPRecursion, null, currentICP, perfectCMP, cmpProjection, currentStateProjection);
 
       FramePoint2d rightHandSide = new FramePoint2d();
       rightHandSide.set(currentICP);
-      rightHandSide.scale(Math.exp(omega * timeRemaining));
+      rightHandSide.scale(currentStateProjection);
       rightHandSide.sub(cmpProjection);
       rightHandSide.sub(finalICPRecursion);
 

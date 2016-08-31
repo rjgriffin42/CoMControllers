@@ -21,6 +21,8 @@ public class FootstepRecursionMultiplierCalculator
    private final DoubleYoVariable remainingStanceEntryCMPProjectionMultiplier;
    private final DoubleYoVariable remainingPreviousStanceExitCMPProjectionMultiplier;
 
+   private final DoubleYoVariable currentStateProjectionMultiplier;
+
    private final DoubleYoVariable exitCMPDurationInPercentOfStepTime;
    private final DoubleYoVariable doubleSupportSplitFraction;
    private final DoubleYoVariable omega;
@@ -51,6 +53,8 @@ public class FootstepRecursionMultiplierCalculator
       remainingStanceExitCMPProjectionMultiplier = new DoubleYoVariable("remainingStanceExitCMPProjectionMultiplier", registry);
       remainingStanceEntryCMPProjectionMultiplier = new DoubleYoVariable("remainingStanceEntryCMPProjectionMultiplier", registry);
       remainingPreviousStanceExitCMPProjectionMultiplier = new DoubleYoVariable("remainingPreviousStanceExitCMPProjectionMultiplier", registry);
+
+      currentStateProjectionMultiplier = new DoubleYoVariable("currentSTateProjectionMultiplier", registry);
 
       finalICPRecursionMultiplier = new DoubleYoVariable("finalICPRecursionMultiplier", registry);
 
@@ -176,7 +180,18 @@ public class FootstepRecursionMultiplierCalculator
       }
    }
 
-   public void computeStanceFootRemainingProjectionMultipliers(double timeRemaining, boolean useTwoCMPs, boolean isInTransfer, boolean isInTransferEntry)
+   public void computeRemainingProjectionMultipliers(double timeRemaining, boolean useTwoCMPs, boolean isInTransfer, boolean isInTransferEntry)
+   {
+      computeStanceFootRemainingProjectionMultipliers(timeRemaining, useTwoCMPs, isInTransfer, isInTransferEntry);
+      computeCurrentStateProjection(timeRemaining);
+   }
+
+   private void computeCurrentStateProjection(double timeRemaining)
+   {
+      currentStateProjectionMultiplier.set(Math.exp(omega.getDoubleValue() * timeRemaining));
+   }
+
+   private void computeStanceFootRemainingProjectionMultipliers(double timeRemaining, boolean useTwoCMPs, boolean isInTransfer, boolean isInTransferEntry)
    {
       double timeSpentOnEndDoubleSupportCurrent = (1.0 - doubleSupportSplitFraction.getDoubleValue()) * doubleSupportDurations.get(0).getDoubleValue();
 
@@ -272,5 +287,10 @@ public class FootstepRecursionMultiplierCalculator
    public double getRemainingPreviousStanceExitCMPProjectionMultiplier()
    {
       return remainingPreviousStanceExitCMPProjectionMultiplier.getDoubleValue();
+   }
+
+   public double getCurrentStateProjectionMultiplier()
+   {
+      return currentStateProjectionMultiplier.getDoubleValue();
    }
 }

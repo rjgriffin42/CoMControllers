@@ -53,8 +53,7 @@ public class ICPOptimizationSolver
    protected final DenseMatrix64F currentICP = new DenseMatrix64F(2, 1);
    protected final DenseMatrix64F referenceICP = new DenseMatrix64F(2, 1);
    protected final DenseMatrix64F perfectCMP = new DenseMatrix64F(2, 1);
-   protected double omega;
-   protected double timeRemaining;
+   protected double currentStateProjection;
 
    protected final ArrayList<DenseMatrix64F> footstepWeights = new ArrayList<>();
    protected final DenseMatrix64F feedbackWeight = new DenseMatrix64F(2, 2);
@@ -291,7 +290,7 @@ public class ICPOptimizationSolver
    }
 
    public void compute(FramePoint2d finalICPRecursion, FramePoint2d cmpOffsetRecursionEffect, FramePoint2d currentICP, FramePoint2d perfectCMP,
-                       FramePoint2d stanceCMPProjection, double omega, double timeRemaining)
+                       FramePoint2d stanceCMPProjection, double currentStateProjection)
    {
       finalICPRecursion.changeFrame(worldFrame);
       currentICP.changeFrame(worldFrame);
@@ -313,8 +312,7 @@ public class ICPOptimizationSolver
       this.stanceCMPProjection.set(0, 0, stanceCMPProjection.getX());
       this.stanceCMPProjection.set(1, 0, stanceCMPProjection.getY());
 
-      this.timeRemaining = timeRemaining;
-      this.omega = omega;
+      this.currentStateProjection = currentStateProjection;
 
       if (useTwoCMPs)
       {
@@ -382,8 +380,6 @@ public class ICPOptimizationSolver
 
    private void computeDynamicConstraint()
    {
-      double currentStateProjection = Math.exp(omega * timeRemaining);
-
       if (useFeedback)
          addFeedbackToDynamicConstraint(currentStateProjection);
       if (useStepAdjustment)
