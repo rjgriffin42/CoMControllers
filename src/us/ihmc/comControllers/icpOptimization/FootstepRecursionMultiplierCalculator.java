@@ -1,8 +1,12 @@
 package us.ihmc.comControllers.icpOptimization;
 
+import us.ihmc.humanoidRobotics.footstep.Footstep;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
+import us.ihmc.robotics.geometry.FramePoint2d;
+import us.ihmc.robotics.geometry.FrameVector2d;
 
+import java.awt.*;
 import java.util.ArrayList;
 
 public class FootstepRecursionMultiplierCalculator
@@ -113,7 +117,11 @@ public class FootstepRecursionMultiplierCalculator
          double steppingDuration = doubleSupportDurations.get(i + 1).getDoubleValue() + singleSupportDurations.get(i + 1).getDoubleValue();
          double stepRecursion = 1.0 - Math.exp(-omega.getDoubleValue() * steppingDuration);
 
-         recursionTime += steppingDuration;
+         double previousStepDuration = 0.0;
+         if (i > 0)
+            previousStepDuration = doubleSupportDurations.get(i).getDoubleValue() + singleSupportDurations.get(i).getDoubleValue();
+
+         recursionTime += previousStepDuration;
          oneCMPRecursionMultipliers.get(i).set(Math.exp(-omega.getDoubleValue() * recursionTime) * stepRecursion);
       }
 
@@ -140,7 +148,11 @@ public class FootstepRecursionMultiplierCalculator
       for (int i = 0; i < numberOfStepsToConsider; i++)
       {
          double steppingDuration = singleSupportDurations.get(i + 1).getDoubleValue() + doubleSupportDurations.get(i + 1).getDoubleValue();
-         recursionTime += steppingDuration;
+         double previousStepDuration = 0.0;
+         if (i > 0)
+            previousStepDuration = doubleSupportDurations.get(i).getDoubleValue() + singleSupportDurations.get(i).getDoubleValue();
+
+         recursionTime += previousStepDuration;
          double multiplier = Math.exp(-omega.getDoubleValue() * recursionTime);
 
          double totalTimeSpentOnExitCMP = exitCMPDurationInPercentOfStepTime.getDoubleValue() * steppingDuration;
@@ -299,5 +311,98 @@ public class FootstepRecursionMultiplierCalculator
          throw new RuntimeException("Trying to get two CMP recursion multiplier.");
 
       return oneCMPPreviousStanceProjectionMultiplier.getDoubleValue();
+   }
+
+   public void computePredictedICPTouchdownPosition(int numberOfFootstepsToConsider, ArrayList<Footstep> upcomingFootsteps, ArrayList<FrameVector2d> entryOffsets,
+                                                    ArrayList<FrameVector2d> exitOffsets, FramePoint2d finalICP, FramePoint2d stanceExitCMP,
+                                                    FramePoint2d stanceEntryCMP, boolean useTwoCMPs, boolean isInTransfer, FramePoint2d touchdownICPToPack)
+   {
+      if (useTwoCMPs)
+         computePredictedICPTouchdownPositionTwoCMPs(numberOfFootstepsToConsider, upcomingFootsteps, entryOffsets, exitOffsets, finalICP, stanceExitCMP,
+                                                     stanceEntryCMP, isInTransfer, touchdownICPToPack);
+      else
+         computePredictedICPTouchdownPositionOneCMP(numberOfFootstepsToConsider, upcomingFootsteps, finalICP, stanceExitCMP, isInTransfer, touchdownICPToPack);
+   }
+
+   private final FramePoint2d tmpPoint = new FramePoint2d();
+   private void computePredictedICPTouchdownPositionOneCMP(int numberOfFootstepsToConsider, ArrayList<Footstep> upcomingFootsteps, FramePoint2d finalICP,
+                                                           FramePoint2d stanceCMP, boolean isInTransfer, FramePoint2d touchdownICPToPack)
+   {
+      touchdownICPToPack.set(finalICP);
+      touchdownICPToPack.scale(finalICPRecursionMultiplier.getDoubleValue());
+
+      double initialDoubleSupportTime = doubleSupportDurations.get(1).getDoubleValue() * doubleSupportSplitFraction.getDoubleValue();
+      double stanceProjectionTime = initialDoubleSupportTime;
+      if (isInTransfer) stanceProjectionTime += singleSupportDurations.get(0).getDoubleValue();
+      double stanceCMPProjection = 1.0 - Math.exp(-omega.getDoubleValue() * stanceProjectionTime);
+
+      tmpPoint.set(stanceCMP);
+      tmpPoint.scale(stanceCMPProjection);
+      touchdownICPToPack.add(tmpPoint);
+
+      for (int i = 0; i < numberOfFootstepsToConsider; i++)
+      {
+         upcomingFootsteps.get(i).getPosition2d(tmpPoint);
+         tmpPoint.scale(oneCMPRecursionMultipliers.get(i).getDoubleValue());
+
+         touchdownICPToPack.add(tmpPoint);
+      }
+   }
+
+   private final FramePoint2d tmpEntry = new FramePoint2d();
+   private final FramePoint2d tmpExit = new FramePoint2d();
+   private void computePredictedICPTouchdownPositionTwoCMPs(int numberOfFootstepsToConsider, ArrayList<Footstep> upcomingFootsteps,
+                                                            ArrayList<FrameVector2d> entryOffsets, ArrayList<FrameVector2d> exitOffsets, FramePoint2d finalICP,
+                                                            FramePoint2d stanceExitCMP, FramePoint2d stanceEntryCMP, boolean isInTransfer, FramePoint2d touchdownICPToPack)
+   {
+      touchdownICPToPack.set(finalICP);
+      touchdownICPToPack.scale(finalICPRecursionMultiplier.getDoubleValue());
+
+      double initialDoubleSupportTime = doubleSupportDurations.get(1).getDoubleValue() * doubleSupportSplitFraction.getDoubleValue();
+      double endOfDoubleSupportTime = doubleSupportDurations.get(0).getDoubleValue() * (1.0 - doubleSupportSplitFraction.getDoubleValue());
+      double timeSpentOnExitCMP = exitCMPDurationInPercentOfStepTime.getDoubleValue() * (doubleSupportDurations.get(0).getDoubleValue() + singleSupportDurations.get(0).getDoubleValue());
+      double timeSpentOnEntryCMP = (1.0 - exitCMPDurationInPercentOfStepTime.getDoubleValue()) * (doubleSupportDurations.get(0).getDoubleValue() + singleSupportDurations.get(0).getDoubleValue());
+
+      double stanceExitProjectionTime = initialDoubleSupportTime;
+      double stanceExitMultiplier = 1.0;
+      double stanceEntryProjectionTime = 0.0;
+      double stanceEntryMultiplier = 0.0;
+      if (isInTransfer)
+      {
+         stanceExitMultiplier = Math.exp(-omega.getDoubleValue() * (timeSpentOnEntryCMP - endOfDoubleSupportTime));
+         stanceExitProjectionTime = timeSpentOnExitCMP;
+
+         stanceEntryMultiplier = 1.0;
+         stanceEntryProjectionTime = timeSpentOnEntryCMP - endOfDoubleSupportTime;
+      }
+      double stanceEntryCMPProjection = stanceEntryMultiplier * (1.0 - Math.exp(-omega.getDoubleValue() * stanceEntryProjectionTime));
+      double stanceExitCMPProjection = stanceExitMultiplier * (1.0 - Math.exp(-omega.getDoubleValue() * stanceExitProjectionTime));
+
+      tmpEntry.set(stanceEntryCMP);
+      tmpExit.set(stanceExitCMP);
+      tmpEntry.scale(stanceEntryCMPProjection);
+      tmpExit.scale(stanceExitCMPProjection);
+
+      touchdownICPToPack.add(tmpEntry);
+      touchdownICPToPack.add(tmpExit);
+
+      for (int i = 0; i < numberOfFootstepsToConsider; i++)
+      {
+         upcomingFootsteps.get(i).getPosition2d(tmpPoint);
+
+         tmpEntry.set(tmpPoint);
+         tmpExit.set(tmpPoint);
+         tmpEntry.add(entryOffsets.get(i));
+         tmpExit.add(exitOffsets.get(i));
+
+         tmpEntry.scale(twoCMPRecursionEntryMultipliers.get(i).getDoubleValue());
+         tmpExit.scale(twoCMPRecursionExitMultipliers.get(i).getDoubleValue());
+
+         tmpPoint.set(tmpEntry);
+         tmpPoint.add(tmpExit);
+
+         touchdownICPToPack.add(tmpPoint);
+      }
+
    }
 }
