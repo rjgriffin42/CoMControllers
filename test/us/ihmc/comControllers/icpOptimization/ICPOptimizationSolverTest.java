@@ -61,7 +61,10 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
       super.submitProblemConditions(numberOfFootstepsToConsider, useStepAdjustment, useFeedback, useTwoCMPs);
 
       double numberOfLagrangeMultipliers = 2;
-      double numberOfFootstepVariables = 2 * numberOfFootstepsToConsider;
+      double numberOfFootstepVariables = 0;
+      if (useStepAdjustment)
+         numberOfFootstepVariables = 2 * numberOfFootstepsToConsider;
+
       double totalNumberOfFreeVariables = numberOfFootstepVariables;
 
       if (useFeedback)

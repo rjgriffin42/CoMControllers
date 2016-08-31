@@ -161,7 +161,11 @@ public class ICPOptimizationSolver
          this.numberOfFootstepsToConsider = numberOfFootstepsToConsider;
 
       numberOfFootstepVariables = 2 * this.numberOfFootstepsToConsider;
-      numberOfFreeVariables = numberOfFootstepVariables + 2;
+
+      if (useFeedback)
+         numberOfFreeVariables = numberOfFootstepVariables + 2;
+      else
+         numberOfFreeVariables = numberOfFootstepVariables;
 
       reset();
       reshape();
