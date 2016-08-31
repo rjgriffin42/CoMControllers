@@ -12,10 +12,7 @@ import us.ihmc.tools.testing.TestPlanTarget;
 @TestSuiteTarget(TestPlanTarget.Fast)
 @SuiteClasses
 ({
-   us.ihmc.comControllers.footstepOptimization.ICPAdjustmentControllerTest.class,
-   us.ihmc.comControllers.footstepOptimization.ICPAdjustmentSolverTest.class,
    FootstepRecursionMultiplierCalculatorTest.class,
-   us.ihmc.comControllers.footstepOptimization.TargetTouchdownICPCalculatorTest.class
 })
 
 public class CoMControllersAFastTestSuite

@@ -1,7 +1,6 @@
 package us.ihmc.comControllers.controllers;
 
 import us.ihmc.SdfLoader.models.FullRobotModel;
-import us.ihmc.comControllers.footstepOptimization.ICPAdjustmentControllerParameters;
 import us.ihmc.comControllers.icpOptimization.ICPOptimizationParameters;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.BipedSupportPolygons;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.YoPlaneContactState;
