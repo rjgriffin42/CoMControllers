@@ -1,4 +1,4 @@
-package us.ihmc.comControllers.icpOptimization.interpolation;
+package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.interpolation;
 
 import org.ejml.data.DenseMatrix64F;
 

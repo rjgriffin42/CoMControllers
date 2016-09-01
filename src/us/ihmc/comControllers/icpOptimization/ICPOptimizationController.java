@@ -424,8 +424,17 @@ public class ICPOptimizationController
       }
 
       double previousExitMultiplier = footstepRecursionMultiplierCalculator.getRemainingPreviousStanceExitCMPProjectionMultiplier();
-      double entryMultiplier = footstepRecursionMultiplierCalculator.getStanceEntryCMPProjectionMultiplier() + footstepRecursionMultiplierCalculator.getRemainingStanceEntryCMPProjectionMultiplier();
-      double exitMultiplier = footstepRecursionMultiplierCalculator.getStanceExitCMPProjectionMultiplier() + footstepRecursionMultiplierCalculator.getRemainingStanceExitCMPProjectionMultiplier();
+      double entryMultiplier = footstepRecursionMultiplierCalculator.getRemainingStanceEntryCMPProjectionMultiplier();
+      double exitMultiplier = footstepRecursionMultiplierCalculator.getRemainingStanceExitCMPProjectionMultiplier();
+
+      double currentStateProjectionMultiplier = footstepRecursionMultiplierCalculator.getCurrentStateProjectionMultiplier();
+
+      previousExitMultiplier *= currentStateProjectionMultiplier;
+      entryMultiplier *= currentStateProjectionMultiplier;
+      exitMultiplier *= currentStateProjectionMultiplier;
+
+      entryMultiplier += footstepRecursionMultiplierCalculator.getStanceEntryCMPProjectionMultiplier();
+      exitMultiplier += footstepRecursionMultiplierCalculator.getStanceExitCMPProjectionMultiplier();
 
       this.stanceEntryCMP.set(stanceEntryCMP2d);
       this.stanceExitCMP.set(stanceExitCMP2d);

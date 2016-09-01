@@ -46,8 +46,8 @@ public class DiscontinuousRemainingStanceCMPProjectionMultipliers implements Rem
    {
       double timeSpentOnEndDoubleSupportCurrent = (1.0 - doubleSupportSplitFraction.getDoubleValue()) * doubleSupportDurations.get(0).getDoubleValue();
 
-      double remainingProjection = Math.exp(omega.getDoubleValue() * timeRemaining);
-      double endOfSupportProjection = Math.exp(omega.getDoubleValue() * timeSpentOnEndDoubleSupportCurrent);
+      double remainingProjection = Math.exp(-omega.getDoubleValue() * timeRemaining);
+      double endOfSupportProjection = Math.exp(omega.getDoubleValue() * (timeSpentOnEndDoubleSupportCurrent - timeRemaining));
 
       if (isInTransfer)
       {
@@ -56,25 +56,25 @@ public class DiscontinuousRemainingStanceCMPProjectionMultipliers implements Rem
             if (useTwoCMPs)
             {
                exitMultiplier.set(0.0);
-               entryMultiplier.set(endOfSupportProjection - 1.0);
+               entryMultiplier.set(endOfSupportProjection - remainingProjection);
             }
             else
             {
-               exitMultiplier.set(endOfSupportProjection - 1.0);
+               exitMultiplier.set(endOfSupportProjection - remainingProjection);
                entryMultiplier.set(0.0);
             }
-            previousExitMultiplier.set(remainingProjection - endOfSupportProjection);
+            previousExitMultiplier.set(1.0 - endOfSupportProjection);
          }
          else
          {
             if (useTwoCMPs)
             {
                exitMultiplier.set(0.0);
-               entryMultiplier.set(remainingProjection - 1.0);
+               entryMultiplier.set(1.0 - remainingProjection);
             }
             else
             {
-               exitMultiplier.set(remainingProjection - 1.0);
+               exitMultiplier.set(1.0 - remainingProjection);
                entryMultiplier.set(0.0);
             }
             previousExitMultiplier.set(0.0);
@@ -82,10 +82,9 @@ public class DiscontinuousRemainingStanceCMPProjectionMultipliers implements Rem
       }
       else
       {
-         exitMultiplier.set(remainingProjection - 1.0);
+         exitMultiplier.set(1.0 - remainingProjection);
          entryMultiplier.set(0.0);
          previousExitMultiplier.set(0.0);
-
       }
    }
 
