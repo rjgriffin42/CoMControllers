@@ -40,28 +40,37 @@ public class StanceCMPProjectionMultipliers
 
    public void compute(ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations, boolean useTwoCMPs, boolean isInTransfer)
    {
-      double firstStepTime = doubleSupportDurations.get(0).getDoubleValue() + singleSupportDurations.get(0).getDoubleValue();
-      double timeSpentOnInitialDoubleSupportUpcoming = doubleSupportSplitFraction.getDoubleValue() * doubleSupportDurations.get(1).getDoubleValue();
-      double timeSpentOnEndDoubleSupportCurrent = (1.0 - doubleSupportSplitFraction.getDoubleValue()) * doubleSupportDurations.get(0).getDoubleValue();
+      double upcomingDoubleSupportDuration = doubleSupportDurations.get(1).getDoubleValue();
+      double currentDoubleSupportDuration = doubleSupportDurations.get(0).getDoubleValue();
+      double singleSupportDuration = singleSupportDurations.get(0).getDoubleValue();
+
+      compute(upcomingDoubleSupportDuration, currentDoubleSupportDuration, singleSupportDuration, useTwoCMPs, isInTransfer);
+   }
+
+   public void compute(double upcomingDoubleSupportDuration, double currentDoubleSupportDuration, double singleSupportDuration, boolean useTwoCMPs, boolean isInTransfer)
+   {
+      double firstStepTime = currentDoubleSupportDuration + singleSupportDuration;
+      double timeSpentOnInitialDoubleSupportUpcoming = doubleSupportSplitFraction.getDoubleValue() * upcomingDoubleSupportDuration;
+      double timeSpentOnEndDoubleSupportCurrent = (1.0 - doubleSupportSplitFraction.getDoubleValue()) * currentDoubleSupportDuration;
 
       if (useTwoCMPs)
       {
 
          if (isInTransfer)
          {
-            exitMultiplier.set(1.0 - Math.exp(-omega.getDoubleValue() * timeSpentOnInitialDoubleSupportUpcoming));
-            entryMultiplier.set(0.0);
-         }
-         else
-         {
             double totalTimeSpentOnExitCMP = exitCMPDurationInPercentOfStepTime.getDoubleValue() * firstStepTime;
             double totalTimeSpentOnEntryCMP = (1.0 - exitCMPDurationInPercentOfStepTime.getDoubleValue()) * firstStepTime;
 
-            double projectionTime = totalTimeSpentOnEntryCMP + timeSpentOnEndDoubleSupportCurrent;
+            double projectionTime = totalTimeSpentOnEntryCMP - timeSpentOnEndDoubleSupportCurrent;
             double multiplier = Math.exp(-omega.getDoubleValue() * projectionTime);
 
             exitMultiplier.set(multiplier * (1.0 - Math.exp(-omega.getDoubleValue() * totalTimeSpentOnExitCMP)));
             entryMultiplier.set(1.0 - multiplier);
+         }
+         else
+         {
+            exitMultiplier.set(1.0 - Math.exp(-omega.getDoubleValue() * timeSpentOnInitialDoubleSupportUpcoming));
+            entryMultiplier.set(0.0);
          }
       }
       else
@@ -69,11 +78,12 @@ public class StanceCMPProjectionMultipliers
          double timeToFinish = timeSpentOnInitialDoubleSupportUpcoming;
 
          if (isInTransfer)
-            timeToFinish += singleSupportDurations.get(0).getDoubleValue();
+            timeToFinish += singleSupportDuration;
 
          exitMultiplier.set(1.0 - Math.exp(-omega.getDoubleValue() * timeToFinish));
          entryMultiplier.set(0.0);
       }
+
    }
 
    public double getExitMultiplier()

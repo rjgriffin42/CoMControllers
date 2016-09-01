@@ -120,6 +120,7 @@ public class ICPOptimizationController
 
       useFeedback.set(icpOptimizationParameters.useFeedback());
       useStepAdjustment.set(icpOptimizationParameters.useStepAdjustment());
+      useTwoCMPsInControl.set(icpPlannerParameters.useTwoCMPsPerSupport());
 
       scaleFirstStepWeightWithTime.set(icpOptimizationParameters.scaleFirstStepWeightWithTime());
       scaleFeedbackWeightWithGain.set(icpOptimizationParameters.scaleFeedbackWeightWithGain());
@@ -136,6 +137,8 @@ public class ICPOptimizationController
 
       for (int i = 0; i < maximumNumberOfFootstepsToConsider; i++)
       {
+         entryOffsets.add(new FrameVector2d(worldFrame));
+         exitOffsets.add(new FrameVector2d(worldFrame));
          yoEntryOffsets.add(new YoFrameVector2d("entryOffset" + i, worldFrame, registry));
          yoExitOffsets.add(new YoFrameVector2d("exitOffset" + i, worldFrame, registry));
          footstepSolutions.add(new YoFramePoint2d("footstepSolutionLocation" + i, worldFrame, registry));
@@ -300,7 +303,6 @@ public class ICPOptimizationController
 
       computeFinalICPRecursion();
       computeStanceCMPProjection();
-
 
       if (useTwoCMPsInControl.getBooleanValue())
       {
@@ -472,22 +474,18 @@ public class ICPOptimizationController
    }
 
    private final FramePoint footstepLocation = new FramePoint();
-   private final Quat4d footstepOrientation = new Quat4d();
-   private final RigidBodyTransform transform = new RigidBodyTransform();
+   private final FramePoint2d footstepLocation2d = new FramePoint2d();
 
    private void computeTwoCMPOffsets()
    {
+      // fixme this is getting messed up
       for (int i = 0; i < numberOfFootstepsToConsider.getIntegerValue(); i++)
       {
          Footstep upcomingFootstep = upcomingFootsteps.get(i);
-         RobotSide stepSide = upcomingFootstep.getRobotSide();
          upcomingFootstep.getPositionIncludingFrame(footstepLocation);
-         upcomingFootstep.getOrientationInWorldFrame(footstepOrientation);
-
-         transform.zeroTranslation();
-         transform.setRotation(footstepOrientation);
 
          footstepLocation.changeFrame(worldFrame);
+         footstepLocation2d.setByProjectionOntoXYPlane(footstepLocation);
 
          FrameVector2d entryOffset = entryOffsets.get(i);
          FrameVector2d exitOffset = exitOffsets.get(i);
@@ -495,13 +493,11 @@ public class ICPOptimizationController
          entryOffset.setToZero(worldFrame);
          exitOffset.setToZero(worldFrame);
 
-         entryOffset.setY(stepSide.negateIfLeftSide(icpPlannerParameters.getEntryCMPInsideOffset()));
-         entryOffset.setX(icpPlannerParameters.getEntryCMPForwardOffset());
-         exitOffset.setY(stepSide.negateIfLeftSide(icpPlannerParameters.getExitCMPInsideOffset()));
-         exitOffset.setX(icpPlannerParameters.getExitCMPForwardOffset());
+         entryOffset.setByProjectionOntoXYPlane(referenceCMPsCalculator.getEntryCMPs().get(i + 1).getFrameTuple());
+         exitOffset.setByProjectionOntoXYPlane(referenceCMPsCalculator.getExitCMPs().get(i + 1).getFrameTuple());
 
-         entryOffset.applyTransform(transform);
-         exitOffset.applyTransform(transform);
+         entryOffset.sub(footstepLocation2d);
+         exitOffset.sub(footstepLocation2d);
 
          yoEntryOffsets.get(i).set(entryOffset);
          yoExitOffsets.get(i).set(exitOffset);
