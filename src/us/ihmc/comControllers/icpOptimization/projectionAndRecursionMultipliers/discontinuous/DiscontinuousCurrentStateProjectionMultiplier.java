@@ -4,6 +4,9 @@ import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 
+import java.util.ArrayList;
+import java.util.function.DoubleSupplier;
+
 public class DiscontinuousCurrentStateProjectionMultiplier extends CurrentStateProjectionMultiplier
 {
    private final DoubleYoVariable omega;
@@ -15,7 +18,8 @@ public class DiscontinuousCurrentStateProjectionMultiplier extends CurrentStateP
       this.omega = omega;
    }
 
-   public void compute(double timeRemaining)
+   public void compute(double timeRemaining, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations,
+                       boolean useTwoCMPs, boolean isInTransfer)
    {
       this.set(Math.exp(omega.getDoubleValue() * timeRemaining));
    }

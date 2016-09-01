@@ -13,7 +13,7 @@ import java.util.ArrayList;
 
 public class FootstepRecursionMultiplierCalculator
 {
-   private static final boolean USE_CONTINUOUS_METHOD = false;
+   private static final boolean USE_CONTINUOUS_METHOD = true;
 
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
 
@@ -45,10 +45,9 @@ public class FootstepRecursionMultiplierCalculator
 
       if (USE_CONTINUOUS_METHOD)
       {
-         // // FIXME: 8/31/16 
          remainingStanceCMPProjectionMultipliers = new ContinuousRemainingStanceCMPProjectionMultipliers(omega, doubleSupportSplitFraction,
                exitCMPDurationInPercentOfStepTime, registry);
-         currentStateProjectionMultiplier = new ContinuousCurrentStateProjectionMultiplier(registry, omega);
+         currentStateProjectionMultiplier = new ContinuousCurrentStateProjectionMultiplier(registry, omega, doubleSupportSplitFraction);
       }
       else
       {
@@ -99,8 +98,8 @@ public class FootstepRecursionMultiplierCalculator
 
    public void computeRemainingProjectionMultipliers(double timeRemaining, boolean useTwoCMPs, boolean isInTransfer, boolean isInTransferEntry)
    {
-      currentStateProjectionMultiplier.compute(timeRemaining);
-      remainingStanceCMPProjectionMultipliers.compute(timeRemaining, doubleSupportDurations, useTwoCMPs, isInTransfer, isInTransferEntry);
+      currentStateProjectionMultiplier.compute(timeRemaining, doubleSupportDurations, singleSupportDurations, useTwoCMPs, isInTransfer);
+      remainingStanceCMPProjectionMultipliers.compute(timeRemaining, doubleSupportDurations, singleSupportDurations, useTwoCMPs, isInTransfer, isInTransferEntry);
    }
 
    public double getCMPRecursionExitMultiplier(int footstepIndex)

@@ -8,6 +8,8 @@ import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 
+import java.util.ArrayList;
+
 public class ContinuousCurrentStateProjectionMultiplier extends CurrentStateProjectionMultiplier
 {
    private final StateEndRecursionMatrix stateEndRecursionMatrix;
@@ -15,16 +17,27 @@ public class ContinuousCurrentStateProjectionMultiplier extends CurrentStateProj
 
    private final DenseMatrix64F matrixOut = new DenseMatrix64F(1, 1);
 
-   public ContinuousCurrentStateProjectionMultiplier(StateEndRecursionMatrix stateEndRecursionMatrix, CubicProjectionMatrix cubicProjectionMatrix, YoVariableRegistry registry, DoubleYoVariable omega)
+   public ContinuousCurrentStateProjectionMultiplier(YoVariableRegistry registry, DoubleYoVariable omega, DoubleYoVariable doubleSupportSplitRatio)
    {
       super(registry);
 
-      this.stateEndRecursionMatrix = stateEndRecursionMatrix;
-      this.cubicProjectionMatrix = cubicProjectionMatrix;
+      this.stateEndRecursionMatrix = new StateEndRecursionMatrix(omega, doubleSupportSplitRatio);
+      this.cubicProjectionMatrix = new CubicProjectionMatrix();
    }
 
-   public void compute(double timeRemaining)
+   public void compute(double timeRemaining, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations,
+                       boolean useTwoCMPs, boolean isInTransfer)
    {
+      stateEndRecursionMatrix.compute(doubleSupportDurations, singleSupportDurations, useTwoCMPs, isInTransfer);
+      if (isInTransfer)
+         this.compute(timeRemaining, doubleSupportDurations.get(0).getDoubleValue());
+      else
+         this.compute(timeRemaining, singleSupportDurations.get(0).getDoubleValue());
+   }
+
+   public void compute(double timeRemaining, double duration)
+   {
+      cubicProjectionMatrix.setSegmentDuration(duration);
       cubicProjectionMatrix.update(timeRemaining);
       CommonOps.mult(cubicProjectionMatrix, stateEndRecursionMatrix, matrixOut);
 

@@ -47,6 +47,11 @@ public class StateEndRecursionMatrix extends DenseMatrix64F
          }
       }
 
+      this.compute(stateDuration);
+   }
+
+   public void compute(double stateDuration)
+   {
       double stateRecursion = Math.exp(-omega.getDoubleValue() * stateDuration);
 
       set(0, 0, stateRecursion);

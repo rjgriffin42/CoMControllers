@@ -20,7 +20,8 @@ public abstract class CurrentStateProjectionMultiplier extends DoubleYoVariable
       super(namePrefix + name, registry);
    }
 
-   public abstract void compute(double timeRemaining);
+   public abstract void compute(double timeRemaining, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations,
+                                boolean useTwoCMPs, boolean isInTransfer);
 
    public abstract void reset();
 }

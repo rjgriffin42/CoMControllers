@@ -6,7 +6,7 @@ import us.ihmc.robotics.MathTools;
 
 public class CubicProjectionMatrix extends DenseMatrix64F
 {
-   private final CubicSplineMatrix cubicSplineMatrix = new CubicSplineMatrix();
+   private final CubicSplineCoefficientMatrix cubicSplineCoefficientMatrix = new CubicSplineCoefficientMatrix();
    private final CubicTimeMatrix cubicTimeMatrix = new CubicTimeMatrix();
 
    private double duration;
@@ -19,7 +19,7 @@ public class CubicProjectionMatrix extends DenseMatrix64F
    public void setSegmentDuration(double duration)
    {
       this.duration = duration;
-      cubicSplineMatrix.setSegmentDuration(duration);
+      cubicSplineCoefficientMatrix.setSegmentDuration(duration);
    }
 
    public void update(double timeRemaining)
@@ -28,6 +28,6 @@ public class CubicProjectionMatrix extends DenseMatrix64F
       timeInCurrentState = MathTools.clipToMinMax(timeInCurrentState, 0.0, duration);
       cubicTimeMatrix.setCurrentTime(timeInCurrentState);
 
-      CommonOps.mult(cubicTimeMatrix, cubicSplineMatrix, this);
+      CommonOps.mult(cubicTimeMatrix, cubicSplineCoefficientMatrix, this);
    }
 }
