@@ -134,7 +134,7 @@ public class ICPOptimizationController
       doubleSupportSplitFraction.set(icpPlannerParameters.getDoubleSupportSplitFraction());
 
       footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(exitCMPDurationInPercentOfStepTime, doubleSupportSplitFraction, omega,
-            isInTransfer, useTwoCMPsInControl, maximumNumberOfFootstepsToConsider, registry);
+            isInTransfer, isInTransferEntry, useTwoCMPsInControl, maximumNumberOfFootstepsToConsider, registry);
 
       for (int i = 0; i < maximumNumberOfFootstepsToConsider; i++)
       {
