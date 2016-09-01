@@ -14,6 +14,7 @@ public class ContinuousCurrentStateProjectionMultiplier extends CurrentStateProj
 {
    private final StateEndRecursionMatrix stateEndRecursionMatrix;
    private final CubicProjectionMatrix cubicProjectionMatrix;
+   private final DoubleYoVariable omega;
 
    private final DenseMatrix64F matrixOut = new DenseMatrix64F(1, 1);
 
@@ -21,6 +22,7 @@ public class ContinuousCurrentStateProjectionMultiplier extends CurrentStateProj
    {
       super(registry);
 
+      this.omega = omega;
       this.stateEndRecursionMatrix = new StateEndRecursionMatrix(omega, doubleSupportSplitRatio);
       this.cubicProjectionMatrix = new CubicProjectionMatrix();
    }
@@ -28,11 +30,18 @@ public class ContinuousCurrentStateProjectionMultiplier extends CurrentStateProj
    public void compute(double timeRemaining, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations,
                        boolean useTwoCMPs, boolean isInTransfer)
    {
-      stateEndRecursionMatrix.compute(doubleSupportDurations, singleSupportDurations, useTwoCMPs, isInTransfer);
-      if (isInTransfer)
-         this.compute(timeRemaining, doubleSupportDurations.get(0).getDoubleValue());
+      if (useTwoCMPs || isInTransfer)
+      {
+         stateEndRecursionMatrix.compute(doubleSupportDurations, singleSupportDurations, useTwoCMPs, isInTransfer);
+         if (isInTransfer)
+            this.compute(timeRemaining, doubleSupportDurations.get(0).getDoubleValue());
+         else
+            this.compute(timeRemaining, singleSupportDurations.get(0).getDoubleValue());
+      }
       else
-         this.compute(timeRemaining, singleSupportDurations.get(0).getDoubleValue());
+      {
+         this.set(Math.exp(omega.getDoubleValue() * timeRemaining));
+      }
    }
 
    public void compute(double timeRemaining, double duration)

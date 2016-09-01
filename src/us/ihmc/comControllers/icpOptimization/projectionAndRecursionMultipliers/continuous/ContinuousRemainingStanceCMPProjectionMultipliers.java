@@ -31,9 +31,12 @@ public class ContinuousRemainingStanceCMPProjectionMultipliers implements Remain
    private final DoubleYoVariable entryMultiplier = new DoubleYoVariable("remainingStanceEntryCMPProjectionMultiplier", registry);
    private final DoubleYoVariable previousExitMultiplier = new DoubleYoVariable("remainingStancePreviousExitCMPProjectionMultiplier", registry);
 
+   private final DoubleYoVariable omega;
+
    public ContinuousRemainingStanceCMPProjectionMultipliers(DoubleYoVariable omega, DoubleYoVariable doubleSupportSplitRatio,
          DoubleYoVariable exitCMPDurationInPercentOfStepTime, YoVariableRegistry parentRegistry)
    {
+      this.omega = omega;
       this.exitCMPProjectionMatrix = new ExitCMPProjectionMatrix(omega, doubleSupportSplitRatio, exitCMPDurationInPercentOfStepTime);
       this.entryCMPProjectionMatrix = new EntryCMPProjectionMatrix(omega, doubleSupportSplitRatio, exitCMPDurationInPercentOfStepTime);
       this.previousExitCMPProjectionMatrix = new PreviousExitCMPProjectionMatrix(omega, doubleSupportSplitRatio);
@@ -79,6 +82,9 @@ public class ContinuousRemainingStanceCMPProjectionMultipliers implements Remain
       exitMultiplier.set(exitMultiplierMatrix.get(0, 0));
       entryMultiplier.set(entryMultiplierMatrix.get(0, 0));
       previousExitMultiplier.set(previousExitMultiplierMatrix.get(0, 0));
+
+      if (!useTwoCMPs && !isInTransfer)
+         exitMultiplier.set(1.0 - Math.exp(-omega.getDoubleValue() * timeRemaining));
    }
 
    public double getExitMultiplier()

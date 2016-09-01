@@ -9,9 +9,9 @@ import java.util.ArrayList;
 
 public class DiscontinuousRemainingStanceCMPProjectionMultipliers implements RemainingStanceCMPProjectionMultipliers
 {
-   private static final String entryName = "StanceCMPEntryProjectionMultiplier";
-   private static final String exitName = "StanceCMPExitProjectionMultiplier";
-   private static final String previousExitName = "PreviousStanceCMPExitProjectionMultiplier";
+   private static final String entryName = "StanceCMPEntryRemainingProjectionMultiplier";
+   private static final String exitName = "StanceCMPExitRemainingProjectionMultiplier";
+   private static final String previousExitName = "PreviousStanceCMPExitRemainingProjectionMultiplier";
 
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
 
