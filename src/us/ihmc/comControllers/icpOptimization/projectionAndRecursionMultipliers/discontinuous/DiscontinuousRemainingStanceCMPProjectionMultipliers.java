@@ -42,7 +42,8 @@ public class DiscontinuousRemainingStanceCMPProjectionMultipliers implements Rem
       previousExitMultiplier.set(0.0);
    }
 
-   public void compute(double timeRemaining, ArrayList<DoubleYoVariable> doubleSupportDurations, boolean useTwoCMPs, boolean isInTransfer, boolean isInTransferEntry)
+   public void compute(double timeRemaining, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations,
+         boolean useTwoCMPs, boolean isInTransfer, boolean isInTransferEntry)
    {
       double timeSpentOnEndDoubleSupportCurrent = (1.0 - doubleSupportSplitFraction.getDoubleValue()) * doubleSupportDurations.get(0).getDoubleValue();
 

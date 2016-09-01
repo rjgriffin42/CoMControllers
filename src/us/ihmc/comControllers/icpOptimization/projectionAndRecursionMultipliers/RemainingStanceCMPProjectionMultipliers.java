@@ -8,7 +8,8 @@ public interface RemainingStanceCMPProjectionMultipliers
 {
    public void reset();
 
-   public void compute(double timeRemaining, ArrayList<DoubleYoVariable> doubleSupportDurations, boolean useTwoCMPs, boolean isInTransfer, boolean isInTransferEntry);
+   public void compute(double timeRemaining, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations,
+         boolean useTwoCMPs, boolean isInTransfer, boolean isInTransferEntry);
 
    public double getExitMultiplier();
 

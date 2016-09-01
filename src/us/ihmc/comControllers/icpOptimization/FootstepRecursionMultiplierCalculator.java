@@ -1,6 +1,8 @@
 package us.ihmc.comControllers.icpOptimization;
 
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.*;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.ContinuousCurrentStateProjectionMultiplier;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.ContinuousRemainingStanceCMPProjectionMultipliers;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.discontinuous.DiscontinuousCurrentStateProjectionMultiplier;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.discontinuous.DiscontinuousRemainingStanceCMPProjectionMultipliers;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.StanceCMPProjectionMultipliers;
@@ -43,8 +45,10 @@ public class FootstepRecursionMultiplierCalculator
 
       if (USE_CONTINUOUS_METHOD)
       {
-         remainingStanceCMPProjectionMultipliers = new DiscontinuousRemainingStanceCMPProjectionMultipliers("", omega, doubleSupportSplitFraction, registry);
-         currentStateProjectionMultiplier = new DiscontinuousCurrentStateProjectionMultiplier(registry, omega);
+         // // FIXME: 8/31/16 
+         remainingStanceCMPProjectionMultipliers = new ContinuousRemainingStanceCMPProjectionMultipliers(omega, doubleSupportSplitFraction,
+               exitCMPDurationInPercentOfStepTime, registry);
+         currentStateProjectionMultiplier = new ContinuousCurrentStateProjectionMultiplier(registry, omega);
       }
       else
       {

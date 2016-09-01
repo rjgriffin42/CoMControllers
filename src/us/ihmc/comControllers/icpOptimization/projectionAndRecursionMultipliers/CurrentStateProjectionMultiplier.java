@@ -10,18 +10,14 @@ public abstract class CurrentStateProjectionMultiplier extends DoubleYoVariable
 {
    private static final String name = "CurrentStateProjectionMultiplier";
 
-   protected final DoubleYoVariable omega;
-
-   public CurrentStateProjectionMultiplier(YoVariableRegistry registry, DoubleYoVariable omega)
+   public CurrentStateProjectionMultiplier(YoVariableRegistry registry)
    {
-      this("", registry, omega);
+      this("", registry);
    }
 
-   public CurrentStateProjectionMultiplier(String namePrefix, YoVariableRegistry registry, DoubleYoVariable omega)
+   public CurrentStateProjectionMultiplier(String namePrefix, YoVariableRegistry registry)
    {
       super(namePrefix + name, registry);
-
-      this.omega = omega;
    }
 
    public abstract void compute(double timeRemaining);

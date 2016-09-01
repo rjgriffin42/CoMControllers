@@ -22,8 +22,9 @@ public class CubicProjectionMatrix extends DenseMatrix64F
       cubicSplineMatrix.setSegmentDuration(duration);
    }
 
-   public void update(double timeInCurrentState)
+   public void update(double timeRemaining)
    {
+      double timeInCurrentState = duration - timeRemaining;
       timeInCurrentState = MathTools.clipToMinMax(timeInCurrentState, 0.0, duration);
       cubicTimeMatrix.setCurrentTime(timeInCurrentState);
 

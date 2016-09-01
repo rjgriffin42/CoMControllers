@@ -6,9 +6,13 @@ import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 
 public class DiscontinuousCurrentStateProjectionMultiplier extends CurrentStateProjectionMultiplier
 {
+   private final DoubleYoVariable omega;
+
    public DiscontinuousCurrentStateProjectionMultiplier(YoVariableRegistry registry, DoubleYoVariable omega)
    {
-      super(registry, omega);
+      super(registry);
+
+      this.omega = omega;
    }
 
    public void compute(double timeRemaining)
