@@ -6,11 +6,11 @@ import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 
 import java.util.ArrayList;
 
-public class CurrentStateProjectionMultiplier extends DoubleYoVariable
+public abstract class CurrentStateProjectionMultiplier extends DoubleYoVariable
 {
    private static final String name = "CurrentStateProjectionMultiplier";
 
-   private final DoubleYoVariable omega;
+   protected final DoubleYoVariable omega;
 
    public CurrentStateProjectionMultiplier(YoVariableRegistry registry, DoubleYoVariable omega)
    {
@@ -24,13 +24,7 @@ public class CurrentStateProjectionMultiplier extends DoubleYoVariable
       this.omega = omega;
    }
 
-   public void compute(double timeRemaining)
-   {
-      this.set(Math.exp(omega.getDoubleValue() * timeRemaining));
-   }
+   public abstract void compute(double timeRemaining);
 
-   public void reset()
-   {
-      this.set(0.0);
-   }
+   public abstract void reset();
 }

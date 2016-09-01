@@ -1,14 +1,18 @@
 package us.ihmc.comControllers.icpOptimization;
 
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.*;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.discontinuous.DiscontinuousCurrentStateProjectionMultiplier;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.discontinuous.DiscontinuousRemainingStanceCMPProjectionMultipliers;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.StanceCMPProjectionMultipliers;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
-import us.ihmc.robotics.dataStructures.variable.BooleanYoVariable;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 
 import java.util.ArrayList;
 
 public class FootstepRecursionMultiplierCalculator
 {
+   private static final boolean USE_CONTINUOUS_METHOD = false;
+
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
 
    private final ArrayList<DoubleYoVariable> doubleSupportDurations = new ArrayList<>();
@@ -36,9 +40,17 @@ public class FootstepRecursionMultiplierCalculator
       cmpRecursionMultipliers = new CMPRecursionMultipliers("", maxNumberOfFootstepsToConsider, omega, doubleSupportSplitFraction,
             exitCMPDurationInPercentOfStepTime, registry);
       stanceCMPProjectionMultipliers = new StanceCMPProjectionMultipliers("", omega, doubleSupportSplitFraction, exitCMPDurationInPercentOfStepTime, registry);
-      remainingStanceCMPProjectionMultipliers = new RemainingStanceCMPProjectionMultipliers("", omega, doubleSupportSplitFraction, registry);
 
-      currentStateProjectionMultiplier = new CurrentStateProjectionMultiplier(registry, omega);
+      if (USE_CONTINUOUS_METHOD)
+      {
+         remainingStanceCMPProjectionMultipliers = new DiscontinuousRemainingStanceCMPProjectionMultipliers("", omega, doubleSupportSplitFraction, registry);
+         currentStateProjectionMultiplier = new DiscontinuousCurrentStateProjectionMultiplier(registry, omega);
+      }
+      else
+      {
+         remainingStanceCMPProjectionMultipliers = new DiscontinuousRemainingStanceCMPProjectionMultipliers("", omega, doubleSupportSplitFraction, registry);
+         currentStateProjectionMultiplier = new DiscontinuousCurrentStateProjectionMultiplier(registry, omega);
+      }
 
       finalICPRecursionMultiplier = new FinalICPRecursionMultiplier(registry, omega, doubleSupportSplitFraction);
 
