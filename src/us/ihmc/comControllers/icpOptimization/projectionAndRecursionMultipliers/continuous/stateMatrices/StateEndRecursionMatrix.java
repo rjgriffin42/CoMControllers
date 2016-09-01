@@ -26,24 +26,33 @@ public class StateEndRecursionMatrix extends DenseMatrix64F
    public void compute(ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations,
          boolean useTwoCMPs, boolean isInTransfer)
    {
+      double upcomingDoubleSupportDuration = doubleSupportDurations.get(1).getDoubleValue();
+      double currentDoubleSupportDuration = doubleSupportDurations.get(0).getDoubleValue();
+      double singleSupportDuration = singleSupportDurations.get(0).getDoubleValue();
+
+      compute(upcomingDoubleSupportDuration, currentDoubleSupportDuration, singleSupportDuration, useTwoCMPs, isInTransfer);
+   }
+
+   public void compute(double upcomingDoubleSupportDuration, double currentDoubleSupportDuration, double singleSupportDuration, boolean useTwoCMPs, boolean isInTransfer)
+   {
       double stateDuration;
       if (isInTransfer)
       {
-         stateDuration = doubleSupportDurations.get(0).getDoubleValue();
+         stateDuration = currentDoubleSupportDuration;
       }
       else
       {
          if (useTwoCMPs)
          {
-            double upcomingInitialDoubleSupportDuration = doubleSupportSplitRatio.getDoubleValue() * doubleSupportDurations.get(1).getDoubleValue();
-            double currentEndOfDoubleSupportDuration = (1.0 - doubleSupportSplitRatio.getDoubleValue()) * doubleSupportDurations.get(0).getDoubleValue();
-            double stepDuration = doubleSupportDurations.get(0).getDoubleValue() + singleSupportDurations.get(0).getDoubleValue();
+            double upcomingInitialDoubleSupportDuration = doubleSupportSplitRatio.getDoubleValue() * upcomingDoubleSupportDuration;
+            double currentEndOfDoubleSupportDuration = (1.0 - doubleSupportSplitRatio.getDoubleValue()) * currentDoubleSupportDuration;
+            double stepDuration = currentDoubleSupportDuration + singleSupportDuration;
 
-            stateDuration = upcomingInitialDoubleSupportDuration + currentEndOfDoubleSupportDuration - stepDuration;
+            stateDuration = stepDuration - upcomingInitialDoubleSupportDuration - currentEndOfDoubleSupportDuration;
          }
          else
          {
-            stateDuration = singleSupportDurations.get(0).getDoubleValue();
+            stateDuration = singleSupportDuration;
          }
       }
 
