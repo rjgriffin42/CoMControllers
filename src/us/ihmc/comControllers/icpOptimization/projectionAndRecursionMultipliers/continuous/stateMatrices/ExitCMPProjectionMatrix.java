@@ -27,10 +27,15 @@ public class ExitCMPProjectionMatrix extends DenseMatrix64F
 
    public void compute(ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations, boolean useTwoCMPs, boolean isInTransfer)
    {
-      double stepDuration = doubleSupportDurations.get(0).getDoubleValue() + singleSupportDurations.get(0).getDoubleValue();
+      compute(doubleSupportDurations.get(0).getDoubleValue(), singleSupportDurations.get(0).getDoubleValue(), useTwoCMPs, isInTransfer);
+   }
 
-      double initialDoubleSupportDuration = doubleSupportSplitRatio.getDoubleValue() * doubleSupportDurations.get(0).getDoubleValue();
-      double endOfDoubleSupportDuration = (1.0 - doubleSupportSplitRatio.getDoubleValue()) * doubleSupportDurations.get(0).getDoubleValue();
+   public void compute(double doubleSupportDuration, double singleSupportDuration, boolean useTwoCMPs, boolean isInTransfer)
+   {
+      double stepDuration = doubleSupportDuration + singleSupportDuration;
+
+      double initialDoubleSupportDuration = doubleSupportSplitRatio.getDoubleValue() * doubleSupportDuration;
+      double endOfDoubleSupportDuration = (1.0 - doubleSupportSplitRatio.getDoubleValue()) * doubleSupportDuration;
 
       double initialDoubleSupportProjection = Math.exp(-omega.getDoubleValue() * initialDoubleSupportDuration);
       double endOfDoubleSupportProjection = Math.exp(-omega.getDoubleValue() * endOfDoubleSupportDuration);
@@ -44,8 +49,8 @@ public class ExitCMPProjectionMatrix extends DenseMatrix64F
             double timeSpentOnExitCMP = exitCMPDurationInPercentOfStepTime.getDoubleValue() * stepDuration;
             double timeSpentOnEntryCMP = (1.0 - exitCMPDurationInPercentOfStepTime.getDoubleValue()) * stepDuration;
 
-            double stepProjection = Math.exp(omega.getDoubleValue() * (endOfDoubleSupportDuration - timeSpentOnEntryCMP)) *
-                  (1.0 - Math.exp(omega.getDoubleValue() * (initialDoubleSupportDuration - timeSpentOnExitCMP)));
+            double stepProjection = Math.exp(omega.getDoubleValue() * (endOfDoubleSupportDuration - timeSpentOnEntryCMP)) * (1.0 - Math
+                  .exp(omega.getDoubleValue() * (initialDoubleSupportDuration - timeSpentOnExitCMP)));
 
             set(0, 0, stepProjection);
             set(1, 0, omega.getDoubleValue() * stepProjection);
@@ -63,7 +68,7 @@ public class ExitCMPProjectionMatrix extends DenseMatrix64F
          }
          else
          {
-            double stepProjection = Math.exp(-omega.getDoubleValue() * stepDuration);
+            double stepProjection = Math.exp(-omega.getDoubleValue() * singleSupportDuration);
 
             set(0, 0, 1.0 - stepProjection);
             set(1, 0, -omega.getDoubleValue() * stepProjection);
@@ -71,6 +76,5 @@ public class ExitCMPProjectionMatrix extends DenseMatrix64F
 
          set(3, 0, -omega.getDoubleValue());
       }
-
    }
 }

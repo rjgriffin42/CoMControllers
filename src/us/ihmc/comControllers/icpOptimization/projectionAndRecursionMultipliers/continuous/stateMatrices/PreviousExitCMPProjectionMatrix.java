@@ -25,9 +25,14 @@ public class PreviousExitCMPProjectionMatrix extends DenseMatrix64F
 
    public void compute(ArrayList<DoubleYoVariable> doubleSupportDurations, boolean isInTransfer)
    {
+      compute(doubleSupportDurations.get(0).getDoubleValue(), isInTransfer);
+   }
+
+   public void compute(double doubleSupportDuration, boolean isInTransfer)
+   {
       if (isInTransfer)
       {
-         double initialDoubleSupportDuration = doubleSupportSplitRatio.getDoubleValue() * doubleSupportDurations.get(0).getDoubleValue();
+         double initialDoubleSupportDuration = doubleSupportSplitRatio.getDoubleValue() * doubleSupportDuration;
          double initialDoubleSupportProjection = Math.exp(-omega.getDoubleValue() * initialDoubleSupportDuration);
 
          zero();
