@@ -12,18 +12,14 @@ public class FinalICPRecursionMultiplier extends DoubleYoVariable
 
    private final DoubleYoVariable omega;
 
-   private final BooleanYoVariable isInTransfer;
-
    private final DoubleYoVariable doubleSupportSplitFraction;
 
-   public FinalICPRecursionMultiplier(YoVariableRegistry registry, DoubleYoVariable omega, DoubleYoVariable doubleSupportSplitFraction,
-         BooleanYoVariable isInTransfer)
+   public FinalICPRecursionMultiplier(YoVariableRegistry registry, DoubleYoVariable omega, DoubleYoVariable doubleSupportSplitFraction)
    {
-      this(namePrefix, registry, omega, doubleSupportSplitFraction, isInTransfer);
+      this(namePrefix, registry, omega, doubleSupportSplitFraction);
    }
 
-   public FinalICPRecursionMultiplier(String name, YoVariableRegistry registry, DoubleYoVariable omega, DoubleYoVariable doubleSupportSplitFraction,
-         BooleanYoVariable isInTransfer)
+   public FinalICPRecursionMultiplier(String name, YoVariableRegistry registry, DoubleYoVariable omega, DoubleYoVariable doubleSupportSplitFraction)
    {
       super(name, registry);
 
@@ -33,14 +29,10 @@ public class FinalICPRecursionMultiplier extends DoubleYoVariable
          this.doubleSupportSplitFraction = new DoubleYoVariable(namePrefix + "_DoubleSupportSplitFraction", registry);
       else
          this.doubleSupportSplitFraction = doubleSupportSplitFraction;
-
-      if (isInTransfer == null)
-         this.isInTransfer = new BooleanYoVariable(namePrefix + "_IsInTransfer", registry);
-      else
-         this.isInTransfer = isInTransfer;
    }
 
-   public void compute(int numberOfStepsToConsider, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations)
+   public void compute(int numberOfStepsToConsider, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations,
+         boolean isInTransfer)
    {
       if (numberOfStepsToConsider > doubleSupportDurations.size())
          throw new RuntimeException("Double Support Durations list is not long enough");
@@ -49,7 +41,7 @@ public class FinalICPRecursionMultiplier extends DoubleYoVariable
 
       double timeToFinish = doubleSupportSplitFraction.getDoubleValue() * doubleSupportDurations.get(1).getDoubleValue();
 
-      if (isInTransfer.getBooleanValue())
+      if (isInTransfer)
          timeToFinish += singleSupportDurations.get(0).getDoubleValue();
 
       double totalTimeForFinalICPRecursion = timeToFinish;
@@ -57,5 +49,10 @@ public class FinalICPRecursionMultiplier extends DoubleYoVariable
          totalTimeForFinalICPRecursion += singleSupportDurations.get(i + 1).getDoubleValue() + doubleSupportDurations.get(i + 1).getDoubleValue();
 
       this.set(Math.exp(-omega.getDoubleValue() * totalTimeForFinalICPRecursion));
+   }
+
+   public void reset()
+   {
+      this.set(0.0);
    }
 }

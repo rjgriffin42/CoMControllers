@@ -18,24 +18,14 @@ public class RemainingStanceCMPProjectionMultipliers
    private final DoubleYoVariable entryMultiplier;
    private final DoubleYoVariable previousExitMultiplier;
 
-   private final BooleanYoVariable useTwoCMPs;
-   private final BooleanYoVariable isInTransfer;
-   private final BooleanYoVariable isInTransferEntry;
-
    private final DoubleYoVariable omega;
    private final DoubleYoVariable doubleSupportSplitFraction;
-   private final DoubleYoVariable exitCMPDurationInPercentOfStepTime;
 
    public RemainingStanceCMPProjectionMultipliers(String namePrefix, DoubleYoVariable omega, DoubleYoVariable doubleSupportSplitFraction,
-         DoubleYoVariable exitCMPDurationInPercentOfStepTime, BooleanYoVariable useTwoCMPs, BooleanYoVariable isInTransfer, BooleanYoVariable isInTransferEntry,
          YoVariableRegistry parentRegistry)
    {
       this.omega = omega;
       this.doubleSupportSplitFraction = doubleSupportSplitFraction;
-      this.exitCMPDurationInPercentOfStepTime = exitCMPDurationInPercentOfStepTime;
-      this.useTwoCMPs = useTwoCMPs;
-      this.isInTransfer = isInTransfer;
-      this.isInTransferEntry = isInTransferEntry;
 
       exitMultiplier = new DoubleYoVariable(namePrefix + exitName, registry);
       entryMultiplier = new DoubleYoVariable(namePrefix + entryName, registry);
@@ -51,18 +41,18 @@ public class RemainingStanceCMPProjectionMultipliers
       previousExitMultiplier.set(0.0);
    }
 
-   public void compute(double timeRemaining, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations)
+   public void compute(double timeRemaining, ArrayList<DoubleYoVariable> doubleSupportDurations, boolean useTwoCMPs, boolean isInTransfer, boolean isInTransferEntry)
    {
       double timeSpentOnEndDoubleSupportCurrent = (1.0 - doubleSupportSplitFraction.getDoubleValue()) * doubleSupportDurations.get(0).getDoubleValue();
 
       double remainingProjection = Math.exp(omega.getDoubleValue() * timeRemaining);
       double endOfSupportProjection = Math.exp(omega.getDoubleValue() * timeSpentOnEndDoubleSupportCurrent);
 
-      if (isInTransfer.getBooleanValue())
+      if (isInTransfer)
       {
-         if (isInTransferEntry.getBooleanValue())
+         if (isInTransferEntry)
          {
-            if (useTwoCMPs.getBooleanValue())
+            if (useTwoCMPs)
             {
                exitMultiplier.set(0.0);
                entryMultiplier.set(endOfSupportProjection - 1.0);
@@ -76,7 +66,7 @@ public class RemainingStanceCMPProjectionMultipliers
          }
          else
          {
-            if (useTwoCMPs.getBooleanValue())
+            if (useTwoCMPs)
             {
                exitMultiplier.set(0.0);
                entryMultiplier.set(remainingProjection - 1.0);

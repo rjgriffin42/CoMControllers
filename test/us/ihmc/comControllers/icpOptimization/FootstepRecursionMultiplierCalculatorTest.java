@@ -13,9 +13,6 @@ public class FootstepRecursionMultiplierCalculatorTest
    private static final int maximumNumberOfStepsToConsider = 5;
    private final YoVariableRegistry registry = new YoVariableRegistry("robert");
    private final DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
-   private final BooleanYoVariable isInTransfer = new BooleanYoVariable("isInTransfer", registry);
-   private final BooleanYoVariable isInTransferEntry = new BooleanYoVariable("isInTransferEntry", registry);
-   private final BooleanYoVariable useTwoCMPs = new BooleanYoVariable("useTwoCMPs", registry);
 
    private final DoubleYoVariable doubleSupportDuration = new DoubleYoVariable("doubleSupportDuration", registry);
    private final DoubleYoVariable singleSupportDuration = new DoubleYoVariable("singleSupportDuration", registry);
@@ -23,7 +20,7 @@ public class FootstepRecursionMultiplierCalculatorTest
    private final DoubleYoVariable doubleSupportSplitFraction = new DoubleYoVariable("doubleSupportSplitFraction", registry);
 
    private final FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(exitCMPDurationInPercentOfStepTime,
-         doubleSupportSplitFraction, omega, isInTransfer, isInTransferEntry, useTwoCMPs, maximumNumberOfStepsToConsider, registry);
+         doubleSupportSplitFraction, omega, maximumNumberOfStepsToConsider, registry);
 
    private final double epsilon = 0.0001;
 

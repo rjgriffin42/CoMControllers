@@ -1,7 +1,6 @@
 package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers;
 
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
-import us.ihmc.robotics.dataStructures.variable.BooleanYoVariable;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 
 import java.util.ArrayList;
@@ -15,9 +14,6 @@ public class CMPRecursionMultipliers
    private final ArrayList<DoubleYoVariable> exitMultipliers = new ArrayList<>();
    private final ArrayList<DoubleYoVariable> entryMultipliers = new ArrayList<>();
 
-   private final BooleanYoVariable useTwoCMPs;
-   private final BooleanYoVariable isInTransfer;
-
    private final DoubleYoVariable omega;
    private final DoubleYoVariable doubleSupportSplitFraction;
    private final DoubleYoVariable exitCMPDurationInPercentOfStepTime;
@@ -25,15 +21,12 @@ public class CMPRecursionMultipliers
    private final int maximumNumberOfFootstepsToConsider;
 
    public CMPRecursionMultipliers(String namePrefix, int maximumNumberOfFootstepsToConsider, DoubleYoVariable omega,
-         DoubleYoVariable doubleSupportSplitFraction, DoubleYoVariable exitCMPDurationInPercentOfStepTime, BooleanYoVariable useTwoCMPs, BooleanYoVariable isInTransfer,
-         YoVariableRegistry parentRegistry)
+         DoubleYoVariable doubleSupportSplitFraction, DoubleYoVariable exitCMPDurationInPercentOfStepTime, YoVariableRegistry parentRegistry)
    {
       this.maximumNumberOfFootstepsToConsider = maximumNumberOfFootstepsToConsider;
       this.omega = omega;
       this.doubleSupportSplitFraction = doubleSupportSplitFraction;
       this.exitCMPDurationInPercentOfStepTime = exitCMPDurationInPercentOfStepTime;
-      this.useTwoCMPs = useTwoCMPs;
-      this.isInTransfer = isInTransfer;
 
       for (int i = 0; i < maximumNumberOfFootstepsToConsider; i++)
       {
@@ -53,24 +46,26 @@ public class CMPRecursionMultipliers
       }
    }
 
-   public void compute(int numberOfStepsToConsider, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations)
+   public void compute(int numberOfStepsToConsider, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations,
+         boolean useTwoCMPs, boolean isInTransfer)
    {
       if (numberOfStepsToConsider > doubleSupportDurations.size())
          throw new RuntimeException("Double Support Durations list is not long enough");
       if (numberOfStepsToConsider > singleSupportDurations.size())
          throw new RuntimeException("Single Support Durations list is not long enough");
 
-      if (useTwoCMPs.getBooleanValue())
-         computeWithTwoCMPs(numberOfStepsToConsider, doubleSupportDurations, singleSupportDurations);
+      if (useTwoCMPs)
+         computeWithTwoCMPs(numberOfStepsToConsider, doubleSupportDurations, singleSupportDurations, isInTransfer);
       else
-         computeWithOneCMP(numberOfStepsToConsider, doubleSupportDurations, singleSupportDurations);
+         computeWithOneCMP(numberOfStepsToConsider, doubleSupportDurations, singleSupportDurations, isInTransfer);
    }
 
-   private void computeWithOneCMP(int numberOfStepsToConsider, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations)
+   private void computeWithOneCMP(int numberOfStepsToConsider, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations,
+         boolean isInTransfer)
    {
       double timeToFinish = doubleSupportSplitFraction.getDoubleValue() * doubleSupportDurations.get(1).getDoubleValue();
 
-      if (isInTransfer.getBooleanValue())
+      if (isInTransfer)
          timeToFinish += singleSupportDurations.get(0).getDoubleValue();
 
       double recursionTime = timeToFinish;
@@ -89,14 +84,15 @@ public class CMPRecursionMultipliers
       }
    }
 
-   private void computeWithTwoCMPs(int numberOfStepsToConsider, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations)
+   private void computeWithTwoCMPs(int numberOfStepsToConsider, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations,
+         boolean isInTransfer)
    {
       double firstStepTime = doubleSupportDurations.get(0).getDoubleValue() + singleSupportDurations.get(0).getDoubleValue();
       double timeSpentOnInitialDoubleSupportUpcoming = doubleSupportSplitFraction.getDoubleValue() * doubleSupportDurations.get(1).getDoubleValue();
       double timeSpentOnEndDoubleSupportCurrent = (1.0 - doubleSupportSplitFraction.getDoubleValue()) * doubleSupportDurations.get(0).getDoubleValue();
 
       double timeToFinish;
-      if (isInTransfer.getBooleanValue())
+      if (isInTransfer)
          timeToFinish = -timeSpentOnEndDoubleSupportCurrent + firstStepTime;
       else
          timeToFinish = timeSpentOnInitialDoubleSupportUpcoming;

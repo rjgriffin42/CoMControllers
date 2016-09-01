@@ -26,8 +26,6 @@ import java.util.ArrayList;
 
 public class ICPOptimizationController
 {
-   private static final boolean USE_NEW_METHOD = true;
-
    private static final String namePrefix = "icpOptimizationCalculator";
    private static final String yoNamePrefix = "controller";
    private static final ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
@@ -134,7 +132,7 @@ public class ICPOptimizationController
       doubleSupportSplitFraction.set(icpPlannerParameters.getDoubleSupportSplitFraction());
 
       footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(exitCMPDurationInPercentOfStepTime, doubleSupportSplitFraction, omega,
-            isInTransfer, isInTransferEntry, useTwoCMPsInControl, maximumNumberOfFootstepsToConsider, registry);
+            maximumNumberOfFootstepsToConsider, registry);
 
       for (int i = 0; i < maximumNumberOfFootstepsToConsider; i++)
       {

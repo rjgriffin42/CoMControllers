@@ -28,4 +28,9 @@ public class CurrentStateProjectionMultiplier extends DoubleYoVariable
    {
       this.set(Math.exp(omega.getDoubleValue() * timeRemaining));
    }
+
+   public void reset()
+   {
+      this.set(0.0);
+   }
 }

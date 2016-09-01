@@ -15,21 +15,16 @@ public class StanceCMPProjectionMultipliers
    private final DoubleYoVariable exitMultiplier;
    private final DoubleYoVariable entryMultiplier;
 
-   private final BooleanYoVariable useTwoCMPs;
-   private final BooleanYoVariable isInTransfer;
-
    private final DoubleYoVariable omega;
    private final DoubleYoVariable doubleSupportSplitFraction;
    private final DoubleYoVariable exitCMPDurationInPercentOfStepTime;
 
    public StanceCMPProjectionMultipliers(String namePrefix, DoubleYoVariable omega, DoubleYoVariable doubleSupportSplitFraction,
-         DoubleYoVariable exitCMPDurationInPercentOfStepTime, BooleanYoVariable useTwoCMPs, BooleanYoVariable isInTransfer, YoVariableRegistry parentRegistry)
+         DoubleYoVariable exitCMPDurationInPercentOfStepTime, YoVariableRegistry parentRegistry)
    {
       this.omega = omega;
       this.doubleSupportSplitFraction = doubleSupportSplitFraction;
       this.exitCMPDurationInPercentOfStepTime = exitCMPDurationInPercentOfStepTime;
-      this.useTwoCMPs = useTwoCMPs;
-      this.isInTransfer = isInTransfer;
 
       exitMultiplier = new DoubleYoVariable(namePrefix + exitName, registry);
       entryMultiplier = new DoubleYoVariable(namePrefix + entryName, registry);
@@ -43,16 +38,16 @@ public class StanceCMPProjectionMultipliers
       entryMultiplier.set(0.0);
    }
 
-   public void compute(ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations)
+   public void compute(ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations, boolean useTwoCMPs, boolean isInTransfer)
    {
       double firstStepTime = doubleSupportDurations.get(0).getDoubleValue() + singleSupportDurations.get(0).getDoubleValue();
       double timeSpentOnInitialDoubleSupportUpcoming = doubleSupportSplitFraction.getDoubleValue() * doubleSupportDurations.get(1).getDoubleValue();
       double timeSpentOnEndDoubleSupportCurrent = (1.0 - doubleSupportSplitFraction.getDoubleValue()) * doubleSupportDurations.get(0).getDoubleValue();
 
-      if (useTwoCMPs.getBooleanValue())
+      if (useTwoCMPs)
       {
 
-         if (isInTransfer.getBooleanValue())
+         if (isInTransfer)
          {
             exitMultiplier.set(1.0 - Math.exp(-omega.getDoubleValue() * timeSpentOnInitialDoubleSupportUpcoming));
             entryMultiplier.set(0.0);
@@ -73,7 +68,7 @@ public class StanceCMPProjectionMultipliers
       {
          double timeToFinish = timeSpentOnInitialDoubleSupportUpcoming;
 
-         if (isInTransfer.getBooleanValue())
+         if (isInTransfer)
             timeToFinish += singleSupportDurations.get(0).getDoubleValue();
 
          exitMultiplier.set(1.0 - Math.exp(-omega.getDoubleValue() * timeToFinish));
