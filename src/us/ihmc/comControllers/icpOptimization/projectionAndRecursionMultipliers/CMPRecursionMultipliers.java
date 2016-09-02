@@ -93,7 +93,7 @@ public class CMPRecursionMultipliers
 
       double timeToFinish;
       if (isInTransfer)
-         timeToFinish = -timeSpentOnEndDoubleSupportCurrent + firstStepTime;
+         timeToFinish = timeSpentOnInitialDoubleSupportUpcoming - timeSpentOnEndDoubleSupportCurrent + firstStepTime;
       else
          timeToFinish = timeSpentOnInitialDoubleSupportUpcoming;
 
@@ -101,21 +101,24 @@ public class CMPRecursionMultipliers
       for (int i = 0; i < numberOfStepsToConsider; i++)
       {
          double steppingDuration = singleSupportDurations.get(i + 1).getDoubleValue() + doubleSupportDurations.get(i + 1).getDoubleValue();
+
          double previousStepDuration = 0.0;
          if (i > 0)
             previousStepDuration = doubleSupportDurations.get(i).getDoubleValue() + singleSupportDurations.get(i).getDoubleValue();
 
          recursionTime += previousStepDuration;
-         double multiplier = Math.exp(-omega.getDoubleValue() * recursionTime);
 
          double totalTimeSpentOnExitCMP = exitCMPDurationInPercentOfStepTime.getDoubleValue() * steppingDuration;
          double totalTimeSpentOnEntryCMP = (1.0 - exitCMPDurationInPercentOfStepTime.getDoubleValue()) * steppingDuration;
 
-         double exitRecursion = Math.exp(-omega.getDoubleValue() * totalTimeSpentOnEntryCMP) * (1.0 - Math.exp(-omega.getDoubleValue() * totalTimeSpentOnExitCMP));
-         double entryRecursion = 1.0 - Math.exp(-omega.getDoubleValue() * totalTimeSpentOnEntryCMP);
+         double exitMultiplierTime = recursionTime + totalTimeSpentOnEntryCMP;
+         double entryMultiplierTime = recursionTime;
 
-         entryMultipliers.get(i).set(multiplier * entryRecursion);
-         exitMultipliers.get(i).set(multiplier * exitRecursion);
+         double exitRecursion = Math.exp(-omega.getDoubleValue() * exitMultiplierTime) * (1.0 - Math.exp(-omega.getDoubleValue() * totalTimeSpentOnExitCMP));
+         double entryRecursion = Math.exp(-omega.getDoubleValue() * entryMultiplierTime) * (1.0 - Math.exp(-omega.getDoubleValue() * totalTimeSpentOnEntryCMP));
+
+         entryMultipliers.get(i).set(entryRecursion);
+         exitMultipliers.get(i).set(exitRecursion);
       }
    }
 

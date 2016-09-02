@@ -109,8 +109,8 @@ public class CMPRecursionMultipliersTest
                double currentEntryTime = (1.0 - exitRatio) * stepDuration;
                double currentExitTime = exitRatio * stepDuration;
 
-               double entryMultiplierTime = totalTime + entryTime;
-               double exitMultiplierTime = totalTime;
+               double entryMultiplierTime = totalTime;
+               double exitMultiplierTime = totalTime + currentEntryTime;
                double exitMultiplier = Math.exp(-omega * exitMultiplierTime) * (1.0 - Math.exp(-omega * currentExitTime));
                double entryMultiplier = Math.exp(-omega * entryMultiplierTime) * ( 1.0 - Math.exp(-omega * currentEntryTime));
 
@@ -124,7 +124,7 @@ public class CMPRecursionMultipliersTest
 
             cmpRecursionMultipliers.compute(i, doubleSupportDurations, singleSupportDurations, useTwoCMPs, isInTransfer);
 
-            totalTime = upcomingInitialDoubleSupport - endOfDoubleSupport + startStepDuration;
+            totalTime = upcomingInitialDoubleSupport;
 
             for (int j = 0; j < i; j++)
             {
@@ -132,8 +132,8 @@ public class CMPRecursionMultipliersTest
                double currentEntryTime = (1.0 - exitRatio) * stepDuration;
                double currentExitTime = exitRatio * stepDuration;
 
-               double entryMultiplierTime = totalTime + entryTime;
-               double exitMultiplierTime = totalTime;
+               double entryMultiplierTime = totalTime;
+               double exitMultiplierTime = totalTime + currentEntryTime;
                double exitMultiplier = Math.exp(-omega * exitMultiplierTime) * (1.0 - Math.exp(-omega * currentExitTime));
                double entryMultiplier = Math.exp(-omega * entryMultiplierTime) * ( 1.0 - Math.exp(-omega * currentEntryTime));
 

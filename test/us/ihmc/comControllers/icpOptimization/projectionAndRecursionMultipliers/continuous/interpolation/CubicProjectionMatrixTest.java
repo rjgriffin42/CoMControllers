@@ -21,7 +21,7 @@ public class CubicProjectionMatrixTest
       CubicProjectionMatrix cubicProjectionMatrix = new CubicProjectionMatrix();
 
       Assert.assertEquals("", 4, cubicProjectionMatrix.numCols);
-      Assert.assertEquals("", 4, cubicProjectionMatrix.numRows);
+      Assert.assertEquals("", 1, cubicProjectionMatrix.numRows);
    }
 
    @DeployableTestMethod(estimatedDuration = 1.0)
