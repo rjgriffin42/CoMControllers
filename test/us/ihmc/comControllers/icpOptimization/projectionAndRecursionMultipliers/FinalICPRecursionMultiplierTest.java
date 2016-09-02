@@ -42,7 +42,7 @@ public class FinalICPRecursionMultiplierTest
       int iters = 100;
       for (int iter = 0; iter < iters; iter++)
       {
-         for (int i = 1; i < maxSteps; i++)
+         for (int i = 0; i < maxSteps; i++)
          {
             String name = "number of steps = " + i;
 
