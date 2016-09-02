@@ -30,6 +30,7 @@ import java.util.ArrayList;
 
 public class ICPOptimizationController
 {
+   private static final boolean ADD_VISUALIZATION = true;
    private static final String namePrefix = "icpOptimizationCalculator";
    private static final String yoNamePrefix = "controller";
    private static final ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
@@ -155,7 +156,7 @@ public class ICPOptimizationController
          footstepSolutions.add(new YoFramePoint2d("footstepSolutionLocation" + i, worldFrame, registry));
       }
 
-      if (yoGraphicsListRegistry != null)
+      if (yoGraphicsListRegistry != null && ADD_VISUALIZATION)
       {
          String name = "stanceCMPPoints";
          YoGraphicPosition previousExitCMP = new YoGraphicPosition("previousExitCMP", previousStanceExitCMP, 0.004, YoAppearance.Red(), YoGraphicPosition.GraphicType.SQUARE);
