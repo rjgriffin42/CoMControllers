@@ -387,7 +387,7 @@ public class SphereControlToolbox
 
       if (sendFootsteps.getBooleanValue())
       {
-         for (Footstep footstep : footstepTestHelper.createFootsteps(0.25, 0.2, 20))
+         for (Footstep footstep : footstepTestHelper.createFootsteps(0.25, 0.2, 100))
             footsteps.add(footstep);
 
          sendFootsteps.set(false);
@@ -663,12 +663,12 @@ public class SphereControlToolbox
 
          @Override public double getFootstepWeight()
          {
-            return 200.0;
+            return 2.0;
          }
 
          @Override public double getFeedbackWeight()
          {
-            return 0.005;
+            return 2.0;
          }
 
          @Override public double getFeedbackGain()
@@ -688,7 +688,7 @@ public class SphereControlToolbox
 
          @Override public boolean scaleFirstStepWeightWithTime()
          {
-            return false;
+            return true;
          }
 
          @Override public boolean scaleFeedbackWeightWithGain()

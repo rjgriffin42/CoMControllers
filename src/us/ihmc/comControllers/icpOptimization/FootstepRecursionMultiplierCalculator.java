@@ -11,6 +11,7 @@ import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.robotics.geometry.FramePoint2d;
 import us.ihmc.robotics.geometry.FrameVector2d;
+import us.ihmc.robotics.math.frames.YoFramePoint2d;
 
 import java.util.ArrayList;
 
@@ -164,7 +165,7 @@ public class FootstepRecursionMultiplierCalculator
    private final DenseMatrix64F boundaryConditionMatrix = new DenseMatrix64F(4, 2);
    private final DenseMatrix64F referenceICPMatrix = new DenseMatrix64F(1, 2);
 
-   public void computeNominalICPPoints(FramePoint2d finalICP, ArrayList<Footstep> footsteps, ArrayList<FrameVector2d> entryOffsets,
+   public void computeNominalICPPoints(FramePoint2d finalICP, ArrayList<YoFramePoint2d> footstepLocations, ArrayList<FrameVector2d> entryOffsets,
                                        ArrayList<FrameVector2d> exitOffsets, FramePoint2d previousExitCMP, FramePoint2d entryCMP, FramePoint2d exitCMP,
                                        int numberOfFootstepsToConsider, FramePoint2d nominalPredictedEndOfStateICP, FramePoint2d nominalBeginningOfStateICPToPack,
                                        FramePoint2d nominalReferenceICPToPack)
@@ -184,9 +185,8 @@ public class FootstepRecursionMultiplierCalculator
 
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
       {
-         footsteps.get(i).getPosition2d(tmpPoint);
-         tmpEntry.set(tmpPoint);
-         tmpExit.set(tmpPoint);
+         tmpEntry.set(footstepLocations.get(i).getFrameTuple2d());
+         tmpExit.set(footstepLocations.get(i).getFrameTuple2d());
 
          tmpEntry.add(entryOffsets.get(i));
          tmpExit.add(exitOffsets.get(i));

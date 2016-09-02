@@ -29,7 +29,7 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
 
    public ICPOptimizationSolverTest()
    {
-      super(icpOptimizationParameters, rootRegistry);
+      super(icpOptimizationParameters);
       rootRegistry.clear();
    }
 

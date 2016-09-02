@@ -19,11 +19,7 @@ import java.util.ArrayList;
 
 public class ICPOptimizationSolver
 {
-   private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
    private static final ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
-
-   protected final YoMatrix yoSolverInput_G;
-   protected final YoMatrix yoSolverInputLinear_g;
 
    protected final DenseMatrix64F solverInput_G;
    protected final DenseMatrix64F solverInput_g;
@@ -84,7 +80,7 @@ public class ICPOptimizationSolver
    private final double minimumFootstepWeight;
    private final double minimumFeedbackWeight;
 
-   public ICPOptimizationSolver(ICPOptimizationParameters icpOptimizationParameters, YoVariableRegistry parentRegistry)
+   public ICPOptimizationSolver(ICPOptimizationParameters icpOptimizationParameters)
    {
       maximumNumberOfFootstepsToConsider = icpOptimizationParameters.getMaximumNumberOfFootstepsToConsider();
 
@@ -95,9 +91,6 @@ public class ICPOptimizationSolver
       int maximumNumberOfLagrangeMultipliers = 2;
 
       int size = maximumNumberOfFreeVariables + maximumNumberOfLagrangeMultipliers;
-
-      yoSolverInput_G = new YoMatrix("solverInput_G", size, size, registry);
-      yoSolverInputLinear_g = new YoMatrix("solverInputLinear_g", size, 1, registry);
 
       solverInput_G = new DenseMatrix64F(size, size);
       solverInput_g = new DenseMatrix64F(size, 1);
@@ -133,8 +126,6 @@ public class ICPOptimizationSolver
 
       tmpCost = new DenseMatrix64F(maximumNumberOfFreeVariables + maximumNumberOfLagrangeMultipliers, 1);
       costToGo = new DenseMatrix64F(1, 1);
-
-      parentRegistry.addChild(registry);
    }
 
    public void submitProblemConditions(int numberOfFootstepsToConsider, boolean useStepAdjustment, boolean useFeedback, boolean useTwoCMPs)
@@ -424,9 +415,6 @@ public class ICPOptimizationSolver
       MatrixTools.setMatrixBlock(solverInput_G, 0, numberOfFreeVariables, solverInput_Aeq, 0, 0, numberOfFreeVariables, numberOfLagrangeMultipliers, 1.0);
       MatrixTools.setMatrixBlock(solverInput_G, numberOfFreeVariables, 0, solverInput_AeqTrans, 0, 0, numberOfLagrangeMultipliers, numberOfFreeVariables, 1.0);
       MatrixTools.setMatrixBlock(solverInput_g, numberOfFreeVariables, 0, solverInput_beq, 0, 0, numberOfLagrangeMultipliers, 1, 1.0);
-
-      yoSolverInput_G.set(solverInput_G);
-      yoSolverInputLinear_g.set(solverInput_g);
    }
 
    private void solve(DenseMatrix64F solutionToPack)
