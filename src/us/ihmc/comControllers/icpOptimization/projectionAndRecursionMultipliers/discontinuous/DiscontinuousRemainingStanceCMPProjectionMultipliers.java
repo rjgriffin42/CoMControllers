@@ -89,17 +89,17 @@ public class DiscontinuousRemainingStanceCMPProjectionMultipliers implements Rem
       }
    }
 
-   public double getExitMultiplier()
+   public double getRemainingExitMultiplier()
    {
       return exitMultiplier.getDoubleValue();
    }
 
-   public double getEntryMultiplier()
+   public double getRemainingEntryMultiplier()
    {
       return entryMultiplier.getDoubleValue();
    }
 
-   public double getPreviousExitMultiplier()
+   public double getRemainingPreviousExitMultiplier()
    {
       return previousExitMultiplier.getDoubleValue();
    }

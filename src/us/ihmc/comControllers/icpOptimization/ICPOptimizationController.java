@@ -4,6 +4,7 @@ import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.BipedSupportPoly
 import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerParameters;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ReferenceCentroidalMomentumPivotLocationsCalculator;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.smoothICPGenerator.CapturePointTools;
+import us.ihmc.graphics3DAdapter.graphics.appearances.YoAppearance;
 import us.ihmc.humanoidRobotics.bipedSupportPolygons.ContactablePlaneBody;
 import us.ihmc.humanoidRobotics.footstep.Footstep;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
@@ -20,6 +21,9 @@ import us.ihmc.robotics.math.frames.YoFrameVector2d;
 import us.ihmc.robotics.referenceFrames.ReferenceFrame;
 import us.ihmc.robotics.robotSide.RobotSide;
 import us.ihmc.robotics.robotSide.SideDependentList;
+import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicPosition;
+import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicsListRegistry;
+import us.ihmc.simulationconstructionset.yoUtilities.graphics.plotting.YoArtifact;
 
 import javax.vecmath.Quat4d;
 import java.util.ArrayList;
@@ -78,6 +82,10 @@ public class ICPOptimizationController
    private final YoFramePoint2d finalICPRecursion = new YoFramePoint2d("finalICPRecursion", worldFrame, registry);
    private final YoFramePoint2d cmpOffsetRecursionEffect = new YoFramePoint2d("cmpOffsetRecursionEffect", worldFrame, registry);
 
+   private final YoFramePoint2d nominalEndOfStateICP = new YoFramePoint2d("nominalEndOfStateICP", worldFrame, registry);
+   private final YoFramePoint2d nominalBeginningOfStateICP = new YoFramePoint2d("nominalBeginningOfStateICP", worldFrame, registry);
+   private final YoFramePoint2d nominalReferenceICP = new YoFramePoint2d("nominalReferenceICP", worldFrame, registry);
+
    private final ArrayList<Footstep> upcomingFootsteps = new ArrayList<>();
    private final ArrayList<FrameVector2d> entryOffsets = new ArrayList<>();
    private final ArrayList<FrameVector2d> exitOffsets = new ArrayList<>();
@@ -102,7 +110,8 @@ public class ICPOptimizationController
    private final int maximumNumberOfFootstepsToConsider;
 
    public ICPOptimizationController(CapturePointPlannerParameters icpPlannerParameters, ICPOptimizationParameters icpOptimizationParameters,
-         BipedSupportPolygons bipedSupportPolygons, SideDependentList<? extends ContactablePlaneBody> contactableFeet, DoubleYoVariable omega, YoVariableRegistry parentRegistry)
+                                    BipedSupportPolygons bipedSupportPolygons, SideDependentList<? extends ContactablePlaneBody> contactableFeet, DoubleYoVariable omega,
+                                    YoVariableRegistry parentRegistry, YoGraphicsListRegistry yoGraphicsListRegistry)
    {
       this.icpPlannerParameters = icpPlannerParameters;
       this.icpOptimizationParameters = icpOptimizationParameters;
@@ -142,6 +151,27 @@ public class ICPOptimizationController
          yoEntryOffsets.add(new YoFrameVector2d("entryOffset" + i, worldFrame, registry));
          yoExitOffsets.add(new YoFrameVector2d("exitOffset" + i, worldFrame, registry));
          footstepSolutions.add(new YoFramePoint2d("footstepSolutionLocation" + i, worldFrame, registry));
+      }
+
+      if (yoGraphicsListRegistry != null)
+      {
+         String name = "stanceCMPPoints";
+         YoGraphicPosition previousExitCMP = new YoGraphicPosition("previousExitCMP", previousStanceExitCMP, 0.004, YoAppearance.Red(), YoGraphicPosition.GraphicType.SQUARE);
+         YoGraphicPosition entryCMP = new YoGraphicPosition("entryCMP", stanceEntryCMP, 0.004, YoAppearance.Red(), YoGraphicPosition.GraphicType.SQUARE);
+         YoGraphicPosition exitCMP = new YoGraphicPosition("exitCMP", stanceExitCMP, 0.004, YoAppearance.Red(), YoGraphicPosition.GraphicType.SQUARE);
+
+         YoGraphicPosition endOfStateICP = new YoGraphicPosition("nominalEndOfStateICP", nominalEndOfStateICP, 0.004, YoAppearance.Yellow(), YoGraphicPosition.GraphicType.SQUARE);
+         YoGraphicPosition beginningOfStateICP = new YoGraphicPosition("nominalBeginningOfStateICP", nominalBeginningOfStateICP, 0.004, YoAppearance.Yellow(), YoGraphicPosition.GraphicType.SQUARE);
+         YoGraphicPosition referenceICP = new YoGraphicPosition("nominalReferenceICP", nominalReferenceICP, 0.004, YoAppearance.Yellow(), YoGraphicPosition.GraphicType.SOLID_BALL);
+         YoGraphicPosition finalICPViz = new YoGraphicPosition("finalICP", finalICP, 0.004, YoAppearance.LightYellow(), YoGraphicPosition.GraphicType.SQUARE);
+
+         yoGraphicsListRegistry.registerArtifact(name, previousExitCMP.createArtifact());
+         yoGraphicsListRegistry.registerArtifact(name, entryCMP.createArtifact());
+         yoGraphicsListRegistry.registerArtifact(name, exitCMP.createArtifact());
+         yoGraphicsListRegistry.registerArtifact(name, endOfStateICP.createArtifact());
+         yoGraphicsListRegistry.registerArtifact(name, beginningOfStateICP.createArtifact());
+         yoGraphicsListRegistry.registerArtifact(name, referenceICP.createArtifact());
+         yoGraphicsListRegistry.registerArtifact(name, finalICPViz.createArtifact());
       }
 
       parentRegistry.addChild(registry);
@@ -264,6 +294,7 @@ public class ICPOptimizationController
       solver.getCMPFeedback(desiredCMP);
       solver.getCMPFeedbackDifference(desiredCMPDelta);
 
+
       controllerFeedbackCMP.set(desiredCMP);
       controllerFeedbackCMPDelta.set(desiredCMPDelta);
       controllerCostToGo.set(solver.getCostToGo());
@@ -274,6 +305,9 @@ public class ICPOptimizationController
       doFeedbackOnlyControl();
    }
 
+   private final FramePoint2d tmpEndPoint = new FramePoint2d();
+   private final FramePoint2d tmpBeginningPoint = new FramePoint2d();
+   private final FramePoint2d tmpReferencePoint = new FramePoint2d();
    private final FramePoint2d locationSolution = new FramePoint2d();
    private void doControlForStepping()
    {
@@ -321,6 +355,13 @@ public class ICPOptimizationController
          solver.getFootstepSolutionLocation(i, locationSolution);
          footstepSolutions.get(i).set(locationSolution);
       }
+
+      footstepRecursionMultiplierCalculator.computeNominalICPPoints(finalICP.getFrameTuple2d(), upcomingFootsteps, entryOffsets, exitOffsets,
+                                                                    previousStanceExitCMP.getFrameTuple2d(), stanceEntryCMP.getFrameTuple2d(), stanceExitCMP.getFrameTuple2d(),
+                                                                    numberOfFootstepsToConsider, tmpEndPoint, tmpBeginningPoint, tmpReferencePoint);
+      nominalEndOfStateICP.set(tmpEndPoint);
+      nominalBeginningOfStateICP.set(tmpBeginningPoint);
+      nominalReferenceICP.set(tmpReferencePoint);
    }
 
    private final FramePoint2d blankFramePoint = new FramePoint2d(worldFrame);
@@ -393,6 +434,10 @@ public class ICPOptimizationController
             previousStanceExitCMP2d.setByProjectionOntoXYPlane(previousStanceExitCMP);
             stanceEntryCMP2d.setByProjectionOntoXYPlane(stanceEntryCMP);
             stanceExitCMP2d.setByProjectionOntoXYPlane(stanceExitCMP);
+
+            this.previousStanceExitCMP.set(previousStanceExitCMP2d);
+            this.stanceEntryCMP.set(stanceEntryCMP2d);
+            this.stanceExitCMP.set(stanceExitCMP2d);
          }
          else
          {
@@ -402,6 +447,10 @@ public class ICPOptimizationController
             previousStanceExitCMP2d.setToZero();
             stanceEntryCMP2d.setByProjectionOntoXYPlane(stanceEntryCMP);
             stanceExitCMP2d.setByProjectionOntoXYPlane(stanceExitCMP);
+
+            this.previousStanceExitCMP.setToNaN();
+            this.stanceEntryCMP.set(stanceEntryCMP2d);
+            this.stanceExitCMP.set(stanceExitCMP2d);
          }
       }
       else
@@ -414,14 +463,18 @@ public class ICPOptimizationController
             previousStanceExitCMP2d.setByProjectionOntoXYPlane(previousStanceExitCMP);
             stanceEntryCMP2d.setToZero();
             stanceExitCMP2d.setByProjectionOntoXYPlane(stanceExitCMP);
+
+            this.previousStanceExitCMP.set(previousStanceExitCMP2d);
+            this.stanceEntryCMP.setToNaN();
+            this.stanceExitCMP.set(stanceExitCMP2d);
          }
          else
          {
             FramePoint stanceExitCMP = referenceCMPsCalculator.getEntryCMPs().get(0).getFrameTuple();
 
-            previousStanceExitCMP2d.setToZero();
-            stanceEntryCMP2d.setToZero();
-            stanceExitCMP2d.setByProjectionOntoXYPlane(stanceExitCMP);
+            this.previousStanceExitCMP.setToNaN();
+            this.stanceEntryCMP.setToNaN();
+            this.stanceExitCMP.set(stanceExitCMP2d);
          }
       }
 
@@ -437,10 +490,6 @@ public class ICPOptimizationController
 
       entryMultiplier += footstepRecursionMultiplierCalculator.getStanceEntryCMPProjectionMultiplier();
       exitMultiplier += footstepRecursionMultiplierCalculator.getStanceExitCMPProjectionMultiplier();
-
-      this.stanceEntryCMP.set(stanceEntryCMP2d);
-      this.stanceExitCMP.set(stanceExitCMP2d);
-      this.previousStanceExitCMP.set(previousStanceExitCMP2d);
 
       previousStanceExitCMP2d.scale(previousExitMultiplier);
       stanceEntryCMP2d.scale(entryMultiplier);

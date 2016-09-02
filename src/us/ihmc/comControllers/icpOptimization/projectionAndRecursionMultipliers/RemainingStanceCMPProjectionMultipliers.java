@@ -11,9 +11,9 @@ public interface RemainingStanceCMPProjectionMultipliers
    public void compute(double timeRemaining, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations,
          boolean useTwoCMPs, boolean isInTransfer, boolean isInTransferEntry);
 
-   public double getExitMultiplier();
+   public double getRemainingExitMultiplier();
 
-   public double getEntryMultiplier();
+   public double getRemainingEntryMultiplier();
 
-   public double getPreviousExitMultiplier();
+   public double getRemainingPreviousExitMultiplier();
 }

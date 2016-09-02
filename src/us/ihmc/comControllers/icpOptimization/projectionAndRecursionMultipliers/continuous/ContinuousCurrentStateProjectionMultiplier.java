@@ -57,4 +57,9 @@ public class ContinuousCurrentStateProjectionMultiplier extends CurrentStateProj
    {
       this.set(0.0);
    }
+
+   public DenseMatrix64F getStateEndRecursionMatrix()
+   {
+      return stateEndRecursionMatrix;
+   }
 }

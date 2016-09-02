@@ -87,18 +87,38 @@ public class ContinuousRemainingStanceCMPProjectionMultipliers implements Remain
          exitMultiplier.set(1.0 - Math.exp(-omega.getDoubleValue() * timeRemaining));
    }
 
-   public double getExitMultiplier()
+   public double getRemainingExitMultiplier()
    {
       return exitMultiplier.getDoubleValue();
    }
 
-   public double getEntryMultiplier()
+   public double getRemainingEntryMultiplier()
    {
       return entryMultiplier.getDoubleValue();
    }
 
-   public double getPreviousExitMultiplier()
+   public double getRemainingPreviousExitMultiplier()
    {
       return previousExitMultiplier.getDoubleValue();
+   }
+
+   public DenseMatrix64F getExitMultiplierMatrix()
+   {
+      return exitCMPProjectionMatrix;
+   }
+
+   public DenseMatrix64F getEntryMultiplierMatrix()
+   {
+      return entryCMPProjectionMatrix;
+   }
+
+   public DenseMatrix64F getPreviousExitMultiplierMatrix()
+   {
+      return previousExitCMPProjectionMatrix;
+   }
+
+   public DenseMatrix64F getCubicProjectionMatrix()
+   {
+      return cubicProjectionMatrix;
    }
 }

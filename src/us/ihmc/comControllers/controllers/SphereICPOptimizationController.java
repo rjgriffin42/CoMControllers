@@ -113,7 +113,7 @@ public class SphereICPOptimizationController implements GenericSphereController
 
       icpController = new ICPProportionalController(icpGains, controlToolbox.getControlDT(), registry);
       icpOptimizationController = new ICPOptimizationController(controlToolbox.getCapturePointPlannerParameters(), controlToolbox.getICPOptimizationParameters(),
-            controlToolbox.getBipedSupportPolygons(), controlToolbox.getContactableFeet(), omega0, registry);
+            controlToolbox.getBipedSupportPolygons(), controlToolbox.getContactableFeet(), omega0, registry, yoGraphicsListRegistry);
       icpOptimizationController.setStepDurations(controlToolbox.getDoubleSupportDuration(), controlToolbox.getSingleSupportDuration());
 
       stateMachine = new StateMachine<>("supportStateMachine", "supportStateTime", SupportState.class, controlToolbox.getYoTime(), registry);
