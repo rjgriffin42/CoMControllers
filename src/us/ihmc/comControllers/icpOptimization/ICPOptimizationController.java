@@ -25,7 +25,9 @@ import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicPosition;
 import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicsListRegistry;
 import us.ihmc.simulationconstructionset.yoUtilities.graphics.plotting.YoArtifact;
 
+import javax.vecmath.Matrix3d;
 import javax.vecmath.Quat4d;
+import javax.vecmath.Vector3d;
 import java.util.ArrayList;
 
 public class ICPOptimizationController
@@ -351,6 +353,10 @@ public class ICPOptimizationController
    private final FramePoint2d tmpBeginningPoint = new FramePoint2d();
    private final FramePoint2d tmpReferencePoint = new FramePoint2d();
    private final FramePoint2d locationSolution = new FramePoint2d();
+
+   private final Vector2dZUpFrame icpVelocityDirectionFrame = new Vector2dZUpFrame("icpVelocityDirectionFrame", worldFrame);
+   private final FramePoint2d tempControlGains = new FramePoint2d();
+
    private void doControlForStepping()
    {
       if (localUseFeedback && !localUseStepAdjustment)
@@ -365,6 +371,11 @@ public class ICPOptimizationController
 
       if (localUseFeedback)
       {
+         icpVelocityDirectionFrame.setXAxis(controllerDesiredICPVelocity.getFrameTuple2d());
+         tempControlGains.setToZero(icpVelocityDirectionFrame);
+         tempControlGains.set(feedbackGain.getDoubleValue(), feedbackGain.getDoubleValue());
+         tempControlGains.changeFrame(worldFrame);
+
          solver.setFeedbackConditions(scaledFeedbackWeight.getDoubleValue(), feedbackGain.getDoubleValue());
 
          if (localUseFeedbackRegularization)
@@ -680,5 +691,43 @@ public class ICPOptimizationController
    public void getFootstepSolution(int footstepIndex, FramePoint2d footstepSolutionToPack)
    {
       footstepSolutions.get(footstepIndex).getFrameTuple2d(footstepSolutionToPack);
+   }
+
+   private class Vector2dZUpFrame extends ReferenceFrame
+   {
+      private static final long serialVersionUID = -1810366869361449743L;
+      private final FrameVector2d xAxis;
+      private final Vector3d x = new Vector3d();
+      private final Vector3d y = new Vector3d();
+      private final Vector3d z = new Vector3d();
+      private final Matrix3d rotation = new Matrix3d();
+
+      public Vector2dZUpFrame(String string, ReferenceFrame parentFrame)
+      {
+         super(string, parentFrame);
+         xAxis = new FrameVector2d(parentFrame);
+      }
+
+      public void setXAxis(FrameVector2d xAxis)
+      {
+         this.xAxis.setIncludingFrame(xAxis);
+         this.xAxis.changeFrame(parentFrame);
+         this.xAxis.normalize();
+         update();
+      }
+
+      @Override
+      protected void updateTransformToParent(RigidBodyTransform transformToParent)
+      {
+         x.set(xAxis.getX(), xAxis.getY(), 0.0);
+         z.set(0.0, 0.0, 1.0);
+         y.cross(z, x);
+
+         rotation.setColumn(0, x);
+         rotation.setColumn(1, y);
+         rotation.setColumn(2, z);
+
+         transformToParent.setRotationAndZeroTranslation(rotation);
+      }
    }
 }

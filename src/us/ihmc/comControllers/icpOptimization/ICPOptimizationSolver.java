@@ -282,25 +282,33 @@ public class ICPOptimizationSolver
    }
 
    private final DenseMatrix64F identity = CommonOps.identity(2, 2);
-
    public void setFootstepAdjustmentConditions(int footstepIndex, double recursionMultiplier, double weight, FramePoint2d referenceFootstepLocation)
    {
+      this.setFootstepAdjustmentConditions(footstepIndex, recursionMultiplier, weight, weight, referenceFootstepLocation);
+   }
+
+   public void setFootstepAdjustmentConditions(int footstepIndex, double recursionMultiplier, double xWeight, double yWeight, FramePoint2d referenceFootstepLocation)
+   {
       setFootstepRecursionMutliplier(footstepIndex, recursionMultiplier);
-      setFootstepWeight(footstepIndex, weight);
+      setFootstepWeight(footstepIndex, xWeight, yWeight);
       setReferenceFootstepLocation(footstepIndex, referenceFootstepLocation);
    }
 
    private void setFootstepRecursionMutliplier(int footstepIndex, double recursionMultiplier)
    {
       CommonOps.setIdentity(identity);
-      MatrixTools.addMatrixBlock(footstepRecursionMutlipliers.get(footstepIndex), 0, 0, identity, 0, 0, 2, 2, recursionMultiplier);
+      MatrixTools.setMatrixBlock(footstepRecursionMutlipliers.get(footstepIndex), 0, 0, identity, 0, 0, 2, 2, recursionMultiplier);
    }
 
-   private void setFootstepWeight(int footstepIndex, double weight)
+   private void setFootstepWeight(int footstepIndex, double xWeight, double yWeight)
    {
-      CommonOps.setIdentity(identity);
-      weight = Math.max(minimumFootstepWeight, weight);
-      MatrixTools.addMatrixBlock(footstepWeights.get(footstepIndex), 0, 0, identity, 0, 0, 2, 2, weight);
+      xWeight = Math.max(minimumFootstepWeight, xWeight);
+      yWeight = Math.max(minimumFootstepWeight, yWeight);
+
+      identity.zero();
+      identity.set(0, 0, xWeight);
+      identity.set(1, 1, yWeight);
+      MatrixTools.setMatrixBlock(footstepWeights.get(footstepIndex), 0, 0, identity, 0, 0, 2, 2, 1.0);
    }
 
    private void setReferenceFootstepLocation(int footstepIndex, FramePoint2d referenceFootstepLocation)
@@ -312,13 +320,18 @@ public class ICPOptimizationSolver
 
    public void setFeedbackConditions(double feedbackWeight, double feedbackGain)
    {
-      feedbackWeight = Math.max(minimumFeedbackWeight, feedbackWeight);
+      this.setFeedbackConditions(feedbackWeight, feedbackWeight, feedbackGain, feedbackGain);
+   }
 
-      CommonOps.setIdentity(this.feedbackWeight);
-      CommonOps.setIdentity(this.feedbackGain);
+   public void setFeedbackConditions(double feedbackXWeight, double feedbackYWeight, double feedbackXGain, double feedbackYGain)
+   {
+      this.feedbackWeight.zero();
+      this.feedbackWeight.set(0, 0, feedbackXWeight);
+      this.feedbackWeight.set(1, 1, feedbackYWeight);
 
-      CommonOps.scale(feedbackWeight, this.feedbackWeight);
-      CommonOps.scale(feedbackGain, this.feedbackGain);
+      this.feedbackGain.zero();
+      this.feedbackGain.set(0, 0, feedbackXGain);
+      this.feedbackGain.set(1, 1, feedbackYGain);
    }
 
    public void setFeedbackRegularizationWeight(double regularizationWeight)
@@ -419,7 +432,7 @@ public class ICPOptimizationSolver
 
    protected void addFeedbackTask()
    {
-      MatrixTools.addMatrixBlock(feedbackCost_H, 0, 0, feedbackWeight, 0, 0, 2, 2, 1.0);
+      MatrixTools.setMatrixBlock(feedbackCost_H, 0, 0, feedbackWeight, 0, 0, 2, 2, 1.0);
       feedbackCost_h.zero();
 
       MatrixTools.addMatrixBlock(solverInput_H, numberOfFootstepVariables, numberOfFootstepVariables, feedbackCost_H, 0, 0, 2, 2, 1.0);
@@ -505,7 +518,7 @@ public class ICPOptimizationSolver
       if (useTwoCMPs)
          CommonOps.subtractEquals(currentICP, cmpOffsetRecursionEffect);
 
-      MatrixTools.addMatrixBlock(dynamics_beq, 0, 0, currentICP, 0, 0, 2, 1, 1.0);
+      MatrixTools.setMatrixBlock(dynamics_beq, 0, 0, currentICP, 0, 0, 2, 1, 1.0);
    }
 
    private void addFeedbackToDynamicConstraint(double currentStateProjection)
