@@ -14,6 +14,7 @@ import us.ihmc.simulationconstructionset.util.LinearGroundContactModel;
 import us.ihmc.simulationconstructionset.util.ground.FlatGroundProfile;
 import us.ihmc.simulationconstructionset.util.simulationRunner.BlockingSimulationRunner;
 import us.ihmc.simulationconstructionset.util.simulationRunner.ControllerFailureException;
+import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicVector;
 import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicsListRegistry;
 import us.ihmc.tools.testing.TestPlanAnnotations.DeployableTestMethod;
 
@@ -25,9 +26,7 @@ public class SphereSimulationTest
    private final static double controlDT = 0.001;
    private final static double gravity = 9.81;
 
-   @DeployableTestMethod(estimatedDuration = 1.0)
-   @Test(timeout = 210000)
-   public void testPushRecovery() throws BlockingSimulationRunner.SimulationExceededMaximumTimeException, ControllerFailureException
+   public static void testPushRecovery() throws BlockingSimulationRunner.SimulationExceededMaximumTimeException, ControllerFailureException
    {
       Vector3d initialPosition = new Vector3d(0.0, 0.0, 1.0);
       SphereRobotModel sphereRobotModel = new SphereRobotModel();
@@ -38,6 +37,10 @@ public class SphereSimulationTest
       ExternalForcePoint externalForcePoint = sphereRobot.getAllExternalForcePoints().get(0);
       ExternalForcePoint pushPoint = new ExternalForcePoint("pushPoint", sphereRobot.getRobotsYoVariableRegistry());
       sphereRobot.getRootJoints().get(0).addExternalForcePoint(pushPoint);
+
+      YoGraphicVector externalForceGraphic = new YoGraphicVector(pushPoint.getName() + "Force", pushPoint.getYoPosition(),
+            pushPoint.getYoForce(), 0.1);
+      yoGraphicsListRegistry.registerYoGraphic("ExternalForces", externalForceGraphic);
 
       SphereControlToolbox sphereControlToolbox = new SphereControlToolbox(sphereRobotModel, controlDT, desiredHeight, gravity, sphereRobot.getYoTime(),
             sphereRobot.getRobotsYoVariableRegistry(), yoGraphicsListRegistry);
@@ -81,26 +84,35 @@ public class SphereSimulationTest
       sendFootsteps.set(true);
 
       double timeAtStartOfPush = 0.0;
+      boolean applyForce = true;
 
       Vector3d forceToApply = new Vector3d(0.0, -10.0, 0.0);
-      double pushDuration = 0.2;
+      Vector3d zero = new Vector3d(0.0, 0.0, 0.0);
+      double pushDuration = 0.4;
 
       while (scs.getTime() - initializationTime < simulationDuration)
       {
          double time = scs.getTime();
-         if (time > timeForPush)
+         if (time > timeForPush && applyForce)
+         {
             timeAtStartOfPush = time;
+            applyForce = false;
+         }
 
          if ((timeAtStartOfPush > 0.0) && time < (timeAtStartOfPush + pushDuration))
          {
             pushPoint.setForce(forceToApply);
+         }
+         else
+         {
+            pushPoint.setForce(zero);
          }
 
          blockingSimulationRunner.simulateAndBlock(timeIncrement);
       }
    }
 
-   private void setupGroundContactModel(Robot robot)
+   private static void setupGroundContactModel(Robot robot)
    {
       double kXY = 1000.0; //1422.0;
       double bXY = 100.0; //150.6;
@@ -111,6 +123,19 @@ public class SphereSimulationTest
       GroundProfile3D groundProfile = new FlatGroundProfile();
       groundContactModel.setGroundProfile3D(groundProfile);
       robot.setGroundContactModel(groundContactModel);
+   }
 
+   public static void main(String[] args)
+   {
+      try
+      {
+         testPushRecovery();
+      }
+      catch (BlockingSimulationRunner.SimulationExceededMaximumTimeException e)
+      {
+      }
+      catch (ControllerFailureException e)
+      {
+      }
    }
 }

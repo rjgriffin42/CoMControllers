@@ -76,7 +76,12 @@ public class ICPOptimizationController
 
    private final YoFramePoint2d controllerFeedbackCMP = new YoFramePoint2d("controllerFeedbackCMP", worldFrame, registry);
    private final YoFrameVector2d controllerFeedbackCMPDelta = new YoFrameVector2d("controllerFeedbackCMPDelta", worldFrame, registry);
+
    private final DoubleYoVariable controllerCostToGo = new DoubleYoVariable("costToGo", registry);
+   private final DoubleYoVariable controllerFootstepCostToGo = new DoubleYoVariable("footstepCostToGo", registry);
+   private final DoubleYoVariable controllerFootstepRegularizationCostToGo = new DoubleYoVariable("footstepRegularizationCostToGo", registry);
+   private final DoubleYoVariable controllerFeedbackCostToGo = new DoubleYoVariable("feedbackCostToGo", registry);
+   private final DoubleYoVariable controllerFeedbackRegularizationCostToGo = new DoubleYoVariable("feedbackRegularizationCostToGo", registry);
 
    private final YoFramePoint2d stanceEntryCMP = new YoFramePoint2d("stanceEntryCMP", worldFrame, registry);
    private final YoFramePoint2d stanceExitCMP = new YoFramePoint2d("stanceExitCMP", worldFrame, registry);
@@ -342,7 +347,12 @@ public class ICPOptimizationController
 
       controllerFeedbackCMP.set(desiredCMP);
       controllerFeedbackCMPDelta.set(desiredCMPDelta);
+
       controllerCostToGo.set(solver.getCostToGo());
+      controllerFootstepCostToGo.set(solver.getFootstepCostToGo());
+      controllerFootstepRegularizationCostToGo.set(solver.getFootstepRegularizationCostToGo());
+      controllerFeedbackCostToGo.set(solver.getFeedbackCostToGo());
+      controllerFeedbackRegularizationCostToGo.set(solver.getFeedbackRegularizationCostToGo());
    }
 
    private void doControlForStanding()
