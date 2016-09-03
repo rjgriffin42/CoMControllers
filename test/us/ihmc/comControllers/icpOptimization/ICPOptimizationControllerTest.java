@@ -182,6 +182,11 @@ public class ICPOptimizationControllerTest
          return 2.0;
       }
 
+      @Override public double getFeedbackRegularizationWeight()
+      {
+         return 0.0001;
+      }
+
       @Override public double getFeedbackGain()
       {
          return 2.0;
@@ -198,6 +203,11 @@ public class ICPOptimizationControllerTest
       }
 
       @Override public boolean useFeedback()
+      {
+         return true;
+      }
+
+      @Override public boolean useFeedbackRegularization()
       {
          return true;
       }

@@ -344,6 +344,11 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
          return 2.0;
       }
 
+      @Override public double getFeedbackRegularizationWeight()
+      {
+         return 0.0001;
+      }
+
       @Override public double getFeedbackGain()
       {
          return 2.0;
@@ -360,6 +365,11 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
       }
 
       @Override public boolean useFeedback()
+      {
+         return true;
+      }
+
+      @Override public boolean useFeedbackRegularization()
       {
          return true;
       }

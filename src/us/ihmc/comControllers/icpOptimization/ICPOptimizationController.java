@@ -43,6 +43,7 @@ public class ICPOptimizationController
    private final BooleanYoVariable useFeedback = new BooleanYoVariable("useFeedback", registry);
    private final BooleanYoVariable useStepAdjustment = new BooleanYoVariable("useStepAdjustment", registry);
    private final BooleanYoVariable useFootstepRegularization = new BooleanYoVariable("useFootstepRegularization", registry);
+   private final BooleanYoVariable useFeedbackRegularization = new BooleanYoVariable("useFeedbackRegularization", registry);
 
    private final BooleanYoVariable scaleFirstStepWeightWithTime = new BooleanYoVariable("scaleFirstStepWeightWithTime", registry);
    private final BooleanYoVariable scaleFeedbackWeightWithGain = new BooleanYoVariable("scaleFeedbackWeightWithGain", registry);
@@ -100,6 +101,7 @@ public class ICPOptimizationController
    private final DoubleYoVariable footstepRegularizationWeight = new DoubleYoVariable("footstepRegularizationWeight", registry);
    private final DoubleYoVariable firstStepWeight = new DoubleYoVariable("firstStepWeight", registry);
    private final DoubleYoVariable feedbackWeight = new DoubleYoVariable("feedbackWeight", registry);
+   private final DoubleYoVariable feedbackRegularizationWeight = new DoubleYoVariable("feedbackRegularizationWeight", registry);
    private final DoubleYoVariable scaledFeedbackWeight = new DoubleYoVariable("scaledFeedbackWeight", registry);
    private final DoubleYoVariable feedbackGain = new DoubleYoVariable("feedbackGain", registry);
 
@@ -117,6 +119,7 @@ public class ICPOptimizationController
    private boolean localUseFeedback;
    private boolean localUseStepAdjustment;
    private boolean localUseFootstepRegularization;
+   private boolean localUseFeedbackRegularization;
 
    public ICPOptimizationController(CapturePointPlannerParameters icpPlannerParameters, ICPOptimizationParameters icpOptimizationParameters,
                                     BipedSupportPolygons bipedSupportPolygons, SideDependentList<? extends ContactablePlaneBody> contactableFeet, DoubleYoVariable omega,
@@ -140,6 +143,7 @@ public class ICPOptimizationController
       useFeedback.set(icpOptimizationParameters.useFeedback());
       useStepAdjustment.set(icpOptimizationParameters.useStepAdjustment());
       useFootstepRegularization.set(icpOptimizationParameters.useFootstepRegularization());
+      useFeedbackRegularization.set(icpOptimizationParameters.useFeedbackRegularization());
 
       scaleFirstStepWeightWithTime.set(icpOptimizationParameters.scaleFirstStepWeightWithTime());
       scaleFeedbackWeightWithGain.set(icpOptimizationParameters.scaleFeedbackWeightWithGain());
@@ -147,6 +151,7 @@ public class ICPOptimizationController
       footstepWeight.set(icpOptimizationParameters.getFootstepWeight());
       footstepRegularizationWeight.set(icpOptimizationParameters.getFootstepRegularizationWeight());
       feedbackWeight.set(icpOptimizationParameters.getFeedbackWeight());
+      feedbackRegularizationWeight.set(icpOptimizationParameters.getFeedbackRegularizationWeight());
       feedbackGain.set(icpOptimizationParameters.getFeedbackGain());
 
       exitCMPDurationInPercentOfStepTime.set(icpPlannerParameters.getTimeSpentOnExitCMPInPercentOfStepTime());
@@ -238,6 +243,7 @@ public class ICPOptimizationController
       localUseFeedback = useFeedback.getBooleanValue();
       localUseStepAdjustment = useStepAdjustment.getBooleanValue();
       localUseFootstepRegularization = useFootstepRegularization.getBooleanValue();
+      localUseFeedbackRegularization = useFeedbackRegularization.getBooleanValue();
 
       // fixme submitting these must be smarter
       footstepRecursionMultiplierCalculator.resetTimes();
@@ -258,6 +264,8 @@ public class ICPOptimizationController
 
       if (localUseFootstepRegularization)
          resetFootstepRegularizationTask();
+      if (localUseFeedbackRegularization)
+         solver.resetFeedbackRegularization();
    }
 
    public void initializeForSingleSupport(double initialTime, RobotSide supportSide)
@@ -273,6 +281,7 @@ public class ICPOptimizationController
       localUseFeedback = useFeedback.getBooleanValue();
       localUseStepAdjustment = useStepAdjustment.getBooleanValue();
       localUseFootstepRegularization = useFootstepRegularization.getBooleanValue();
+      localUseFeedbackRegularization = useFeedbackRegularization.getBooleanValue();
 
       // fixme submitting these must be smarter
       footstepRecursionMultiplierCalculator.resetTimes();
@@ -288,9 +297,10 @@ public class ICPOptimizationController
       referenceCMPsCalculator.computeReferenceCMPsStartingFromSingleSupport(supportSide);
       referenceCMPsCalculator.update();
 
-      localUseFootstepRegularization = useFootstepRegularization.getBooleanValue();
       if (localUseFootstepRegularization)
          resetFootstepRegularizationTask();
+      if (localUseFeedbackRegularization)
+         solver.resetFeedbackRegularization();
    }
 
    private final FramePoint2d perfectCMP = new FramePoint2d();
@@ -356,6 +366,9 @@ public class ICPOptimizationController
       if (localUseFeedback)
       {
          solver.setFeedbackConditions(scaledFeedbackWeight.getDoubleValue(), feedbackGain.getDoubleValue());
+
+         if (localUseFeedbackRegularization)
+            solver.setFeedbackRegularizationWeight(feedbackRegularizationWeight.getDoubleValue());
       }
 
       if (localUseStepAdjustment)

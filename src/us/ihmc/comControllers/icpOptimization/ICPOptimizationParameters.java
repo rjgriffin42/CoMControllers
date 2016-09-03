@@ -12,6 +12,8 @@ public interface ICPOptimizationParameters
 
    public double getFeedbackWeight();
 
+   public double getFeedbackRegularizationWeight();
+
    public double getFeedbackGain();
 
    public boolean scaleFirstStepWeightWithTime();
@@ -19,6 +21,8 @@ public interface ICPOptimizationParameters
    public boolean scaleFeedbackWeightWithGain();
 
    public boolean useFeedback();
+
+   public boolean useFeedbackRegularization();
 
    public boolean useStepAdjustment();
 
