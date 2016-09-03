@@ -42,6 +42,7 @@ public class ICPOptimizationController
    private final BooleanYoVariable useTwoCMPsInControl = new BooleanYoVariable("useTwoCMPsInControl", registry);
    private final BooleanYoVariable useFeedback = new BooleanYoVariable("useFeedback", registry);
    private final BooleanYoVariable useStepAdjustment = new BooleanYoVariable("useStepAdjustment", registry);
+   private final BooleanYoVariable useFootstepRegularization = new BooleanYoVariable("useFootstepRegularization", registry);
 
    private final BooleanYoVariable scaleFirstStepWeightWithTime = new BooleanYoVariable("scaleFirstStepWeightWithTime", registry);
    private final BooleanYoVariable scaleFeedbackWeightWithGain = new BooleanYoVariable("scaleFeedbackWeightWithGain", registry);
@@ -96,6 +97,7 @@ public class ICPOptimizationController
    private final ArrayList<YoFramePoint2d> footstepSolutions = new ArrayList<>();
 
    private final DoubleYoVariable footstepWeight = new DoubleYoVariable("footstepWeight", registry);
+   private final DoubleYoVariable footstepRegularizationWeight = new DoubleYoVariable("footstepRegularizationWeight", registry);
    private final DoubleYoVariable firstStepWeight = new DoubleYoVariable("firstStepWeight", registry);
    private final DoubleYoVariable feedbackWeight = new DoubleYoVariable("feedbackWeight", registry);
    private final DoubleYoVariable scaledFeedbackWeight = new DoubleYoVariable("scaledFeedbackWeight", registry);
@@ -110,6 +112,11 @@ public class ICPOptimizationController
    private final CapturePointPlannerParameters icpPlannerParameters;
    private final ICPOptimizationParameters icpOptimizationParameters;
    private final int maximumNumberOfFootstepsToConsider;
+
+   private boolean localUseTwoCMPs;
+   private boolean localUseFeedback;
+   private boolean localUseStepAdjustment;
+   private boolean localUseFootstepRegularization;
 
    public ICPOptimizationController(CapturePointPlannerParameters icpPlannerParameters, ICPOptimizationParameters icpOptimizationParameters,
                                     BipedSupportPolygons bipedSupportPolygons, SideDependentList<? extends ContactablePlaneBody> contactableFeet, DoubleYoVariable omega,
@@ -129,14 +136,16 @@ public class ICPOptimizationController
             maximumNumberOfFootstepsToConsider, registry);
       referenceCMPsCalculator.initializeParameters(icpPlannerParameters);
 
+      useTwoCMPsInControl.set(icpPlannerParameters.useTwoCMPsPerSupport());
       useFeedback.set(icpOptimizationParameters.useFeedback());
       useStepAdjustment.set(icpOptimizationParameters.useStepAdjustment());
-      useTwoCMPsInControl.set(icpPlannerParameters.useTwoCMPsPerSupport());
+      useFootstepRegularization.set(icpOptimizationParameters.useFootstepRegularization());
 
       scaleFirstStepWeightWithTime.set(icpOptimizationParameters.scaleFirstStepWeightWithTime());
       scaleFeedbackWeightWithGain.set(icpOptimizationParameters.scaleFeedbackWeightWithGain());
 
       footstepWeight.set(icpOptimizationParameters.getFootstepWeight());
+      footstepRegularizationWeight.set(icpOptimizationParameters.getFootstepRegularizationWeight());
       feedbackWeight.set(icpOptimizationParameters.getFeedbackWeight());
       feedbackGain.set(icpOptimizationParameters.getFeedbackGain());
 
@@ -225,6 +234,11 @@ public class ICPOptimizationController
       isInTransfer.set(true);
       isInTransferEntry.set(true);
 
+      localUseTwoCMPs = useTwoCMPsInControl.getBooleanValue();
+      localUseFeedback = useFeedback.getBooleanValue();
+      localUseStepAdjustment = useStepAdjustment.getBooleanValue();
+      localUseFootstepRegularization = useFootstepRegularization.getBooleanValue();
+
       // fixme submitting these must be smarter
       footstepRecursionMultiplierCalculator.resetTimes();
       if (isInitialTransfer.getBooleanValue())
@@ -236,11 +250,14 @@ public class ICPOptimizationController
          footstepRecursionMultiplierCalculator.submitTimes(i, doubleSupportDuration.getDoubleValue(), singleSupportDuration.getDoubleValue());
 
       footstepRecursionMultiplierCalculator.computeRecursionMultipliers(numberOfFootstepsToConsider.getIntegerValue(), isInTransfer.getBooleanValue(),
-            useTwoCMPsInControl.getBooleanValue());
+            localUseTwoCMPs);
 
-      referenceCMPsCalculator.setUseTwoCMPsPerSupport(useTwoCMPsInControl.getBooleanValue());
+      referenceCMPsCalculator.setUseTwoCMPsPerSupport(localUseTwoCMPs);
       referenceCMPsCalculator.computeReferenceCMPsStartingFromDoubleSupport(isStanding.getBooleanValue(), transferToSide);
       referenceCMPsCalculator.update();
+
+      if (localUseFootstepRegularization)
+         resetFootstepRegularizationTask();
    }
 
    public void initializeForSingleSupport(double initialTime, RobotSide supportSide)
@@ -252,6 +269,11 @@ public class ICPOptimizationController
       isInTransferEntry.set(false);
       isInitialTransfer.set(false);
 
+      localUseTwoCMPs = useTwoCMPsInControl.getBooleanValue();
+      localUseFeedback = useFeedback.getBooleanValue();
+      localUseStepAdjustment = useStepAdjustment.getBooleanValue();
+      localUseFootstepRegularization = useFootstepRegularization.getBooleanValue();
+
       // fixme submitting these must be smarter
       footstepRecursionMultiplierCalculator.resetTimes();
       footstepRecursionMultiplierCalculator.submitTimes(0, 0.0, singleSupportDuration.getDoubleValue());
@@ -260,12 +282,15 @@ public class ICPOptimizationController
          footstepRecursionMultiplierCalculator.submitTimes(i, doubleSupportDuration.getDoubleValue(), singleSupportDuration.getDoubleValue());
       footstepRecursionMultiplierCalculator.submitTimes(numberOfFootstepsToConsider.getIntegerValue() + 1, doubleSupportDuration.getDoubleValue(), singleSupportDuration.getDoubleValue());
 
-      footstepRecursionMultiplierCalculator.computeRecursionMultipliers(numberOfFootstepsToConsider.getIntegerValue(), isInTransfer.getBooleanValue(),
-            useTwoCMPsInControl.getBooleanValue());
+      footstepRecursionMultiplierCalculator.computeRecursionMultipliers(numberOfFootstepsToConsider.getIntegerValue(), isInTransfer.getBooleanValue(), localUseTwoCMPs);
 
-      referenceCMPsCalculator.setUseTwoCMPsPerSupport(useTwoCMPsInControl.getBooleanValue());
+      referenceCMPsCalculator.setUseTwoCMPsPerSupport(localUseTwoCMPs);
       referenceCMPsCalculator.computeReferenceCMPsStartingFromSingleSupport(supportSide);
       referenceCMPsCalculator.update();
+
+      localUseFootstepRegularization = useFootstepRegularization.getBooleanValue();
+      if (localUseFootstepRegularization)
+         resetFootstepRegularizationTask();
    }
 
    private final FramePoint2d perfectCMP = new FramePoint2d();
@@ -318,34 +343,34 @@ public class ICPOptimizationController
    private final FramePoint2d locationSolution = new FramePoint2d();
    private void doControlForStepping()
    {
-      if (useFeedback.getBooleanValue() && !useStepAdjustment.getBooleanValue())
+      if (localUseFeedback && !localUseStepAdjustment)
       {
          doFeedbackOnlyControl();
          return;
       }
 
-      int numberOfFootstepsToConsider = this.numberOfFootstepsToConsider.getIntegerValue();
-      numberOfFootstepsToConsider = Math.min(numberOfFootstepsToConsider, upcomingFootsteps.size());
-      numberOfFootstepsToConsider = Math.min(numberOfFootstepsToConsider, maximumNumberOfFootstepsToConsider);
+      int numberOfFootstepsToConsider = clipNumberOfFootstepsToConsiderToProblem(this.numberOfFootstepsToConsider.getIntegerValue());
 
-      solver.submitProblemConditions(numberOfFootstepsToConsider, useStepAdjustment.getBooleanValue(), useFeedback.getBooleanValue(),
-                                     useTwoCMPsInControl.getBooleanValue());
+      solver.submitProblemConditions(numberOfFootstepsToConsider, localUseStepAdjustment, localUseFeedback, localUseTwoCMPs);
 
-      if (useFeedback.getBooleanValue())
+      if (localUseFeedback)
       {
          solver.setFeedbackConditions(scaledFeedbackWeight.getDoubleValue(), feedbackGain.getDoubleValue());
       }
 
-      if (useStepAdjustment.getBooleanValue())
+      if (localUseStepAdjustment)
       {
          for (int footstepIndex = 0; footstepIndex < numberOfFootstepsToConsider; footstepIndex++)
             submitFootstepConditionsToSolver(footstepIndex);
+
+         if (localUseFootstepRegularization)
+            solver.setFootstepRegularizationWeight(footstepRegularizationWeight.getDoubleValue());
       }
 
       computeFinalICPRecursion();
       computeStanceCMPProjection();
 
-      if (useTwoCMPsInControl.getBooleanValue())
+      if (localUseTwoCMPs)
       {
          computeCMPOffsetRecursionEffect();
          solver.compute(finalICPRecursion.getFrameTuple2d(), cmpOffsetRecursionEffect.getFrameTuple2d(), controllerCurrentICP.getFrameTuple2d(),
@@ -380,6 +405,22 @@ public class ICPOptimizationController
       solver.compute(controllerDesiredICP.getFrameTuple2d(), null, controllerCurrentICP.getFrameTuple2d(), controllerPerfectCMP.getFrameTuple2d(), blankFramePoint, 1.0);
    }
 
+   private void resetFootstepRegularizationTask()
+   {
+      int numberOfFootstepsToConsider = clipNumberOfFootstepsToConsiderToProblem(this.numberOfFootstepsToConsider.getIntegerValue());
+
+      for (int i = 0; i < numberOfFootstepsToConsider; i++)
+         solver.resetFootstepRegularization(i, upcomingFootstepLocations.get(i).getFrameTuple2d());
+   }
+
+   private int clipNumberOfFootstepsToConsiderToProblem(int numberOfFootstepsToConsider)
+   {
+      numberOfFootstepsToConsider = Math.min(numberOfFootstepsToConsider, upcomingFootsteps.size());
+      numberOfFootstepsToConsider = Math.min(numberOfFootstepsToConsider, maximumNumberOfFootstepsToConsider);
+
+      return numberOfFootstepsToConsider;
+   }
+
    private void submitFootstepConditionsToSolver(int footstepIndex)
    {
       double footstepWeight;
@@ -389,7 +430,7 @@ public class ICPOptimizationController
          footstepWeight = this.footstepWeight.getDoubleValue();
 
       double footstepRecursionMultiplier;
-      if (useTwoCMPsInControl.getBooleanValue())
+      if (localUseTwoCMPs)
       {
          double entryMutliplier = footstepRecursionMultiplierCalculator.getCMPRecursionEntryMultiplier(footstepIndex);
          double exitMutliplier = footstepRecursionMultiplierCalculator.getCMPRecursionExitMultiplier(footstepIndex);
@@ -427,10 +468,10 @@ public class ICPOptimizationController
    private final FramePoint2d stanceExitCMP2d = new FramePoint2d(worldFrame);
    private void computeStanceCMPProjection()
    {
-      footstepRecursionMultiplierCalculator.computeRemainingProjectionMultipliers(timeRemainingInState.getDoubleValue(), useTwoCMPsInControl.getBooleanValue(),
+      footstepRecursionMultiplierCalculator.computeRemainingProjectionMultipliers(timeRemainingInState.getDoubleValue(), localUseTwoCMPs,
             isInTransfer.getBooleanValue(), isInTransferEntry.getBooleanValue());
 
-      if (useTwoCMPsInControl.getBooleanValue())
+      if (localUseTwoCMPs)
       {
          if (isInTransfer.getBooleanValue())
          {
@@ -478,6 +519,10 @@ public class ICPOptimizationController
          else
          {
             FramePoint stanceExitCMP = referenceCMPsCalculator.getEntryCMPs().get(0).getFrameTuple();
+
+            previousStanceExitCMP2d.setToZero();
+            stanceEntryCMP2d.setToZero();
+            stanceExitCMP2d.setByProjectionOntoXYPlane(stanceExitCMP);
 
             this.previousStanceExitCMP.setToNaN();
             this.stanceEntryCMP.setToNaN();
@@ -567,13 +612,10 @@ public class ICPOptimizationController
          if (isInTransfer.getBooleanValue())
          {
             if (timeInCurrentState.getDoubleValue() < doubleSupportSplitFraction.getDoubleValue() * doubleSupportDuration.getDoubleValue())
-            {
                isInTransferEntry.set(true);
-            }
             else
-            {
                isInTransferEntry.set(false);
-            }
+
             remainingTime = doubleSupportDuration.getDoubleValue() - timeInCurrentState.getDoubleValue();
          }
          else

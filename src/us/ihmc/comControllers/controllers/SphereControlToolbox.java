@@ -666,6 +666,11 @@ public class SphereControlToolbox
             return 1.0;
          }
 
+         @Override public double getFootstepRegularizationWeight()
+         {
+            return 0.01;
+         }
+
          @Override public double getFeedbackWeight()
          {
             return 2.0;
@@ -682,6 +687,11 @@ public class SphereControlToolbox
          }
 
          @Override public boolean useStepAdjustment()
+         {
+            return true;
+         }
+
+         @Override public boolean useFootstepRegularization()
          {
             return true;
          }

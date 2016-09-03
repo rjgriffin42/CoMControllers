@@ -8,6 +8,8 @@ public interface ICPOptimizationParameters
 
    public double getFootstepWeight();
 
+   public double getFootstepRegularizationWeight();
+
    public double getFeedbackWeight();
 
    public double getFeedbackGain();
@@ -19,6 +21,8 @@ public interface ICPOptimizationParameters
    public boolean useFeedback();
 
    public boolean useStepAdjustment();
+
+   public boolean useFootstepRegularization();
 
    public double getMinimumFootstepWeight();
 

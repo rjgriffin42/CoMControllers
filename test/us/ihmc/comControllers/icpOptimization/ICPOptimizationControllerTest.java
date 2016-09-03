@@ -172,6 +172,11 @@ public class ICPOptimizationControllerTest
          return 5.0;
       }
 
+      @Override public double getFootstepRegularizationWeight()
+      {
+         return 0.0001;
+      }
+
       @Override public double getFeedbackWeight()
       {
          return 2.0;
@@ -198,6 +203,11 @@ public class ICPOptimizationControllerTest
       }
 
       @Override public boolean useStepAdjustment()
+      {
+         return true;
+      }
+
+      @Override public boolean useFootstepRegularization()
       {
          return true;
       }

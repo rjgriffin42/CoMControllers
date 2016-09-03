@@ -334,6 +334,11 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
          return 5.0;
       }
 
+      @Override public double getFootstepRegularizationWeight()
+      {
+         return 0.0001;
+      }
+
       @Override public double getFeedbackWeight()
       {
          return 2.0;
@@ -360,6 +365,11 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
       }
 
       @Override public boolean useStepAdjustment()
+      {
+         return false;
+      }
+
+      @Override public boolean useFootstepRegularization()
       {
          return false;
       }
