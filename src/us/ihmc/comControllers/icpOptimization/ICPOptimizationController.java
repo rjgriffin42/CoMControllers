@@ -150,6 +150,7 @@ public class ICPOptimizationController
       scaleFirstStepWeightWithTime.set(icpOptimizationParameters.scaleFirstStepWeightWithTime());
       scaleFeedbackWeightWithGain.set(icpOptimizationParameters.scaleFeedbackWeightWithGain());
 
+      // todo set the regularization as a function of control dt
       footstepWeight.set(icpOptimizationParameters.getFootstepWeight());
       footstepRegularizationWeight.set(icpOptimizationParameters.getFootstepRegularizationWeight());
       feedbackWeight.set(icpOptimizationParameters.getFeedbackWeight());
@@ -355,7 +356,9 @@ public class ICPOptimizationController
    private final FramePoint2d locationSolution = new FramePoint2d();
 
    private final Vector2dZUpFrame icpVelocityDirectionFrame = new Vector2dZUpFrame("icpVelocityDirectionFrame", worldFrame);
+   private final Quat4d transform = new Quat4d();
    private final FramePoint2d tempControlGains = new FramePoint2d();
+   private final FramePoint2d tempControlWeights = new FramePoint2d();
 
    private void doControlForStepping()
    {
@@ -372,11 +375,16 @@ public class ICPOptimizationController
       if (localUseFeedback)
       {
          icpVelocityDirectionFrame.setXAxis(controllerDesiredICPVelocity.getFrameTuple2d());
-         tempControlGains.setToZero(icpVelocityDirectionFrame);
-         tempControlGains.set(feedbackGain.getDoubleValue(), feedbackGain.getDoubleValue());
-         tempControlGains.changeFrame(worldFrame);
+         icpVelocityDirectionFrame.getTransformToRoot().getRotation(transform);
 
-         solver.setFeedbackConditions(scaledFeedbackWeight.getDoubleValue(), feedbackGain.getDoubleValue());
+         tempControlGains.setToZero(icpVelocityDirectionFrame);
+         tempControlWeights.setToZero(icpVelocityDirectionFrame);
+
+         // todo make this x and y different
+         tempControlGains.set(feedbackGain.getDoubleValue(), feedbackGain.getDoubleValue());
+         tempControlWeights.set(scaledFeedbackWeight.getDoubleValue(), scaledFeedbackWeight.getDoubleValue());
+
+         solver.setFeedbackConditions(tempControlWeights.getX(), tempControlWeights.getY(), tempControlGains.getX(), tempControlGains.getY());
 
          if (localUseFeedbackRegularization)
             solver.setFeedbackRegularizationWeight(feedbackRegularizationWeight.getDoubleValue());
@@ -453,6 +461,7 @@ public class ICPOptimizationController
       else
          footstepWeight = this.footstepWeight.getDoubleValue();
 
+
       double footstepRecursionMultiplier;
       if (localUseTwoCMPs)
       {
@@ -466,7 +475,13 @@ public class ICPOptimizationController
          footstepRecursionMultiplier = footstepRecursionMultiplierCalculator.getCMPRecursionExitMultiplier(footstepIndex);
       }
 
-      solver.setFootstepAdjustmentConditions(footstepIndex, footstepRecursionMultiplier, footstepWeight, upcomingFootstepLocations.get(footstepIndex).getFrameTuple2d());
+      // fixme
+      tempControlWeights.setToZero(upcomingFootsteps.get(footstepIndex).getSoleReferenceFrame());
+      tempControlWeights.set(footstepWeight, footstepWeight);
+      tempControlWeights.changeFrame(worldFrame);
+
+      solver.setFootstepAdjustmentConditions(footstepIndex, footstepRecursionMultiplier, footstepWeight,
+            upcomingFootstepLocations.get(footstepIndex).getFrameTuple2d());
    }
 
    private final FramePoint2d finalEndingICP2d = new FramePoint2d(worldFrame);
