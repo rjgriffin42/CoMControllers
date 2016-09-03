@@ -663,7 +663,7 @@ public class SphereControlToolbox
 
          @Override public double getFootstepWeight()
          {
-            return 2.0;
+            return 1.0;
          }
 
          @Override public double getFeedbackWeight()
