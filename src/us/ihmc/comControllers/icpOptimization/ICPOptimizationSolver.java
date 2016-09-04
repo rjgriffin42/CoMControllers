@@ -105,12 +105,16 @@ public class ICPOptimizationSolver
    private final double minimumFootstepWeight;
    private final double minimumFeedbackWeight;
 
+   private final double feedbackWeightHardeningMultiplier;
+
    public ICPOptimizationSolver(ICPOptimizationParameters icpOptimizationParameters)
    {
       maximumNumberOfFootstepsToConsider = icpOptimizationParameters.getMaximumNumberOfFootstepsToConsider();
 
       minimumFootstepWeight = icpOptimizationParameters.getMinimumFootstepWeight();
       minimumFeedbackWeight = icpOptimizationParameters.getMinimumFeedbackWeight();
+
+      feedbackWeightHardeningMultiplier = icpOptimizationParameters.getFeedbackWeightHardeningMultiplier();
 
       int maximumNumberOfFreeVariables = 2 * maximumNumberOfFootstepsToConsider + 2;
       int maximumNumberOfLagrangeMultipliers = 2;
@@ -337,6 +341,9 @@ public class ICPOptimizationSolver
 
    public void setFeedbackConditions(double feedbackXWeight, double feedbackYWeight, double feedbackXGain, double feedbackYGain)
    {
+      feedbackXWeight = Math.max(feedbackXWeight, minimumFeedbackWeight);
+      feedbackYWeight = Math.max(feedbackYWeight, minimumFeedbackWeight);
+
       this.feedbackWeight.zero();
       this.feedbackWeight.set(0, 0, feedbackXWeight);
       this.feedbackWeight.set(1, 1, feedbackYWeight);
@@ -352,6 +359,18 @@ public class ICPOptimizationSolver
       CommonOps.scale(regularizationWeight, feedbackRegularizationWeight);
 
       hasFeedbackRegularizationTerm = true;
+   }
+
+   public void setUseFeedbackWeightHardening()
+   {
+      double xWeight = feedbackWeight.get(0, 0);
+      double yWeight = feedbackWeight.get(1, 1);
+
+      xWeight *= (1.0 + feedbackWeightHardeningMultiplier * previousFeedbackDeltaSolution.get(0, 0));
+      yWeight *= (1.0 + feedbackWeightHardeningMultiplier * previousFeedbackDeltaSolution.get(1, 0));
+
+      feedbackWeight.set(0, 0, xWeight);
+      feedbackWeight.set(1, 1, yWeight);
    }
 
    public void setFootstepRegularizationWeight(double regularizationWeight)

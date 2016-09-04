@@ -46,6 +46,7 @@ public class ICPOptimizationController
    private final BooleanYoVariable useStepAdjustment = new BooleanYoVariable("useStepAdjustment", registry);
    private final BooleanYoVariable useFootstepRegularization = new BooleanYoVariable("useFootstepRegularization", registry);
    private final BooleanYoVariable useFeedbackRegularization = new BooleanYoVariable("useFeedbackRegularization", registry);
+   private final BooleanYoVariable useFeedbackWeightHardening = new BooleanYoVariable("useFeedbackWeightHardening", registry);
 
    private final BooleanYoVariable scaleFirstStepWeightWithTime = new BooleanYoVariable("scaleFirstStepWeightWithTime", registry);
    private final BooleanYoVariable scaleFeedbackWeightWithGain = new BooleanYoVariable("scaleFeedbackWeightWithGain", registry);
@@ -124,9 +125,10 @@ public class ICPOptimizationController
 
    private boolean localUseTwoCMPs;
    private boolean localUseFeedback;
+   private boolean localUseFeedbackRegularization;
+   private boolean localUseFeedbackWeightHardening;
    private boolean localUseStepAdjustment;
    private boolean localUseFootstepRegularization;
-   private boolean localUseFeedbackRegularization;
 
    public ICPOptimizationController(CapturePointPlannerParameters icpPlannerParameters, ICPOptimizationParameters icpOptimizationParameters,
                                     BipedSupportPolygons bipedSupportPolygons, SideDependentList<? extends ContactablePlaneBody> contactableFeet, DoubleYoVariable omega,
@@ -151,6 +153,7 @@ public class ICPOptimizationController
       useStepAdjustment.set(icpOptimizationParameters.useStepAdjustment());
       useFootstepRegularization.set(icpOptimizationParameters.useFootstepRegularization());
       useFeedbackRegularization.set(icpOptimizationParameters.useFeedbackRegularization());
+      useFeedbackWeightHardening.set(icpOptimizationParameters.useFeedbackWeightHardening());
 
       scaleFirstStepWeightWithTime.set(icpOptimizationParameters.scaleFirstStepWeightWithTime());
       scaleFeedbackWeightWithGain.set(icpOptimizationParameters.scaleFeedbackWeightWithGain());
@@ -252,6 +255,7 @@ public class ICPOptimizationController
       localUseStepAdjustment = useStepAdjustment.getBooleanValue();
       localUseFootstepRegularization = useFootstepRegularization.getBooleanValue();
       localUseFeedbackRegularization = useFeedbackRegularization.getBooleanValue();
+      localUseFeedbackWeightHardening = useFeedbackWeightHardening.getBooleanValue();
 
       // fixme submitting these must be smarter
       footstepRecursionMultiplierCalculator.resetTimes();
@@ -290,6 +294,7 @@ public class ICPOptimizationController
       localUseStepAdjustment = useStepAdjustment.getBooleanValue();
       localUseFootstepRegularization = useFootstepRegularization.getBooleanValue();
       localUseFeedbackRegularization = useFeedbackRegularization.getBooleanValue();
+      localUseFeedbackWeightHardening = useFeedbackWeightHardening.getBooleanValue();
 
       // fixme submitting these must be smarter
       footstepRecursionMultiplierCalculator.resetTimes();
@@ -397,7 +402,12 @@ public class ICPOptimizationController
          solver.setFeedbackConditions(tempControlWeights.getX(), tempControlWeights.getY(), tempControlGains.getX(), tempControlGains.getY());
 
          if (localUseFeedbackRegularization)
+         {
             solver.setFeedbackRegularizationWeight(feedbackRegularizationWeight.getDoubleValue());
+
+            if (localUseFeedbackWeightHardening)
+               solver.setUseFeedbackWeightHardening();
+         }
       }
 
       if (localUseStepAdjustment)

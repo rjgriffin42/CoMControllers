@@ -28,9 +28,13 @@ public interface ICPOptimizationParameters
 
    public boolean useFootstepRegularization();
 
+   public boolean useFeedbackWeightHardening();
+
    public double getMinimumFootstepWeight();
 
    public double getMinimumFeedbackWeight();
 
    public double getMinimumTimeRemaining();
+
+   public double getFeedbackWeightHardeningMultiplier();
 }

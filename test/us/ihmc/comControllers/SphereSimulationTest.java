@@ -8,6 +8,8 @@ import us.ihmc.graphics3DAdapter.GroundProfile3D;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.BooleanYoVariable;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
+import us.ihmc.robotics.screwTheory.ScrewTools;
+import us.ihmc.robotics.screwTheory.TotalMassCalculator;
 import us.ihmc.simulationconstructionset.*;
 import us.ihmc.simulationconstructionset.gui.tools.VisualizerUtils;
 import us.ihmc.simulationconstructionset.util.LinearGroundContactModel;
@@ -16,7 +18,6 @@ import us.ihmc.simulationconstructionset.util.simulationRunner.BlockingSimulatio
 import us.ihmc.simulationconstructionset.util.simulationRunner.ControllerFailureException;
 import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicVector;
 import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicsListRegistry;
-import us.ihmc.tools.testing.TestPlanAnnotations.DeployableTestMethod;
 
 import javax.vecmath.Vector3d;
 
@@ -86,7 +87,10 @@ public class SphereSimulationTest
       double timeAtStartOfPush = 0.0;
       boolean applyForce = true;
 
-      Vector3d forceToApply = new Vector3d(0.0, -10.0, 0.0);
+      double totalRobotMass = TotalMassCalculator.computeSubTreeMass(sphereRobotModel.getElevator());
+      double totalRobotWeight = 9.81 * totalRobotMass;
+
+      Vector3d forceToApply = new Vector3d(0.0, -0.5 * totalRobotWeight, 0.0);
       Vector3d zero = new Vector3d(0.0, 0.0, 0.0);
       double pushDuration = 0.4;
 

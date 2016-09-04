@@ -693,7 +693,7 @@ public class SphereControlToolbox
 
          @Override public boolean useFeedbackRegularization()
          {
-            return true;
+            return false;
          }
 
          @Override public boolean useStepAdjustment()
@@ -703,17 +703,22 @@ public class SphereControlToolbox
 
          @Override public boolean useFootstepRegularization()
          {
+            return false;
+         }
+
+         @Override public boolean useFeedbackWeightHardening()
+         {
             return true;
          }
 
          @Override public boolean scaleFirstStepWeightWithTime()
          {
-            return true;
+            return false;
          }
 
          @Override public boolean scaleFeedbackWeightWithGain()
          {
-            return true;
+            return false;
          }
 
          @Override public double getMinimumFootstepWeight()
@@ -729,6 +734,11 @@ public class SphereControlToolbox
          @Override public double getMinimumTimeRemaining()
          {
             return 0.001;
+         }
+
+         @Override public double getFeedbackWeightHardeningMultiplier()
+         {
+            return 10000.0;
          }
       };
    }

@@ -222,6 +222,11 @@ public class ICPOptimizationControllerTest
          return true;
       }
 
+      @Override public boolean useFeedbackWeightHardening()
+      {
+         return false;
+      }
+
       @Override public double getMinimumFootstepWeight()
       {
          return 0.0001;
@@ -236,6 +241,11 @@ public class ICPOptimizationControllerTest
       public double getMinimumTimeRemaining()
       {
          return 0.001;
+      }
+
+      @Override public double getFeedbackWeightHardeningMultiplier()
+      {
+         return 1.0;
       }
    };
 
