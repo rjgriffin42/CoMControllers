@@ -19,7 +19,15 @@ import java.util.ArrayList;
 
 public class ICPOptimizationSolver
 {
+   private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
+
    private static final ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
+
+   private final YoMatrix yoWeightG;
+   private final YoMatrix yoWeightg;
+   private final YoMatrix footstepH;
+   private final YoMatrix footsteph;
+   private final YoMatrix footstepReferenceLocation;
 
    protected final DenseMatrix64F solverInput_G;
    protected final DenseMatrix64F solverInput_g;
@@ -54,6 +62,7 @@ public class ICPOptimizationSolver
    protected final ArrayList<DenseMatrix64F> footstepRecursionMutlipliers = new ArrayList<>();
    protected final ArrayList<DenseMatrix64F> referenceFootstepLocations = new ArrayList<>();
    protected final ArrayList<DenseMatrix64F> previousFootstepLocations = new ArrayList<>();
+   private final DenseMatrix64F footstepObjectiveVector;
 
    protected final DenseMatrix64F finalICPRecursion = new DenseMatrix64F(2, 1);
    protected final DenseMatrix64F cmpOffsetRecursionEffect = new DenseMatrix64F(2, 1);
@@ -109,6 +118,11 @@ public class ICPOptimizationSolver
 
    public ICPOptimizationSolver(ICPOptimizationParameters icpOptimizationParameters)
    {
+      this(icpOptimizationParameters, null);
+   }
+
+   public ICPOptimizationSolver(ICPOptimizationParameters icpOptimizationParameters, YoVariableRegistry parentRegistry)
+   {
       maximumNumberOfFootstepsToConsider = icpOptimizationParameters.getMaximumNumberOfFootstepsToConsider();
 
       minimumFootstepWeight = icpOptimizationParameters.getMinimumFootstepWeight();
@@ -159,6 +173,7 @@ public class ICPOptimizationSolver
          footstepRecursionMutlipliers.add(new DenseMatrix64F(2, 2));
          footstepWeights.add(new DenseMatrix64F(2, 2));
       }
+      footstepObjectiveVector =  new DenseMatrix64F(2 * maximumNumberOfFreeVariables, 1);
 
       solution = new DenseMatrix64F(maximumNumberOfFreeVariables + maximumNumberOfLagrangeMultipliers, 1);
       lagrangeMultiplierSolution = new DenseMatrix64F(maximumNumberOfLagrangeMultipliers, 1);
@@ -176,6 +191,29 @@ public class ICPOptimizationSolver
       footstepRegularizationCostToGo = new DenseMatrix64F(1, 1);
       feedbackCostToGo = new DenseMatrix64F(1, 1);
       feedbackRegularizationCostToGo = new DenseMatrix64F(1, 1);
+
+      if (parentRegistry != null)
+      {
+         yoWeightG = new YoMatrix("solverQuadraticCost", maximumNumberOfFreeVariables, maximumNumberOfFreeVariables, registry);
+         yoWeightg = new YoMatrix("solverLinearCost", maximumNumberOfFreeVariables, 1, registry);
+
+         footstepH = new YoMatrix("footstepQuadraticCost", 2 * maximumNumberOfFootstepsToConsider, 2 * maximumNumberOfFootstepsToConsider, registry);
+         footsteph = new YoMatrix("footstepLinearCost", 2 * maximumNumberOfFootstepsToConsider, 1, registry);
+
+         footstepReferenceLocation = new YoMatrix("footstepReferenceLocation", 2 * maximumNumberOfFootstepsToConsider, 1, registry);
+
+         parentRegistry.addChild(registry);
+      }
+      else
+      {
+         yoWeightG = null;
+         yoWeightg = null;
+
+         footstepH = null;
+         footsteph = null;
+
+         footstepReferenceLocation = null;
+      }
    }
 
    public void submitProblemConditions(int numberOfFootstepsToConsider, boolean useStepAdjustment, boolean useFeedback, boolean useTwoCMPs)
@@ -295,6 +333,7 @@ public class ICPOptimizationSolver
       freeVariableSolution.reshape(numberOfFreeVariables, 1);
       lagrangeMultiplierSolution.reshape(numberOfLagrangeMultipliers, 1);
       footstepLocationSolution.reshape(numberOfFootstepVariables, 1);
+      footstepObjectiveVector.reshape(numberOfFootstepVariables, 1);
    }
 
    private final DenseMatrix64F identity = CommonOps.identity(2, 2);
@@ -366,8 +405,8 @@ public class ICPOptimizationSolver
       double xWeight = feedbackWeight.get(0, 0);
       double yWeight = feedbackWeight.get(1, 1);
 
-      xWeight *= (1.0 + feedbackWeightHardeningMultiplier * previousFeedbackDeltaSolution.get(0, 0));
-      yWeight *= (1.0 + feedbackWeightHardeningMultiplier * previousFeedbackDeltaSolution.get(1, 0));
+      xWeight *= (1.0 + feedbackWeightHardeningMultiplier * Math.abs(previousFeedbackDeltaSolution.get(0, 0)));
+      yWeight *= (1.0 + feedbackWeightHardeningMultiplier * Math.abs(previousFeedbackDeltaSolution.get(1, 0)));
 
       feedbackWeight.set(0, 0, xWeight);
       feedbackWeight.set(1, 1, yWeight);
@@ -454,7 +493,13 @@ public class ICPOptimizationSolver
          setPreviousFootstepSolution(footstepLocationSolution);
       }
       if (useFeedback)
+      {
          extractFeedbackDeltaSolution(feedbackDeltaSolution);
+         setPreviousFeedbackDeltaSolution(feedbackDeltaSolution);
+      }
+
+      yoWeightG.set(solverInput_G);
+      yoWeightg.set(solverInput_g);
 
       computeFeedbackLocation();
 
@@ -473,6 +518,7 @@ public class ICPOptimizationSolver
    private final DenseMatrix64F tmpFootstepObjective = new DenseMatrix64F(2, 1);
    protected void addStepAdjustmentTask()
    {
+      footstepObjectiveVector.zero();
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
       {
          MatrixTools.setMatrixBlock(footstepCost_H, 2 * i, 2 * i, footstepWeights.get(i), 0, 0, 2, 2, 1.0);
@@ -484,10 +530,16 @@ public class ICPOptimizationSolver
 
          MatrixTools.setMatrixBlock(footstepCost_h, 2 * i, 0, tmpFootstepObjective, 0, 0, 2, 1, 1.0);
          CommonOps.addEquals(solverInputResidualCost, footstepRegularizationResidualCost);
+
+         MatrixTools.setMatrixBlock(footstepObjectiveVector, 2 * i, 0, referenceFootstepLocations.get(i), 0, 0, 2, 1, 1.0);
       }
+      footstepReferenceLocation.set(footstepObjectiveVector);
 
       MatrixTools.addMatrixBlock(solverInput_H, 0, 0, footstepCost_H, 0, 0, numberOfFootstepVariables, numberOfFootstepVariables, 1.0);
       MatrixTools.addMatrixBlock(solverInput_h, 0, 0, footstepCost_h, 0, 0, numberOfFootstepVariables, 1, 1.0);
+
+      footstepH.set(footstepCost_H);
+      footsteph.set(footstepCost_h);
    }
 
    private final DenseMatrix64F tmpObjective = new DenseMatrix64F(2, 1);
@@ -620,6 +672,11 @@ public class ICPOptimizationSolver
    {
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
          MatrixTools.setMatrixBlock(previousFootstepLocations.get(i), 0, 0, footstepLocationSolution, 2 * i, 0, 2, 1, 1.0);
+   }
+
+   private void setPreviousFeedbackDeltaSolution(DenseMatrix64F feedbackDeltaSolution)
+   {
+      MatrixTools.setMatrixBlock(previousFeedbackDeltaSolution, 0, 0, feedbackDeltaSolution, 0, 0, 2, 1, 1.0);
    }
 
    private void computeFeedbackLocation()

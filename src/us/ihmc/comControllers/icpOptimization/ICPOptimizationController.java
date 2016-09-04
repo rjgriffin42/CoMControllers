@@ -22,6 +22,7 @@ import us.ihmc.robotics.referenceFrames.ReferenceFrame;
 import us.ihmc.robotics.robotSide.RobotSide;
 import us.ihmc.robotics.robotSide.SideDependentList;
 import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicPosition;
+import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicPosition.GraphicType;
 import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicsListRegistry;
 import us.ihmc.simulationconstructionset.yoUtilities.graphics.plotting.YoArtifact;
 
@@ -50,6 +51,7 @@ public class ICPOptimizationController
 
    private final BooleanYoVariable scaleFirstStepWeightWithTime = new BooleanYoVariable("scaleFirstStepWeightWithTime", registry);
    private final BooleanYoVariable scaleFeedbackWeightWithGain = new BooleanYoVariable("scaleFeedbackWeightWithGain", registry);
+   private final BooleanYoVariable scaleUpcomingStepWeights = new BooleanYoVariable("scaleUpcomingStepWeights", registry);
 
    private final BooleanYoVariable isStanding = new BooleanYoVariable(yoNamePrefix + "IsStanding", registry);
    private final BooleanYoVariable isInTransfer = new BooleanYoVariable(yoNamePrefix + "IsInTransfer", registry);
@@ -93,6 +95,7 @@ public class ICPOptimizationController
    private final YoFramePoint2d finalICPRecursion = new YoFramePoint2d("finalICPRecursion", worldFrame, registry);
    private final YoFramePoint2d cmpOffsetRecursionEffect = new YoFramePoint2d("cmpOffsetRecursionEffect", worldFrame, registry);
 
+   private final YoFramePoint2d actualEndOfStateICP = new YoFramePoint2d("actualEndOfStateICP", worldFrame, registry);
    private final YoFramePoint2d nominalEndOfStateICP = new YoFramePoint2d("nominalEndOfStateICP", worldFrame, registry);
    private final YoFramePoint2d nominalBeginningOfStateICP = new YoFramePoint2d("nominalBeginningOfStateICP", worldFrame, registry);
    private final YoFramePoint2d nominalReferenceICP = new YoFramePoint2d("nominalReferenceICP", worldFrame, registry);
@@ -130,6 +133,8 @@ public class ICPOptimizationController
    private boolean localUseStepAdjustment;
    private boolean localUseFootstepRegularization;
 
+   private boolean localScaleUpcomingStepWeights;
+
    public ICPOptimizationController(CapturePointPlannerParameters icpPlannerParameters, ICPOptimizationParameters icpOptimizationParameters,
                                     BipedSupportPolygons bipedSupportPolygons, SideDependentList<? extends ContactablePlaneBody> contactableFeet, DoubleYoVariable omega,
                                     YoVariableRegistry parentRegistry, YoGraphicsListRegistry yoGraphicsListRegistry)
@@ -143,7 +148,7 @@ public class ICPOptimizationController
 
       initialDoubleSupportDuration.set(icpPlannerParameters.getDoubleSupportInitialTransferDuration());
 
-      solver = new ICPOptimizationSolver(icpOptimizationParameters);
+      solver = new ICPOptimizationSolver(icpOptimizationParameters, registry);
       referenceCMPsCalculator = new ReferenceCentroidalMomentumPivotLocationsCalculator(namePrefix, bipedSupportPolygons, contactableFeet,
             maximumNumberOfFootstepsToConsider, registry);
       referenceCMPsCalculator.initializeParameters(icpPlannerParameters);
@@ -157,6 +162,7 @@ public class ICPOptimizationController
 
       scaleFirstStepWeightWithTime.set(icpOptimizationParameters.scaleFirstStepWeightWithTime());
       scaleFeedbackWeightWithGain.set(icpOptimizationParameters.scaleFeedbackWeightWithGain());
+      scaleUpcomingStepWeights.set(icpOptimizationParameters.scaleUpcomingStepWeights());
 
       // todo set the regularization as a function of control dt
       footstepWeight.set(icpOptimizationParameters.getFootstepWeight());
@@ -184,19 +190,21 @@ public class ICPOptimizationController
       if (yoGraphicsListRegistry != null && ADD_VISUALIZATION)
       {
          String name = "stanceCMPPoints";
-         YoGraphicPosition previousExitCMP = new YoGraphicPosition("previousExitCMP", previousStanceExitCMP, 0.004, YoAppearance.Red(), YoGraphicPosition.GraphicType.SQUARE);
-         YoGraphicPosition entryCMP = new YoGraphicPosition("entryCMP", stanceEntryCMP, 0.004, YoAppearance.Red(), YoGraphicPosition.GraphicType.SQUARE);
-         YoGraphicPosition exitCMP = new YoGraphicPosition("exitCMP", stanceExitCMP, 0.004, YoAppearance.Red(), YoGraphicPosition.GraphicType.SQUARE);
+         YoGraphicPosition previousExitCMP = new YoGraphicPosition("previousExitCMP", previousStanceExitCMP, 0.004, YoAppearance.Red(), GraphicType.SQUARE);
+         YoGraphicPosition entryCMP = new YoGraphicPosition("entryCMP", stanceEntryCMP, 0.004, YoAppearance.Red(), GraphicType.SQUARE);
+         YoGraphicPosition exitCMP = new YoGraphicPosition("exitCMP", stanceExitCMP, 0.004, YoAppearance.Red(), GraphicType.SQUARE);
 
-         YoGraphicPosition endOfStateICP = new YoGraphicPosition("nominalEndOfStateICP", nominalEndOfStateICP, 0.004, YoAppearance.Yellow(), YoGraphicPosition.GraphicType.SQUARE);
-         YoGraphicPosition beginningOfStateICP = new YoGraphicPosition("nominalBeginningOfStateICP", nominalBeginningOfStateICP, 0.004, YoAppearance.Yellow(), YoGraphicPosition.GraphicType.SQUARE);
-         YoGraphicPosition referenceICP = new YoGraphicPosition("nominalReferenceICP", nominalReferenceICP, 0.004, YoAppearance.Yellow(), YoGraphicPosition.GraphicType.SOLID_BALL);
-         YoGraphicPosition finalICPViz = new YoGraphicPosition("finalICP", finalICP, 0.004, YoAppearance.LightYellow(), YoGraphicPosition.GraphicType.SQUARE);
+         YoGraphicPosition actualEndOfStateICP = new YoGraphicPosition("actualEndOfStateICP", this.actualEndOfStateICP, 0.004, YoAppearance.Yellow(), GraphicType.SOLID_BALL);
+         YoGraphicPosition nominalEndOfStateICP = new YoGraphicPosition("nominalEndOfStateICP", this.nominalEndOfStateICP, 0.004, YoAppearance.AliceBlue(), GraphicType.SOLID_BALL);
+         YoGraphicPosition beginningOfStateICP = new YoGraphicPosition("nominalBeginningOfStateICP", nominalBeginningOfStateICP, 0.004, YoAppearance.Yellow(), GraphicType.SQUARE);
+         YoGraphicPosition referenceICP = new YoGraphicPosition("nominalReferenceICP", nominalReferenceICP, 0.006, YoAppearance.Yellow(), GraphicType.SOLID_BALL);
+         YoGraphicPosition finalICPViz = new YoGraphicPosition("finalICP", finalICP, 0.004, YoAppearance.LightYellow(), GraphicType.SQUARE);
 
          yoGraphicsListRegistry.registerArtifact(name, previousExitCMP.createArtifact());
          yoGraphicsListRegistry.registerArtifact(name, entryCMP.createArtifact());
          yoGraphicsListRegistry.registerArtifact(name, exitCMP.createArtifact());
-         yoGraphicsListRegistry.registerArtifact(name, endOfStateICP.createArtifact());
+         yoGraphicsListRegistry.registerArtifact(name, actualEndOfStateICP.createArtifact());
+         yoGraphicsListRegistry.registerArtifact(name, nominalEndOfStateICP.createArtifact());
          yoGraphicsListRegistry.registerArtifact(name, beginningOfStateICP.createArtifact());
          yoGraphicsListRegistry.registerArtifact(name, referenceICP.createArtifact());
          yoGraphicsListRegistry.registerArtifact(name, finalICPViz.createArtifact());
@@ -257,6 +265,8 @@ public class ICPOptimizationController
       localUseFeedbackRegularization = useFeedbackRegularization.getBooleanValue();
       localUseFeedbackWeightHardening = useFeedbackWeightHardening.getBooleanValue();
 
+      localScaleUpcomingStepWeights = scaleUpcomingStepWeights.getBooleanValue();
+
       // fixme submitting these must be smarter
       footstepRecursionMultiplierCalculator.resetTimes();
       if (isInitialTransfer.getBooleanValue())
@@ -295,6 +305,8 @@ public class ICPOptimizationController
       localUseFootstepRegularization = useFootstepRegularization.getBooleanValue();
       localUseFeedbackRegularization = useFeedbackRegularization.getBooleanValue();
       localUseFeedbackWeightHardening = useFeedbackWeightHardening.getBooleanValue();
+
+      localScaleUpcomingStepWeights = scaleUpcomingStepWeights.getBooleanValue();
 
       // fixme submitting these must be smarter
       footstepRecursionMultiplierCalculator.resetTimes();
@@ -401,12 +413,12 @@ public class ICPOptimizationController
 
          solver.setFeedbackConditions(tempControlWeights.getX(), tempControlWeights.getY(), tempControlGains.getX(), tempControlGains.getY());
 
+         if (localUseFeedbackWeightHardening)
+            solver.setUseFeedbackWeightHardening();
+
          if (localUseFeedbackRegularization)
          {
             solver.setFeedbackRegularizationWeight(feedbackRegularizationWeight.getDoubleValue());
-
-            if (localUseFeedbackWeightHardening)
-               solver.setUseFeedbackWeightHardening();
          }
       }
 
@@ -440,9 +452,14 @@ public class ICPOptimizationController
          footstepSolutions.get(i).set(locationSolution);
       }
 
+      footstepRecursionMultiplierCalculator.computeNominalICPPoints(finalICP.getFrameTuple2d(), footstepSolutions, entryOffsets, exitOffsets,
+            previousStanceExitCMP.getFrameTuple2d(), stanceEntryCMP.getFrameTuple2d(), stanceExitCMP.getFrameTuple2d(), numberOfFootstepsToConsider, tmpEndPoint,
+            tmpBeginningPoint, tmpReferencePoint);
+      actualEndOfStateICP.set(tmpEndPoint);
+
       footstepRecursionMultiplierCalculator.computeNominalICPPoints(finalICP.getFrameTuple2d(), upcomingFootstepLocations, entryOffsets, exitOffsets,
-                                                                    previousStanceExitCMP.getFrameTuple2d(), stanceEntryCMP.getFrameTuple2d(), stanceExitCMP.getFrameTuple2d(),
-                                                                    numberOfFootstepsToConsider, tmpEndPoint, tmpBeginningPoint, tmpReferencePoint);
+            previousStanceExitCMP.getFrameTuple2d(), stanceEntryCMP.getFrameTuple2d(), stanceExitCMP.getFrameTuple2d(), numberOfFootstepsToConsider, tmpEndPoint,
+            tmpBeginningPoint, tmpReferencePoint);
       nominalEndOfStateICP.set(tmpEndPoint);
       nominalBeginningOfStateICP.set(tmpBeginningPoint);
       nominalReferenceICP.set(tmpReferencePoint);
@@ -481,6 +498,8 @@ public class ICPOptimizationController
       else
          footstepWeight = this.footstepWeight.getDoubleValue();
 
+      if (localScaleUpcomingStepWeights)
+         footstepWeight = footstepWeight / (footstepIndex + 1);
 
       double footstepRecursionMultiplier;
       if (localUseTwoCMPs)

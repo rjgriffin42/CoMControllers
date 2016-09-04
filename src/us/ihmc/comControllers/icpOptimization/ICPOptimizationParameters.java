@@ -20,6 +20,8 @@ public interface ICPOptimizationParameters
 
    public boolean scaleFeedbackWeightWithGain();
 
+   public boolean scaleUpcomingStepWeights();
+
    public boolean useFeedback();
 
    public boolean useFeedbackRegularization();

@@ -663,7 +663,7 @@ public class SphereControlToolbox
 
          @Override public double getFootstepWeight()
          {
-            return 0.5;
+            return 2.0;
          }
 
          @Override public double getFootstepRegularizationWeight()
@@ -673,7 +673,7 @@ public class SphereControlToolbox
 
          @Override public double getFeedbackWeight()
          {
-            return 2.0;
+            return 1.5;
          }
 
          @Override public double getFeedbackRegularizationWeight()
@@ -683,7 +683,7 @@ public class SphereControlToolbox
 
          @Override public double getFeedbackGain()
          {
-            return 2.0;
+            return 1.5;
          }
 
          @Override public boolean useFeedback()
@@ -716,6 +716,11 @@ public class SphereControlToolbox
             return false;
          }
 
+         @Override public boolean scaleUpcomingStepWeights()
+         {
+            return true;
+         }
+
          @Override public boolean scaleFeedbackWeightWithGain()
          {
             return false;
@@ -738,7 +743,7 @@ public class SphereControlToolbox
 
          @Override public double getFeedbackWeightHardeningMultiplier()
          {
-            return 10000.0;
+            return 20.0;
          }
       };
    }

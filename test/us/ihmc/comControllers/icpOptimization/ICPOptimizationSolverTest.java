@@ -29,7 +29,7 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
 
    public ICPOptimizationSolverTest()
    {
-      super(icpOptimizationParameters);
+      super(icpOptimizationParameters, rootRegistry);
       rootRegistry.clear();
    }
 
@@ -360,6 +360,11 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
       }
 
       @Override public boolean scaleFeedbackWeightWithGain()
+      {
+         return false;
+      }
+
+      @Override public boolean scaleUpcomingStepWeights()
       {
          return false;
       }

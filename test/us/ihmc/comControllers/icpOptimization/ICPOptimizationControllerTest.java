@@ -202,6 +202,11 @@ public class ICPOptimizationControllerTest
          return false;
       }
 
+      @Override public boolean scaleUpcomingStepWeights()
+      {
+         return false;
+      }
+
       @Override public boolean useFeedback()
       {
          return true;

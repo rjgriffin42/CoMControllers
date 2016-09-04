@@ -90,9 +90,9 @@ public class SphereSimulationTest
       double totalRobotMass = TotalMassCalculator.computeSubTreeMass(sphereRobotModel.getElevator());
       double totalRobotWeight = 9.81 * totalRobotMass;
 
-      Vector3d forceToApply = new Vector3d(0.0, -0.5 * totalRobotWeight, 0.0);
+      Vector3d forceToApply = new Vector3d(0.0, -0.15 * totalRobotWeight, 0.0);
       Vector3d zero = new Vector3d(0.0, 0.0, 0.0);
-      double pushDuration = 0.4;
+      double pushDuration = 0.2;
 
       while (scs.getTime() - initializationTime < simulationDuration)
       {
