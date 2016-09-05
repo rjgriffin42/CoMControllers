@@ -12,10 +12,7 @@ import us.ihmc.robotics.dataStructures.variable.BooleanYoVariable;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.robotics.dataStructures.variable.EnumYoVariable;
 import us.ihmc.robotics.dataStructures.variable.IntegerYoVariable;
-import us.ihmc.robotics.geometry.FramePoint;
-import us.ihmc.robotics.geometry.FramePoint2d;
-import us.ihmc.robotics.geometry.FrameVector2d;
-import us.ihmc.robotics.geometry.RigidBodyTransform;
+import us.ihmc.robotics.geometry.*;
 import us.ihmc.robotics.math.frames.YoFramePoint2d;
 import us.ihmc.robotics.math.frames.YoFrameVector2d;
 import us.ihmc.robotics.referenceFrames.ReferenceFrame;
@@ -24,7 +21,6 @@ import us.ihmc.robotics.robotSide.SideDependentList;
 import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicPosition;
 import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicPosition.GraphicType;
 import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicsListRegistry;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.plotting.YoArtifact;
 
 import javax.vecmath.Matrix3d;
 import javax.vecmath.Quat4d;
@@ -116,6 +112,9 @@ public class ICPOptimizationController
    private final DoubleYoVariable scaledFeedbackWeight = new DoubleYoVariable("scaledFeedbackWeight", registry);
    private final DoubleYoVariable feedbackGain = new DoubleYoVariable("feedbackGain", registry);
 
+   private final DoubleYoVariable maxCMPExitForward = new DoubleYoVariable("maxCMPExitForward", registry);
+   private final DoubleYoVariable maxCMPExitSideways = new DoubleYoVariable("maxCMPExitSideways", registry);
+
    private final DoubleYoVariable omega;
 
    private final ICPOptimizationSolver solver;
@@ -124,6 +123,8 @@ public class ICPOptimizationController
 
    private final CapturePointPlannerParameters icpPlannerParameters;
    private final ICPOptimizationParameters icpOptimizationParameters;
+   private final BipedSupportPolygons bipedSupportPolygons;
+
    private final int maximumNumberOfFootstepsToConsider;
 
    private boolean localUseTwoCMPs;
@@ -141,6 +142,7 @@ public class ICPOptimizationController
    {
       this.icpPlannerParameters = icpPlannerParameters;
       this.icpOptimizationParameters = icpOptimizationParameters;
+      this.bipedSupportPolygons = bipedSupportPolygons;
       this.omega = omega;
 
       maximumNumberOfFootstepsToConsider = icpOptimizationParameters.getMaximumNumberOfFootstepsToConsider();
@@ -148,7 +150,11 @@ public class ICPOptimizationController
 
       initialDoubleSupportDuration.set(icpPlannerParameters.getDoubleSupportInitialTransferDuration());
 
-      solver = new ICPOptimizationSolver(icpOptimizationParameters, registry);
+      int totalVertices = 0;
+      for (RobotSide robotSide : RobotSide.values)
+         totalVertices += contactableFeet.get(robotSide).getTotalNumberOfContactPoints();
+
+      solver = new ICPOptimizationSolver(icpOptimizationParameters, totalVertices, registry);
       referenceCMPsCalculator = new ReferenceCentroidalMomentumPivotLocationsCalculator(namePrefix, bipedSupportPolygons, contactableFeet,
             maximumNumberOfFootstepsToConsider, registry);
       referenceCMPsCalculator.initializeParameters(icpPlannerParameters);
@@ -170,6 +176,9 @@ public class ICPOptimizationController
       feedbackWeight.set(icpOptimizationParameters.getFeedbackWeight());
       feedbackRegularizationWeight.set(icpOptimizationParameters.getFeedbackRegularizationWeight());
       feedbackGain.set(icpOptimizationParameters.getFeedbackGain());
+
+      maxCMPExitForward.set(icpOptimizationParameters.getMaxCMPExitForward());
+      maxCMPExitSideways.set(icpOptimizationParameters.getMaxCMPExitSideways());
 
       exitCMPDurationInPercentOfStepTime.set(icpPlannerParameters.getTimeSpentOnExitCMPInPercentOfStepTime());
       doubleSupportSplitFraction.set(icpPlannerParameters.getDoubleSupportSplitFraction());
@@ -288,6 +297,27 @@ public class ICPOptimizationController
          resetFootstepRegularizationTask();
       if (localUseFeedbackRegularization)
          solver.resetFeedbackRegularization();
+
+      // set the contact points
+      int numberOfVertices = 0;
+      for (RobotSide robotSide : RobotSide.values)
+         numberOfVertices += bipedSupportPolygons.getFootPolygonInMidFeetZUp(robotSide).getNumberOfVertices();
+      solver.setNumberOfVertices(numberOfVertices);
+
+      numberOfVertices = 0;
+      for (RobotSide robotSide : RobotSide.values)
+      {
+         FrameConvexPolygon2d supportPolygon = bipedSupportPolygons.getFootPolygonInMidFeetZUp(robotSide);
+
+         for (int i = 0; i < supportPolygon.getNumberOfVertices(); i++)
+         {
+            supportPolygon.getFrameVertex(i, tempVertex);
+            solver.setSupportPolygonVertex(numberOfVertices + i, tempVertex, supportPolygon.getReferenceFrame(), maxCMPExitForward.getDoubleValue(),
+                  maxCMPExitSideways.getDoubleValue());
+         }
+
+         numberOfVertices += supportPolygon.getNumberOfVertices();
+      }
    }
 
    public void initializeForSingleSupport(double initialTime, RobotSide supportSide)
@@ -326,6 +356,15 @@ public class ICPOptimizationController
          resetFootstepRegularizationTask();
       if (localUseFeedbackRegularization)
          solver.resetFeedbackRegularization();
+
+      FrameConvexPolygon2d supportPolygon = bipedSupportPolygons.getFootPolygonInSoleFrame(supportSide);
+      solver.setNumberOfVertices(supportPolygon.getNumberOfVertices());
+      for (int i = 0; i < supportPolygon.getNumberOfVertices(); i++)
+      {
+         supportPolygon.getFrameVertex(i, tempVertex);
+         solver.setSupportPolygonVertex(i, tempVertex, supportPolygon.getReferenceFrame(), maxCMPExitForward.getDoubleValue(),
+               maxCMPExitSideways.getDoubleValue());
+      }
    }
 
    private final FramePoint2d perfectCMP = new FramePoint2d();
@@ -386,6 +425,7 @@ public class ICPOptimizationController
    private final Quat4d transform = new Quat4d();
    private final FramePoint2d tempControlGains = new FramePoint2d();
    private final FramePoint2d tempControlWeights = new FramePoint2d();
+   private final FramePoint2d tempVertex = new FramePoint2d();
 
    private void doControlForStepping()
    {
@@ -411,7 +451,7 @@ public class ICPOptimizationController
          tempControlGains.set(feedbackGain.getDoubleValue(), feedbackGain.getDoubleValue());
          tempControlWeights.set(scaledFeedbackWeight.getDoubleValue(), scaledFeedbackWeight.getDoubleValue());
 
-         solver.setFeedbackConditions(tempControlWeights.getX(), tempControlWeights.getY(), tempControlGains.getX(), tempControlGains.getY());
+         solver.setFeedbackConditions(tempControlWeights.getX(), tempControlWeights.getY(), tempControlGains.getX(), tempControlGains.getY(), omega.getDoubleValue());
 
          if (localUseFeedbackWeightHardening)
             solver.setUseFeedbackWeightHardening();
@@ -468,8 +508,9 @@ public class ICPOptimizationController
    private final FramePoint2d blankFramePoint = new FramePoint2d(worldFrame);
    private void doFeedbackOnlyControl()
    {
+      // fixme include vertices
       solver.submitProblemConditions(0, false, true, false);
-      solver.setFeedbackConditions(scaledFeedbackWeight.getDoubleValue(), feedbackGain.getDoubleValue());
+      solver.setFeedbackConditions(scaledFeedbackWeight.getDoubleValue(), feedbackGain.getDoubleValue(), omega.getDoubleValue());
 
       solver.compute(controllerDesiredICP.getFrameTuple2d(), null, controllerCurrentICP.getFrameTuple2d(), controllerPerfectCMP.getFrameTuple2d(), blankFramePoint, 1.0);
    }

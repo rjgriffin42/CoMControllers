@@ -26,10 +26,11 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
 
    private static final ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
    private static final double epsilon = 0.0001;
+   private static final double omega = 3.5;
 
    public ICPOptimizationSolverTest()
    {
-      super(icpOptimizationParameters, rootRegistry);
+      super(icpOptimizationParameters, 20, rootRegistry);
       rootRegistry.clear();
    }
 
@@ -45,7 +46,7 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
          double feedbackWeight = 10.0 * random.nextDouble();
          double feedbackGain = 10.0 * random.nextDouble();
 
-         super.setFeedbackConditions(feedbackWeight, feedbackGain);
+         super.setFeedbackConditions(feedbackWeight, feedbackGain, 3.5);
 
          checkFeedbackMatrices(feedbackWeight, feedbackGain);
       }
@@ -66,13 +67,13 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
    {
       for (int i = 1; i < this.maximumNumberOfFootstepsToConsider; i++)
       {
-         testDimension(i, false, true, false);
-         testDimension(i, true, true, false);
-         testDimension(i, true, false, false);
+         testDimension(i, 4, false, true, false);
+         testDimension(i, 4, true, true, false);
+         testDimension(i, 4, true, false, false);
       }
    }
 
-   public void testDimension(int numberOfFootstepsToConsider, boolean useStepAdjustment, boolean useFeedback, boolean useTwoCMPs)
+   public void testDimension(int numberOfFootstepsToConsider, int numberOfVertices, boolean useStepAdjustment, boolean useFeedback, boolean useTwoCMPs)
    {
       super.submitProblemConditions(numberOfFootstepsToConsider, useStepAdjustment, useFeedback, useTwoCMPs);
 
@@ -90,11 +91,6 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
       Assert.assertEquals(name, numberOfFootstepVariables, this.numberOfFootstepVariables, epsilon);
       Assert.assertEquals(name, numberOfLagrangeMultipliers, this.numberOfLagrangeMultipliers, epsilon);
       Assert.assertEquals(name, totalNumberOfFreeVariables, this.numberOfFreeVariables, epsilon);
-
-      Assert.assertEquals(name, totalNumberOfFreeVariables + numberOfLagrangeMultipliers, solverInput_G.numRows, epsilon);
-      Assert.assertEquals(name, totalNumberOfFreeVariables + numberOfLagrangeMultipliers, solverInput_G.numCols, epsilon);
-      Assert.assertEquals(name, totalNumberOfFreeVariables + numberOfLagrangeMultipliers, solverInput_g.numRows, epsilon);
-      Assert.assertEquals(name, 1, solverInput_g.numCols, epsilon);
 
       Assert.assertEquals(name, totalNumberOfFreeVariables, solverInput_H.numRows, epsilon);
       Assert.assertEquals(name, totalNumberOfFreeVariables, solverInput_H.numCols, epsilon);
@@ -128,15 +124,15 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
    @Test(timeout = 2000)
    public void testConditionError()
    {
-      testCondition(0, true, false, true);
-      testCondition(0, true, false, false);
-      testCondition(0, false, false, true);
-      testCondition(0, false, false, false);
-      testCondition(1, false, false, true);
-      testCondition(1, false, false, false);
+      testCondition(0, 4, true, false, true);
+      testCondition(0, 4, true, false, false);
+      testCondition(0, 4, false, false, true);
+      testCondition(0, 4, false, false, false);
+      testCondition(1, 4, false, false, true);
+      testCondition(1, 4, false, false, false);
    }
 
-   public void testCondition(int numberOfFootstepsToConsider, boolean useStepAdjustment, boolean useFeedback, boolean useTwoCMPs)
+   public void testCondition(int numberOfFootstepsToConsider, int numberOfVertices, boolean useStepAdjustment, boolean useFeedback, boolean useTwoCMPs)
    {
       boolean hasError = false;
       try
@@ -164,7 +160,7 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
 
       int numberOffootstepsToConsider = 0;
       super.submitProblemConditions(numberOffootstepsToConsider, true, true, false);
-      super.setFeedbackConditions(2.0, 0.001);
+      super.setFeedbackConditions(2.0, 0.001, omega);
 
       double finalICPRecursionMultiplier = Math.exp(-omega * initialDoubleSupportDuration);
       FramePoint2d finalICP = new FramePoint2d(worldFrame, 0.2, 0.115);
@@ -203,15 +199,17 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
       double feedbackWeight = 2.0;
       double feedbackGain = 0.001;
 
+      int numberOfVertices = 4;
+
       for (int numberOfFootstepsToConsider = 0; numberOfFootstepsToConsider < maximumNumberOfFootstepsToConsider; numberOfFootstepsToConsider++)
       {
          int feedbackIndex = 2 * numberOfFootstepsToConsider;
 
          super.submitProblemConditions(numberOfFootstepsToConsider, true, true, false);
-         super.setFeedbackConditions(feedbackWeight, feedbackGain);
+         super.setFeedbackConditions(feedbackWeight, feedbackGain, omega);
 
          checkFeedbackMatrices(feedbackWeight, feedbackGain);
-         testDimension(numberOfFootstepsToConsider, true, true, false);
+         testDimension(numberOfFootstepsToConsider, numberOfVertices, true, true, false);
 
          super.addFeedbackTask();
 
@@ -233,10 +231,12 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
       double stepLength = 0.5 * random.nextDouble();
       double stepWidth = 0.1 * random.nextDouble();
 
+      int numberOfVertices = 4;
+
       for (int numberOfFootstepsToConsider = 1; numberOfFootstepsToConsider < maximumNumberOfFootstepsToConsider; numberOfFootstepsToConsider++)
       {
          super.submitProblemConditions(numberOfFootstepsToConsider, true, false, false);
-         testDimension(numberOfFootstepsToConsider, true, true, false);
+         testDimension(numberOfFootstepsToConsider, numberOfVertices, true, true, false);
 
          RobotSide stepSide = RobotSide.LEFT;
 
@@ -412,6 +412,16 @@ public class ICPOptimizationSolverTest extends ICPOptimizationSolver
       @Override public double getFeedbackWeightHardeningMultiplier()
       {
          return 1.0;
+      }
+
+      @Override public double getMaxCMPExitForward()
+      {
+         return 0.05;
+      }
+
+      @Override public double getMaxCMPExitSideways()
+      {
+         return 0.03;
       }
    };
 

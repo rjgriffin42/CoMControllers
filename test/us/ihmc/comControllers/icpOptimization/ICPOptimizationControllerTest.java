@@ -252,6 +252,16 @@ public class ICPOptimizationControllerTest
       {
          return 1.0;
       }
+
+      @Override public double getMaxCMPExitForward()
+      {
+         return 0.05;
+      }
+
+      @Override public double getMaxCMPExitSideways()
+      {
+         return 0.03;
+      }
    };
 
    private static final CapturePointPlannerParameters icpPlannerParameters = new CapturePointPlannerParameters()

@@ -39,4 +39,8 @@ public interface ICPOptimizationParameters
    public double getMinimumTimeRemaining();
 
    public double getFeedbackWeightHardeningMultiplier();
+
+   public double getMaxCMPExitForward();
+
+   public double getMaxCMPExitSideways();
 }
