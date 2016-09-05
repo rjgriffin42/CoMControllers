@@ -167,21 +167,21 @@ public class FootstepRecursionMultiplierCalculator
 
    public void computeNominalICPPoints(FramePoint2d finalICP, ArrayList<YoFramePoint2d> footstepLocations, ArrayList<FrameVector2d> entryOffsets,
                                        ArrayList<FrameVector2d> exitOffsets, FramePoint2d previousExitCMP, FramePoint2d entryCMP, FramePoint2d exitCMP,
-                                       int numberOfFootstepsToConsider, FramePoint2d nominalPredictedEndOfStateICP, FramePoint2d nominalBeginningOfStateICPToPack,
-                                       FramePoint2d nominalReferenceICPToPack)
+                                       int numberOfFootstepsToConsider, FramePoint2d predictedEndOfStateICP, FramePoint2d beginningOfStateICPToPack,
+                                       FramePoint2d referenceICPToPack)
    {
-      nominalPredictedEndOfStateICP.set(finalICP);
-      nominalPredictedEndOfStateICP.scale(getFinalICPRecursionMultiplier());
+      predictedEndOfStateICP.set(finalICP);
+      predictedEndOfStateICP.scale(getFinalICPRecursionMultiplier());
 
       tmpPoint.set(entryCMP);
       tmpPoint.scale(getStanceEntryCMPProjectionMultiplier());
 
-      nominalPredictedEndOfStateICP.add(tmpPoint);
+      predictedEndOfStateICP.add(tmpPoint);
 
       tmpPoint.set(exitCMP);
       tmpPoint.scale(getStanceExitCMPProjectionMultiplier());
 
-      nominalPredictedEndOfStateICP.add(tmpPoint);
+      predictedEndOfStateICP.add(tmpPoint);
 
       for (int i = 0; i < numberOfFootstepsToConsider; i++)
       {
@@ -194,12 +194,12 @@ public class FootstepRecursionMultiplierCalculator
          tmpEntry.scale(getCMPRecursionEntryMultiplier(i));
          tmpExit.scale(getCMPRecursionExitMultiplier(i));
 
-         nominalPredictedEndOfStateICP.add(tmpEntry);
-         nominalPredictedEndOfStateICP.add(tmpExit);
+         predictedEndOfStateICP.add(tmpEntry);
+         predictedEndOfStateICP.add(tmpExit);
       }
 
-      endOfStateICPMatrix.set(0, 0, nominalPredictedEndOfStateICP.getX());
-      endOfStateICPMatrix.set(0, 1, nominalPredictedEndOfStateICP.getY());
+      endOfStateICPMatrix.set(0, 0, predictedEndOfStateICP.getX());
+      endOfStateICPMatrix.set(0, 1, predictedEndOfStateICP.getY());
 
       entryCMPMatrix.set(0, 0, entryCMP.getX());
       entryCMPMatrix.set(0, 1, entryCMP.getY());
@@ -222,12 +222,12 @@ public class FootstepRecursionMultiplierCalculator
       CommonOps.multAdd(remainingStanceCMPProjectionMultipliers.getExitMultiplierMatrix(), exitCMPMatrix, boundaryConditionMatrix);
       CommonOps.multAdd(remainingStanceCMPProjectionMultipliers.getPreviousExitMultiplierMatrix(), previousExitCMPMatrix, boundaryConditionMatrix);
 
-      nominalBeginningOfStateICPToPack.setX(boundaryConditionMatrix.get(0, 0));
-      nominalBeginningOfStateICPToPack.setY(boundaryConditionMatrix.get(0, 1));
+      beginningOfStateICPToPack.setX(boundaryConditionMatrix.get(0, 0));
+      beginningOfStateICPToPack.setY(boundaryConditionMatrix.get(0, 1));
 
       CommonOps.mult(remainingStanceCMPProjectionMultipliers.getCubicProjectionMatrix(), boundaryConditionMatrix, referenceICPMatrix);
 
-      nominalReferenceICPToPack.setX(referenceICPMatrix.get(0, 0));
-      nominalReferenceICPToPack.setY(referenceICPMatrix.get(0, 1));
+      referenceICPToPack.setX(referenceICPMatrix.get(0, 0));
+      referenceICPToPack.setY(referenceICPMatrix.get(0, 1));
    }
 }

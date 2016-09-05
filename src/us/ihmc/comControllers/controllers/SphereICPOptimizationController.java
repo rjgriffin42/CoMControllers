@@ -102,7 +102,7 @@ public class SphereICPOptimizationController implements GenericSphereController
       omega0.set(controlToolbox.getOmega0());
       heightController = new BasicHeightController(controlToolbox, registry);
       icpPlanner = new ICPPlanner(controlToolbox.getBipedSupportPolygons(), controlToolbox.getContactableFeet(),
-            controlToolbox.getCapturePointPlannerParameters(), registry, yoGraphicsListRegistry);
+            controlToolbox.getCapturePointPlannerParameters(), registry, null);
       icpPlanner.setDoubleSupportTime(controlToolbox.getDoubleSupportDuration());
       icpPlanner.setSingleSupportTime(controlToolbox.getSingleSupportDuration());
       icpPlanner.setOmega0(omega0.getDoubleValue());

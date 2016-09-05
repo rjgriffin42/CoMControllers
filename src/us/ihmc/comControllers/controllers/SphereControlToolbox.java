@@ -683,7 +683,12 @@ public class SphereControlToolbox
 
          @Override public double getFeedbackGain()
          {
-            return 4.0;
+            return 6.0;
+         }
+
+         @Override public double getActiveCMPWeight()
+         {
+            return 100.0;
          }
 
          @Override public boolean useFeedback()
@@ -707,6 +712,11 @@ public class SphereControlToolbox
          }
 
          @Override public boolean useFeedbackWeightHardening()
+         {
+            return false;
+         }
+
+         @Override public boolean useActiveCMPOptimization()
          {
             return true;
          }
@@ -753,7 +763,7 @@ public class SphereControlToolbox
 
          @Override public double getMaxCMPExitSideways()
          {
-            return 0.03;
+            return 0.02;
          }
       };
    }
