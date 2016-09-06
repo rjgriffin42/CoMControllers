@@ -75,7 +75,7 @@ public class SphereSimulationTest
       DoubleYoVariable singleSupportTime = (DoubleYoVariable) rootRegistry.getVariable("icpPlannerSingleSupportTime");
 
       double initializationTime = 3.0;
-      double timeForPush = initializationTime + initialTransferDuration.getDoubleValue() + 0.5 * singleSupportTime.getDoubleValue();
+      double timeForPush = initializationTime + initialTransferDuration.getDoubleValue() + 0.7 * singleSupportTime.getDoubleValue();
 
       blockingSimulationRunner.simulateAndBlock(initializationTime);
 
@@ -90,7 +90,8 @@ public class SphereSimulationTest
       double totalRobotMass = TotalMassCalculator.computeSubTreeMass(sphereRobotModel.getElevator());
       double totalRobotWeight = 9.81 * totalRobotMass;
 
-      Vector3d forceToApply = new Vector3d(0.0, -0.13 * totalRobotWeight, 0.0);
+      //Vector3d forceToApply = new Vector3d(0.0, -0.13 * totalRobotWeight, 0.0);
+      Vector3d forceToApply = new Vector3d();
       Vector3d zero = new Vector3d(0.0, 0.0, 0.0);
       double pushDuration = 0.2;
 

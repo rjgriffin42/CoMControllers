@@ -17,6 +17,8 @@ public class ICPOptimizationSolver
 {
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
 
+   private static final boolean DEBUG = false;
+   private final boolean localDebug;
    private static final ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
    private static final double betaSmoothing = 0.0001;
 
@@ -25,6 +27,16 @@ public class ICPOptimizationSolver
    private final YoMatrix footstepH;
    private final YoMatrix footsteph;
    private final YoMatrix footstepReferenceLocation;
+
+   private final YoMatrix yoDynamics_Aeq;
+   private final YoMatrix yoDynamics_beq;
+   private final YoMatrix yoSolver_Aeq;
+   private final YoMatrix yoSolver_beq;
+
+   private final YoMatrix yoStanceCMPDynamics_Aeq;
+   private final YoMatrix yoStanceCMPDynamics_beq;
+   private final YoMatrix yoStanceCMPSum_Aeq;
+   private final YoMatrix yoStanceCMPSum_beq;
 
    protected final DenseMatrix64F solverInput_H;
    protected final DenseMatrix64F solverInput_h;
@@ -57,8 +69,10 @@ public class ICPOptimizationSolver
    protected final DenseMatrix64F dynamics_Aeq;
    protected final DenseMatrix64F dynamics_beq;
 
+   /*
    protected final DenseMatrix64F activeCMP_H;
    protected final DenseMatrix64F activeCMP_h;
+   */
 
    protected final DenseMatrix64F stanceCMPCost_G;
    protected final DenseMatrix64F stanceCMP_Aeq;
@@ -83,17 +97,17 @@ public class ICPOptimizationSolver
    protected final DenseMatrix64F currentICP = new DenseMatrix64F(2, 1);
    protected final DenseMatrix64F referenceICP = new DenseMatrix64F(2, 1);
    protected final DenseMatrix64F perfectCMP = new DenseMatrix64F(2, 1);
-   protected final DenseMatrix64F activeCMP = new DenseMatrix64F(2, 1);
+   //protected final DenseMatrix64F activeCMP = new DenseMatrix64F(2, 1);
 
    protected double currentStateProjection;
-   protected double activeCMPProjection;
+   //protected double activeCMPProjection;
 
    protected final ArrayList<DenseMatrix64F> footstepWeights = new ArrayList<>();
    protected final DenseMatrix64F footstepRegularizationWeight = new DenseMatrix64F(2, 2);
    protected final DenseMatrix64F feedbackWeight = new DenseMatrix64F(2, 2);
    protected final DenseMatrix64F feedbackRegularizationWeight = new DenseMatrix64F(2, 2);
    protected final DenseMatrix64F feedbackGain = new DenseMatrix64F(2, 2);
-   protected final DenseMatrix64F activeCMPWeight = new DenseMatrix64F(2, 2);
+   //protected final DenseMatrix64F activeCMPWeight = new DenseMatrix64F(2, 2);
 
    private final SimpleEfficientActiveSetQPSolver activeSetSolver;
 
@@ -104,7 +118,7 @@ public class ICPOptimizationSolver
    protected final DenseMatrix64F feedbackDeltaSolution;
    protected final DenseMatrix64F feedbackLocation;
    protected final DenseMatrix64F previousFeedbackDeltaSolution;
-   protected final DenseMatrix64F activeCMPSolution;
+   //protected final DenseMatrix64F activeCMPSolution;
 
    private final DenseMatrix64F tmpCost;
    private final DenseMatrix64F tmpFootstepCost;
@@ -126,14 +140,14 @@ public class ICPOptimizationSolver
    protected int numberOfLagrangeMultipliers = 2;
 
    private int feedbackCMPIndex;
-   private int activeCMPIndex;
+   //private int activeCMPIndex;
    private int cmpConstraintIndex;
    private int lagrangeMultiplierIndex;
 
    private boolean useFeedback = false;
    private boolean useStepAdjustment = true;
    private boolean useTwoCMPs = false;
-   private boolean allowActiveCMPOptimization = false;
+   //private boolean allowActiveCMPOptimization = false;
 
    private boolean hasFootstepRegularizationTerm = false;
    private boolean hasFeedbackRegularizationTerm = false;
@@ -181,8 +195,10 @@ public class ICPOptimizationSolver
       feedbackRegularizationCost_h = new DenseMatrix64F(2, 1);
       feedbackRegularizationResidualCost = new DenseMatrix64F(1, 1);
 
+      /*
       activeCMP_H = new DenseMatrix64F(2, 2);
       activeCMP_h = new DenseMatrix64F(2, 1);
+      */
 
       solverInput_Aeq = new DenseMatrix64F(maximumNumberOfFreeVariables, maximumNumberOfLagrangeMultipliers);
       solverInput_AeqTrans = new DenseMatrix64F(maximumNumberOfLagrangeMultipliers, maximumNumberOfFreeVariables);
@@ -194,10 +210,11 @@ public class ICPOptimizationSolver
       stanceCMPCost_G = new DenseMatrix64F(2 * maximumNumberOfVertices, 2 * maximumNumberOfVertices);
       stanceCMP_Aeq = new DenseMatrix64F(2 * maximumNumberOfVertices, 4);
       stanceCMP_beq = new DenseMatrix64F(4, 1);
-      stanceCMPDynamics_Aeq = new DenseMatrix64F(2 * maximumNumberOfVertices, 2);
+      stanceCMPDynamics_Aeq = new DenseMatrix64F(4 + 2 * maximumNumberOfVertices, 2);
       stanceCMPDynamics_beq = new DenseMatrix64F(2, 1);
       stanceCMPSum_Aeq = new DenseMatrix64F(2 * maximumNumberOfVertices, 2);
       stanceCMPSum_beq = new DenseMatrix64F(2, 1);
+
 
       stanceCMP_Aineq = new DenseMatrix64F(2 * maximumNumberOfVertices, maximumNumberOfVertices);
       stanceCMP_bineq = new DenseMatrix64F(maximumNumberOfVertices, 1);
@@ -228,7 +245,7 @@ public class ICPOptimizationSolver
       feedbackDeltaSolution = new DenseMatrix64F(2, 1);
       feedbackLocation = new DenseMatrix64F(2, 1);
       previousFeedbackDeltaSolution = new DenseMatrix64F(2, 1);
-      activeCMPSolution = new DenseMatrix64F(2, 1);
+      //activeCMPSolution = new DenseMatrix64F(2, 1);
 
       tmpCost = new DenseMatrix64F(maximumNumberOfFreeVariables + maximumNumberOfLagrangeMultipliers, 1);
       tmpFootstepCost = new DenseMatrix64F(2 * maximumNumberOfFootstepsToConsider, 1);
@@ -241,13 +258,26 @@ public class ICPOptimizationSolver
 
       activeSetSolver = new SimpleEfficientActiveSetQPSolver();
 
-      if (parentRegistry != null)
+      if (parentRegistry != null && DEBUG)
       {
+         localDebug = true;
+
          yoWeightG = new YoMatrix("solverQuadraticCost", maximumNumberOfFreeVariables, maximumNumberOfFreeVariables, registry);
          yoWeightg = new YoMatrix("solverLinearCost", maximumNumberOfFreeVariables, 1, registry);
 
          footstepH = new YoMatrix("footstepQuadraticCost", 2 * maximumNumberOfFootstepsToConsider, 2 * maximumNumberOfFootstepsToConsider, registry);
          footsteph = new YoMatrix("footstepLinearCost", 2 * maximumNumberOfFootstepsToConsider, 1, registry);
+
+         yoDynamics_Aeq = new YoMatrix("dynamics_Aeq", maximumNumberOfFreeVariables, 2, registry);
+         yoDynamics_beq = new YoMatrix("dynamics_beq", 2, 1, registry);
+
+         yoSolver_Aeq = new YoMatrix("solver_Aeq", maximumNumberOfFreeVariables, maximumNumberOfLagrangeMultipliers, registry);
+         yoSolver_beq = new YoMatrix("solver_beq", maximumNumberOfLagrangeMultipliers, 1, registry);
+
+         yoStanceCMPDynamics_Aeq = new YoMatrix("stanceCMPDynamics_Aeq", 4 + 2 * maximumNumberOfVertices, 2, registry);
+         yoStanceCMPDynamics_beq = new YoMatrix("stanceCMPDynamics_beq", 2, 1, registry);
+         yoStanceCMPSum_Aeq = new YoMatrix("stanceCMPSum_Aeq", 2 * maximumNumberOfVertices, 2, registry);
+         yoStanceCMPSum_beq = new YoMatrix("stanceCMPSum_beq", 2, 1, registry);
 
          footstepReferenceLocation = new YoMatrix("footstepReferenceLocation", 2 * maximumNumberOfFootstepsToConsider, 1, registry);
 
@@ -255,11 +285,24 @@ public class ICPOptimizationSolver
       }
       else
       {
+         localDebug = false;
+
          yoWeightG = null;
          yoWeightg = null;
 
          footstepH = null;
          footsteph = null;
+
+         yoDynamics_Aeq = null;
+         yoDynamics_beq = null;
+
+         yoSolver_Aeq = null;
+         yoSolver_beq = null;
+
+         yoStanceCMPDynamics_Aeq = null;
+         yoStanceCMPDynamics_beq = null;
+         yoStanceCMPSum_Aeq = null;
+         yoStanceCMPSum_beq = null;
 
          footstepReferenceLocation = null;
       }
@@ -282,8 +325,8 @@ public class ICPOptimizationSolver
       stanceCMP_bineq.zero();
 
       stanceCMPCost_G.reshape(numberOfVertexVariables, numberOfVertexVariables);
-      stanceCMP_Aeq.reshape(numberOfVertexVariables + 4, 4);
-      stanceCMPDynamics_Aeq.reshape(numberOfVertexVariables + 4, 2);
+      stanceCMP_Aeq.reshape(2 + numberOfVertexVariables, 4);
+      stanceCMPDynamics_Aeq.reshape(2 + numberOfVertexVariables, 2);
       stanceCMPSum_Aeq.reshape(numberOfVertexVariables, 2);
 
       stanceCMP_Aineq.reshape(numberOfVertexVariables, numberOfVertexVariables);
@@ -295,8 +338,7 @@ public class ICPOptimizationSolver
       }
    }
 
-   public void submitProblemConditions(int numberOfFootstepsToConsider, boolean useStepAdjustment, boolean useFeedback, boolean useTwoCMPs,
-         boolean allowActiveCMPOptimization)
+   public void submitProblemConditions(int numberOfFootstepsToConsider, boolean useStepAdjustment, boolean useFeedback, boolean useTwoCMPs)
    {
       if (!useFeedback && (!useStepAdjustment || numberOfFootstepsToConsider < 1))
       {
@@ -306,7 +348,7 @@ public class ICPOptimizationSolver
       this.useFeedback = useFeedback;
       this.useStepAdjustment = useStepAdjustment;
       this.useTwoCMPs = useTwoCMPs;
-      this.allowActiveCMPOptimization = allowActiveCMPOptimization;
+      //this.allowActiveCMPOptimization = allowActiveCMPOptimization;
 
       if (useFeedback && !useStepAdjustment)
          this.numberOfFootstepsToConsider = 0;
@@ -320,7 +362,7 @@ public class ICPOptimizationSolver
          numberOfLagrangeMultipliers = 2;
 
          feedbackCMPIndex = 2 * numberOfFootstepsToConsider;
-         activeCMPIndex = feedbackCMPIndex;
+         //activeCMPIndex = feedbackCMPIndex;
 
          if (numberOfVertices > 0)
          {
@@ -330,12 +372,14 @@ public class ICPOptimizationSolver
 
          numberOfFreeVariables = numberOfFootstepVariables + 2;
 
+         /*
          if (allowActiveCMPOptimization)
          {
             numberOfFreeVariables += 2;
             activeCMPIndex = feedbackCMPIndex + 2;
             cmpConstraintIndex += 2;
          }
+         */
 
          lagrangeMultiplierIndex = cmpConstraintIndex + numberOfVertexVariables;
       }
@@ -347,7 +391,7 @@ public class ICPOptimizationSolver
          numberOfVertexVariables = 0;
 
          feedbackCMPIndex = 0;
-         activeCMPIndex = 0;
+         //activeCMPIndex = 0;
          lagrangeMultiplierIndex = numberOfFootstepVariables;
       }
 
@@ -400,7 +444,7 @@ public class ICPOptimizationSolver
       currentICP.zero();
       referenceICP.zero();
       perfectCMP.zero();
-      activeCMP.zero();
+      //activeCMP.zero();
 
       footstepRegularizationWeight.zero();
       feedbackWeight.zero();
@@ -412,7 +456,7 @@ public class ICPOptimizationSolver
       footstepLocationSolution.zero();
       feedbackDeltaSolution.zero();
       feedbackLocation.zero();
-      activeCMPSolution.zero();
+      //activeCMPSolution.zero();
 
       hasFootstepRegularizationTerm = false;
    }
@@ -566,6 +610,7 @@ public class ICPOptimizationSolver
       vertexLocations.get(vertexIndex).set(1, 0, tmpPoint.getY());
    }
 
+   /*
    public void setActiveCMPForOptimization(FramePoint2d activeCMPForOptimization, double activeCMPProjection, double weight)
    {
       this.activeCMPProjection = activeCMPProjection;
@@ -575,6 +620,7 @@ public class ICPOptimizationSolver
       activeCMP.set(0, 0, activeCMPForOptimization.getX());
       activeCMP.set(1, 0, activeCMPForOptimization.getY());
    }
+   */
 
    public void compute(FramePoint2d finalICPRecursion, FramePoint2d cmpOffsetRecursionEffect, FramePoint2d currentICP, FramePoint2d perfectCMP,
                        FramePoint2d stanceCMPProjection, double currentStateProjection)
@@ -611,8 +657,10 @@ public class ICPOptimizationSolver
       {
          addFeedbackTask();
 
+         /*
          if (allowActiveCMPOptimization)
             addActiveCMPOptimizationTask();
+            */
 
          if (hasFeedbackRegularizationTerm)
             addFeedbackRegularizationTask();
@@ -647,10 +695,12 @@ public class ICPOptimizationSolver
          extractFeedbackDeltaSolution(feedbackDeltaSolution);
          setPreviousFeedbackDeltaSolution(feedbackDeltaSolution);
       }
+      /*
       if (allowActiveCMPOptimization)
       {
          extractActiveCMPSolution(activeCMPSolution);
       }
+      */
 
       computeFeedbackLocation();
 
@@ -684,13 +734,16 @@ public class ICPOptimizationSolver
 
          MatrixTools.setMatrixBlock(footstepObjectiveVector, 2 * i, 0, referenceFootstepLocations.get(i), 0, 0, 2, 1, 1.0);
       }
-      footstepReferenceLocation.set(footstepObjectiveVector);
 
       MatrixTools.addMatrixBlock(solverInput_H, 0, 0, footstepCost_H, 0, 0, numberOfFootstepVariables, numberOfFootstepVariables, 1.0);
       MatrixTools.addMatrixBlock(solverInput_h, 0, 0, footstepCost_h, 0, 0, numberOfFootstepVariables, 1, 1.0);
 
-      footstepH.set(footstepCost_H);
-      footsteph.set(footstepCost_h);
+      if (localDebug)
+      {
+         footstepReferenceLocation.set(footstepObjectiveVector);
+         footstepH.set(footstepCost_H);
+         footsteph.set(footstepCost_h);
+      }
    }
 
    private final DenseMatrix64F tmpObjective = new DenseMatrix64F(2, 1);
@@ -729,6 +782,7 @@ public class ICPOptimizationSolver
       MatrixTools.addMatrixBlock(solverInput_h, 0, 0, footstepRegularizationCost_h, 0, 0, numberOfFootstepVariables, 1, 1.0);
    }
 
+   /*
    private void addActiveCMPOptimizationTask()
    {
       MatrixTools.setMatrixBlock(activeCMP_H, 0, 0, activeCMPWeight, 0, 0, 2, 2, 1.0);
@@ -739,6 +793,7 @@ public class ICPOptimizationSolver
       MatrixTools.addMatrixBlock(solverInput_H, activeCMPIndex, activeCMPIndex, activeCMP_H, 0, 0, 2, 2, 1.0);
       MatrixTools.addMatrixBlock(solverInput_h, activeCMPIndex, 0, activeCMP_h, 0, 0, 2, 1, 1.0);
    }
+   */
 
    private void addCMPLocationConstraint()
    {
@@ -749,7 +804,7 @@ public class ICPOptimizationSolver
 
       MatrixTools.addMatrixBlock(solverInput_H, numberOfFreeVariables, numberOfFreeVariables, stanceCMPCost_G, 0, 0, numberOfVertexVariables, numberOfVertexVariables, 1.0);
 
-      MatrixTools.addMatrixBlock(solverInput_Aeq, feedbackCMPIndex, 2, stanceCMP_Aeq, 0, 0, 4 + numberOfVertexVariables, 4, 1.0);
+      MatrixTools.addMatrixBlock(solverInput_Aeq, feedbackCMPIndex, 2, stanceCMP_Aeq, 0, 0, 2 + numberOfVertexVariables, 4, 1.0);
       MatrixTools.addMatrixBlock(solverInput_beq, 2, 0, stanceCMP_beq, 0, 0, 4, 1, 1.0);
 
       MatrixTools.setMatrixBlock(solverInput_Aineq, cmpConstraintIndex, 0, stanceCMP_Aineq, 0, 0, numberOfVertexVariables, numberOfVertexVariables, 1.0);
@@ -762,10 +817,11 @@ public class ICPOptimizationSolver
       stanceCMPDynamics_Aeq.set(0, 0, -1.0);
       stanceCMPDynamics_Aeq.set(1, 1, -1.0);
 
+      int offset = 2;
       for (int i = 0; i < numberOfVertices; i++)
       {
-         stanceCMPDynamics_Aeq.set(4 + i, 0, vertexLocations.get(i).get(0, 0));
-         stanceCMPDynamics_Aeq.set(4 + numberOfVertices + i, 1, vertexLocations.get(i).get(1, 0));
+         stanceCMPDynamics_Aeq.set(offset + i, 0, vertexLocations.get(i).get(0, 0));
+         stanceCMPDynamics_Aeq.set(offset + numberOfVertices + i, 1, vertexLocations.get(i).get(1, 0));
 
          stanceCMPSum_Aeq.set(i, 0, 1.0);
          stanceCMPSum_Aeq.set(numberOfVertices + i, 1, 1.0);
@@ -779,8 +835,8 @@ public class ICPOptimizationSolver
       stanceCMPSum_beq.set(0, 0, 1.0);
       stanceCMPSum_beq.set(1, 0, 1.0);
 
-      MatrixTools.setMatrixBlock(stanceCMP_Aeq, 0, 0, stanceCMPDynamics_Aeq, 0, 0, numberOfVertexVariables + 4, 2, 1.0);
-      MatrixTools.setMatrixBlock(stanceCMP_Aeq, 4, 2, stanceCMPSum_Aeq, 0, 0, numberOfVertexVariables, 2, 1.0);
+      MatrixTools.setMatrixBlock(stanceCMP_Aeq, 0, 0, stanceCMPDynamics_Aeq, 0, 0, (cmpConstraintIndex - feedbackCMPIndex) + numberOfVertexVariables, 2, 1.0);
+      MatrixTools.setMatrixBlock(stanceCMP_Aeq, 2, 2, stanceCMPSum_Aeq, 0, 0, numberOfVertexVariables, 2, 1.0);
 
       MatrixTools.setMatrixBlock(stanceCMP_beq, 0, 0, stanceCMPDynamics_beq, 0, 0, 2, 1, 1.0);
       MatrixTools.setMatrixBlock(stanceCMP_beq, 2, 0, stanceCMPSum_beq, 0, 0, 2, 1, 1.0);
@@ -800,8 +856,10 @@ public class ICPOptimizationSolver
          addFeedbackToDynamicConstraint(currentStateProjection);
       if (useStepAdjustment)
          addFootstepRecursionsToDynamicConstraint();
+      /*
       if (allowActiveCMPOptimization)
          addActiveCMPToDynamicConstraint();
+         */
 
       CommonOps.scale(currentStateProjection, currentICP);
 
@@ -830,11 +888,13 @@ public class ICPOptimizationSolver
       }
    }
 
+   /*
    private void addActiveCMPToDynamicConstraint()
    {
       CommonOps.setIdentity(identity);
       MatrixTools.addMatrixBlock(dynamics_Aeq, activeCMPIndex, 0, identity, 0, 0, 2, 2, activeCMPProjection);
    }
+   */
 
    private void assembleTotalProblem()
    {
@@ -847,6 +907,20 @@ public class ICPOptimizationSolver
       CommonOps.scale(-1.0, solverInput_h);
 
       activeSetSolver.clear();
+
+      if (localDebug)
+      {
+         yoWeightG.set(solverInput_H);
+         yoWeightg.set(solverInput_h);
+         yoDynamics_Aeq.set(dynamics_Aeq);
+         yoDynamics_beq.set(dynamics_beq);
+         yoSolver_Aeq.set(solverInput_Aeq);
+         yoSolver_beq.set(solverInput_beq);
+         yoStanceCMPDynamics_Aeq.set(stanceCMPDynamics_Aeq);
+         yoStanceCMPDynamics_beq.set(stanceCMPDynamics_beq);
+         yoStanceCMPSum_Aeq.set(stanceCMPSum_Aeq);
+         yoStanceCMPSum_beq.set(stanceCMPSum_beq);
+      }
 
       activeSetSolver.setQuadraticCostFunction(solverInput_H, solverInput_h, 0.0);
       activeSetSolver.setLinearEqualityConstraints(solverInput_AeqTrans, solverInput_beq);
@@ -873,10 +947,12 @@ public class ICPOptimizationSolver
       MatrixTools.setMatrixBlock(feedbackSolutionToPack, 0, 0, solution, feedbackCMPIndex, 0, 2, 1, 1.0);
    }
 
+   /*
    private void extractActiveCMPSolution(DenseMatrix64F activeCMPSolutionToPack)
    {
       MatrixTools.setMatrixBlock(activeCMPSolutionToPack, 0, 0, solution, activeCMPIndex, 0, 2, 1, 1.0);
    }
+   */
 
    private void extractLagrangeMultiplierSolution(DenseMatrix64F lagrangeMultiplierSolutionToPack)
    {
@@ -983,12 +1059,14 @@ public class ICPOptimizationSolver
       cmpFeedbackToPack.setY(feedbackLocation.get(1, 0));
    }
 
+   /*
    public void getActiveCMP(FramePoint2d activeCMPToPack)
    {
       activeCMPToPack.setToZero();
       activeCMPToPack.setX(activeCMPSolution.get(0, 0));
       activeCMPToPack.setY(activeCMPSolution.get(1, 0));
    }
+   */
 
    public double getCostToGo()
    {

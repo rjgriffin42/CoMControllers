@@ -47,8 +47,8 @@ public class SphereControlToolbox
    private static final double toeWidthForControl = 0.12;
 
    private static final double initialTransferDuration = 2.0;
-   private static final double singleSupportDuration = 2.0;
-   private static final double doubleSupportDuration = 1.0; // 0.4; //0.25;
+   private static final double singleSupportDuration = 1.0;
+   private static final double doubleSupportDuration = 0.3; //0.25;
    private static final double doubleSupportSplitFraction = 0.5;
    private static final boolean useTwoCMPs = true;
 
@@ -703,7 +703,7 @@ public class SphereControlToolbox
 
          @Override public boolean useStepAdjustment()
          {
-            return false;
+            return true;
          }
 
          @Override public boolean useFootstepRegularization()
@@ -718,7 +718,7 @@ public class SphereControlToolbox
 
          @Override public boolean useActiveCMPOptimization()
          {
-            return true;
+            return false;
          }
 
          @Override public boolean scaleFirstStepWeightWithTime()

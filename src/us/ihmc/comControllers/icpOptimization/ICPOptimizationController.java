@@ -45,7 +45,7 @@ public class ICPOptimizationController
    private final BooleanYoVariable useFootstepRegularization = new BooleanYoVariable("useFootstepRegularization", registry);
    private final BooleanYoVariable useFeedbackRegularization = new BooleanYoVariable("useFeedbackRegularization", registry);
    private final BooleanYoVariable useFeedbackWeightHardening = new BooleanYoVariable("useFeedbackWeightHardening", registry);
-   private final BooleanYoVariable useActiveCMPOptimization = new BooleanYoVariable("useActiveCMPOptimization", registry);
+   //private final BooleanYoVariable useActiveCMPOptimization = new BooleanYoVariable("useActiveCMPOptimization", registry);
 
    private final BooleanYoVariable scaleFirstStepWeightWithTime = new BooleanYoVariable("scaleFirstStepWeightWithTime", registry);
    private final BooleanYoVariable scaleFeedbackWeightWithGain = new BooleanYoVariable("scaleFeedbackWeightWithGain", registry);
@@ -75,7 +75,7 @@ public class ICPOptimizationController
    private final YoFrameVector2d controllerDesiredICPVelocity = new YoFrameVector2d("controllerDesiredICPVelocity", worldFrame, registry);
    private final YoFramePoint2d controllerPerfectCMP = new YoFramePoint2d("controllerPerfectCMP", worldFrame, registry);
 
-   private final YoFramePoint2d controllerActiveCMP = new YoFramePoint2d("controllerActiveCMP", worldFrame, registry);
+   //private final YoFramePoint2d controllerActiveCMP = new YoFramePoint2d("controllerActiveCMP", worldFrame, registry);
    private final YoFramePoint2d controllerFeedbackCMP = new YoFramePoint2d("controllerFeedbackCMP", worldFrame, registry);
    private final YoFrameVector2d controllerFeedbackCMPDelta = new YoFrameVector2d("controllerFeedbackCMPDelta", worldFrame, registry);
 
@@ -121,7 +121,7 @@ public class ICPOptimizationController
    private final DoubleYoVariable feedbackRegularizationWeight = new DoubleYoVariable("feedbackRegularizationWeight", registry);
    private final DoubleYoVariable scaledFeedbackWeight = new DoubleYoVariable("scaledFeedbackWeight", registry);
    private final DoubleYoVariable feedbackGain = new DoubleYoVariable("feedbackGain", registry);
-   private final DoubleYoVariable activeCMPWeight = new DoubleYoVariable("activeCMPWeight", registry);
+   //private final DoubleYoVariable activeCMPWeight = new DoubleYoVariable("activeCMPWeight", registry);
 
    private final DoubleYoVariable maxCMPExitForward = new DoubleYoVariable("maxCMPExitForward", registry);
    private final DoubleYoVariable maxCMPExitSideways = new DoubleYoVariable("maxCMPExitSideways", registry);
@@ -144,7 +144,7 @@ public class ICPOptimizationController
    private boolean localUseFeedbackWeightHardening;
    private boolean localUseStepAdjustment;
    private boolean localUseFootstepRegularization;
-   private boolean localUseActiveCMPOptimization;
+   //private boolean localUseActiveCMPOptimization;
 
    private boolean localScaleUpcomingStepWeights;
 
@@ -177,7 +177,7 @@ public class ICPOptimizationController
       useFootstepRegularization.set(icpOptimizationParameters.useFootstepRegularization());
       useFeedbackRegularization.set(icpOptimizationParameters.useFeedbackRegularization());
       useFeedbackWeightHardening.set(icpOptimizationParameters.useFeedbackWeightHardening());
-      useActiveCMPOptimization.set(icpOptimizationParameters.useActiveCMPOptimization());
+      //useActiveCMPOptimization.set(icpOptimizationParameters.useActiveCMPOptimization());
 
       scaleFirstStepWeightWithTime.set(icpOptimizationParameters.scaleFirstStepWeightWithTime());
       scaleFeedbackWeightWithGain.set(icpOptimizationParameters.scaleFeedbackWeightWithGain());
@@ -189,7 +189,7 @@ public class ICPOptimizationController
       feedbackWeight.set(icpOptimizationParameters.getFeedbackWeight());
       feedbackRegularizationWeight.set(icpOptimizationParameters.getFeedbackRegularizationWeight());
       feedbackGain.set(icpOptimizationParameters.getFeedbackGain());
-      activeCMPWeight.set(icpOptimizationParameters.getActiveCMPWeight());
+      //activeCMPWeight.set(icpOptimizationParameters.getActiveCMPWeight());
 
       maxCMPExitForward.set(icpOptimizationParameters.getMaxCMPExitForward());
       maxCMPExitSideways.set(icpOptimizationParameters.getMaxCMPExitSideways());
@@ -217,22 +217,24 @@ public class ICPOptimizationController
          YoGraphicPosition entryCMP = new YoGraphicPosition("entryCMP", stanceEntryCMP, 0.01, YoAppearance.Red(), GraphicType.SQUARE);
          YoGraphicPosition exitCMP = new YoGraphicPosition("exitCMP", stanceExitCMP, 0.01, YoAppearance.Red(), GraphicType.SQUARE);
 
-         YoGraphicPosition beginningOfStateICP = new YoGraphicPosition("nominalBeginningOfStateICP", nominalBeginningOfStateICP, 0.01, YoAppearance.Blue(), GraphicType.SOLID_BALL);
-         YoGraphicPosition activeCMP = new YoGraphicPosition("controllerActiveCMP", controllerActiveCMP, 0.01, YoAppearance.Red(), GraphicType.SOLID_BALL);
+         YoGraphicPosition beginningOfStateICP = new YoGraphicPosition("nominalBeginningOfStateICP", nominalBeginningOfStateICP, 0.005, YoAppearance.Blue(), GraphicType.SOLID_BALL);
+         //YoGraphicPosition activeCMP = new YoGraphicPosition("controllerActiveCMP", controllerActiveCMP, 0.01, YoAppearance.Red(), GraphicType.SOLID_BALL);
          YoGraphicPosition actualEndOfStateICP = new YoGraphicPosition("actualEndOfStateICP", this.actualEndOfStateICP, 0.005, YoAppearance.Aquamarine(), GraphicType.SOLID_BALL);
 
          YoGraphicPosition nominalReferenceICP = new YoGraphicPosition("nominalReferenceICP", this.nominalReferenceICP, 0.01, YoAppearance.LightYellow(), GraphicType.BALL);
-         YoGraphicPosition referenceICP = new YoGraphicPosition("controllerReferenceICP", controllerReferenceICP, 0.01, YoAppearance.Yellow(), GraphicType.SOLID_BALL);
+         YoGraphicPosition referenceICP = new YoGraphicPosition("controllerReferenceICP", controllerReferenceICP, 0.001, YoAppearance.Yellow(), GraphicType.SOLID_BALL);
+         YoGraphicPosition nominalEndOfStateICP = new YoGraphicPosition("nominalEndOfStateICP", this.nominalEndOfStateICP, 0.005, YoAppearance.Green(), GraphicType.SOLID_BALL);
 
          yoGraphicsListRegistry.registerArtifact(name, previousExitCMP.createArtifact());
          yoGraphicsListRegistry.registerArtifact(name, entryCMP.createArtifact());
          yoGraphicsListRegistry.registerArtifact(name, exitCMP.createArtifact());
-         yoGraphicsListRegistry.registerArtifact(name, activeCMP.createArtifact());
+         //yoGraphicsListRegistry.registerArtifact(name, activeCMP.createArtifact());
 
          yoGraphicsListRegistry.registerArtifact(name, actualEndOfStateICP.createArtifact());
          yoGraphicsListRegistry.registerArtifact(name, beginningOfStateICP.createArtifact());
          yoGraphicsListRegistry.registerArtifact(name, nominalReferenceICP.createArtifact());
          yoGraphicsListRegistry.registerArtifact(name, referenceICP.createArtifact());
+         yoGraphicsListRegistry.registerArtifact(name, nominalEndOfStateICP.createArtifact());
       }
 
       parentRegistry.addChild(registry);
@@ -353,7 +355,7 @@ public class ICPOptimizationController
       localUseFootstepRegularization = useFootstepRegularization.getBooleanValue();
       localUseFeedbackRegularization = useFeedbackRegularization.getBooleanValue();
       localUseFeedbackWeightHardening = useFeedbackWeightHardening.getBooleanValue();
-      localUseActiveCMPOptimization = useActiveCMPOptimization.getBooleanValue();
+      //localUseActiveCMPOptimization = useActiveCMPOptimization.getBooleanValue();
 
       localScaleUpcomingStepWeights = scaleUpcomingStepWeights.getBooleanValue();
    }
@@ -395,7 +397,7 @@ public class ICPOptimizationController
 
    private final FramePoint2d perfectCMP = new FramePoint2d();
    private final FramePoint2d desiredCMP = new FramePoint2d();
-   private final FramePoint2d activeCMP = new FramePoint2d();
+   //private final FramePoint2d activeCMP = new FramePoint2d();
    private final FrameVector2d desiredCMPDelta = new FrameVector2d();
 
    public void compute(double currentTime, FramePoint2d desiredICP, FrameVector2d desiredICPVelocity, FramePoint2d currentICP)
@@ -427,11 +429,11 @@ public class ICPOptimizationController
 
       solver.getCMPFeedback(desiredCMP);
       solver.getCMPFeedbackDifference(desiredCMPDelta);
-      solver.getActiveCMP(activeCMP);
+      //solver.getActiveCMP(activeCMP);
 
       controllerFeedbackCMP.set(desiredCMP);
       controllerFeedbackCMPDelta.set(desiredCMPDelta);
-      controllerActiveCMP.set(activeCMP);
+      //controllerActiveCMP.set(activeCMP);
 
       controllerCostToGo.set(solver.getCostToGo());
       controllerFootstepCostToGo.set(solver.getFootstepCostToGo());
@@ -452,7 +454,7 @@ public class ICPOptimizationController
    {
       int numberOfFootstepsToConsider = clipNumberOfFootstepsToConsiderToProblem(this.numberOfFootstepsToConsider.getIntegerValue());
 
-      solver.submitProblemConditions(numberOfFootstepsToConsider, localUseStepAdjustment, localUseFeedback, localUseTwoCMPs, localUseActiveCMPOptimization);
+      solver.submitProblemConditions(numberOfFootstepsToConsider, localUseStepAdjustment, localUseFeedback, localUseTwoCMPs); //, localUseActiveCMPOptimization);
 
       if (localUseFeedback)
       {
@@ -508,6 +510,7 @@ public class ICPOptimizationController
       stanceEntryCMP2d.set(stanceEntryCMP.getFrameTuple2d());
       stanceExitCMP2d.set(stanceExitCMP.getFrameTuple2d());
 
+      /*
       if (localUseActiveCMPOptimization)
       {
          if (isInTransfer.getBooleanValue())
@@ -515,6 +518,7 @@ public class ICPOptimizationController
          else
             stanceExitCMP2d.set(controllerActiveCMP.getFrameTuple2d());
       }
+      */
 
       footstepRecursionMultiplierCalculator
             .computeICPPoints(finalICP.getFrameTuple2d(), footstepSolutions, entryOffsets, exitOffsets, previousStanceExitCMP.getFrameTuple2d(),
@@ -547,7 +551,7 @@ public class ICPOptimizationController
    private void doFeedbackOnlyControl()
    {
       // fixme include vertices
-      solver.submitProblemConditions(0, false, true, false, false);
+      solver.submitProblemConditions(0, false, true, false); //, false);
       solver.setFeedbackConditions(scaledFeedbackWeight.getDoubleValue(), feedbackGain.getDoubleValue(), omega.getDoubleValue());
 
       solver.compute(controllerDesiredICP.getFrameTuple2d(), null, controllerCurrentICP.getFrameTuple2d(), controllerPerfectCMP.getFrameTuple2d(), blankFramePoint, 1.0);
@@ -699,7 +703,14 @@ public class ICPOptimizationController
       exitMultiplier += footstepRecursionMultiplierCalculator.getStanceExitCMPProjectionMultiplier();
 
       previousStanceExitCMP2d.scale(previousExitMultiplier);
+      stanceEntryCMP2d.scale(entryMultiplier);
+      stanceExitCMP2d.scale(exitMultiplier);
 
+      stanceCMPProjection.set(previousStanceExitCMP2d);
+      stanceCMPProjection.add(stanceEntryCMP2d);
+      stanceCMPProjection.add(stanceExitCMP2d);
+
+      /*
       if (localUseActiveCMPOptimization)
       {
          stanceCMPProjection.set(previousStanceExitCMP2d);
@@ -727,12 +738,8 @@ public class ICPOptimizationController
       }
       else
       {
-         stanceExitCMP2d.scale(exitMultiplier);
-
-         stanceCMPProjection.set(previousStanceExitCMP2d);
-         stanceCMPProjection.add(stanceEntryCMP2d);
-         stanceCMPProjection.add(stanceExitCMP2d);
-      }
+      */
+      //}
    }
 
    private final FramePoint2d totalOffsetEffect = new FramePoint2d();
