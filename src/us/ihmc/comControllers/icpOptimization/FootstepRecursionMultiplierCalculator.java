@@ -6,7 +6,7 @@ import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.ContinuousCurrentStateProjectionMultiplier;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.ContinuousRemainingStanceCMPProjectionMultipliers;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.StanceCMPProjectionMultipliers;
-import us.ihmc.humanoidRobotics.footstep.Footstep;
+import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerParameters;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.robotics.geometry.FramePoint2d;
@@ -19,6 +19,8 @@ public class FootstepRecursionMultiplierCalculator
 {
    private static final boolean USE_CONTINUOUS_METHOD = true;
 
+   private static final String namePrefix = "controller";
+
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
 
    private final ArrayList<DoubleYoVariable> doubleSupportDurations = new ArrayList<>();
@@ -30,12 +32,28 @@ public class FootstepRecursionMultiplierCalculator
    private final ContinuousRemainingStanceCMPProjectionMultipliers remainingStanceCMPProjectionMultipliers;
    private final ContinuousCurrentStateProjectionMultiplier currentStateProjectionMultiplier;
 
+   private final DoubleYoVariable doubleSupportSplitFraction;
+   private final DoubleYoVariable exitCMPDurationInPercentOfStepTime;
+
+   private final DoubleYoVariable maximumSplineDuration;
+   private final DoubleYoVariable minimumSplineDuration;
+   private final DoubleYoVariable minimumTimeToSpendOnExitCMP;
+   private final DoubleYoVariable totalTrajectoryTime;
+   private final DoubleYoVariable timeSpentOnInitialCMP;
+   private final DoubleYoVariable timeSpentOnFinalCMP;
+   private final DoubleYoVariable progressionInPercent;
+   private final DoubleYoVariable startOfSplineTime;
+   private final DoubleYoVariable endOfSplineTime;
+
    private final int maxNumberOfFootstepsToConsider;
 
-   public FootstepRecursionMultiplierCalculator(DoubleYoVariable exitCMPDurationInPercentOfStepTime, DoubleYoVariable doubleSupportSplitFraction,
-         DoubleYoVariable omega, int maxNumberOfFootstepsToConsider, YoVariableRegistry parentRegistry)
+   public FootstepRecursionMultiplierCalculator(CapturePointPlannerParameters icpPlannerParameters, DoubleYoVariable exitCMPDurationInPercentOfStepTime,
+                                                DoubleYoVariable doubleSupportSplitFraction, DoubleYoVariable omega, int maxNumberOfFootstepsToConsider,
+                                                YoVariableRegistry parentRegistry)
    {
       this.maxNumberOfFootstepsToConsider = maxNumberOfFootstepsToConsider;
+      this.exitCMPDurationInPercentOfStepTime = exitCMPDurationInPercentOfStepTime;
+      this.doubleSupportSplitFraction = doubleSupportSplitFraction;
 
       for (int i = 0; i < maxNumberOfFootstepsToConsider; i++)
       {
@@ -47,19 +65,26 @@ public class FootstepRecursionMultiplierCalculator
             exitCMPDurationInPercentOfStepTime, registry);
       stanceCMPProjectionMultipliers = new StanceCMPProjectionMultipliers("", omega, doubleSupportSplitFraction, exitCMPDurationInPercentOfStepTime, registry);
 
-      if (USE_CONTINUOUS_METHOD)
-      {
-         remainingStanceCMPProjectionMultipliers = new ContinuousRemainingStanceCMPProjectionMultipliers(omega, doubleSupportSplitFraction,
-               exitCMPDurationInPercentOfStepTime, registry);
-         currentStateProjectionMultiplier = new ContinuousCurrentStateProjectionMultiplier(registry, omega, doubleSupportSplitFraction);
-      }
-      /*
-      else
-      {
-         remainingStanceCMPProjectionMultipliers = new DiscontinuousRemainingStanceCMPProjectionMultipliers("", omega, doubleSupportSplitFraction, registry);
-         currentStateProjectionMultiplier = new DiscontinuousCurrentStateProjectionMultiplier(registry, omega);
-      }
-      */
+      maximumSplineDuration = new DoubleYoVariable(namePrefix + "MaximumSplineDuration", registry);
+      minimumSplineDuration = new DoubleYoVariable(namePrefix + "MinimumSplineDuration", registry);
+      minimumTimeToSpendOnExitCMP = new DoubleYoVariable(namePrefix + "MinimumTimeToSpendOnExitCMP", registry);
+
+      minimumSplineDuration.set(0.1);
+      maximumSplineDuration.set(icpPlannerParameters.getMaxDurationForSmoothingEntryToExitCMPSwitch());
+      minimumTimeToSpendOnExitCMP.set(icpPlannerParameters.getMinTimeToSpendOnExitCMPInSingleSupport());
+
+      totalTrajectoryTime = new DoubleYoVariable(namePrefix + "TotalTrajectoryTime", registry);
+      timeSpentOnInitialCMP = new DoubleYoVariable(namePrefix + "TimeSpentOnInitialCMP", registry);
+      timeSpentOnFinalCMP = new DoubleYoVariable(namePrefix + "TimeSpentOnFinalCMP", registry);
+      progressionInPercent = new DoubleYoVariable(namePrefix + "ProgressionInPercent", registry);
+      startOfSplineTime = new DoubleYoVariable(namePrefix + "StartOfSplineTime", registry);
+      endOfSplineTime = new DoubleYoVariable(namePrefix + "EndOfSplineTime", registry);
+
+      remainingStanceCMPProjectionMultipliers = new ContinuousRemainingStanceCMPProjectionMultipliers(omega, doubleSupportSplitFraction,
+               exitCMPDurationInPercentOfStepTime, startOfSplineTime, endOfSplineTime, totalTrajectoryTime, registry);
+      currentStateProjectionMultiplier = new ContinuousCurrentStateProjectionMultiplier(registry, omega, doubleSupportSplitFraction,
+                                                                                        exitCMPDurationInPercentOfStepTime, startOfSplineTime, endOfSplineTime,
+                                                                                        totalTrajectoryTime);
 
       finalICPRecursionMultiplier = new FinalICPRecursionMultiplier(registry, omega, doubleSupportSplitFraction);
 
@@ -104,8 +129,62 @@ public class FootstepRecursionMultiplierCalculator
 
    public void computeRemainingProjectionMultipliers(double timeRemaining, boolean useTwoCMPs, boolean isInTransfer, boolean isInTransferEntry)
    {
+
+      if (useTwoCMPs)
+      {
+         updateSegmentedSingleSupportTrajectory(isInTransfer);
+      }
+
       currentStateProjectionMultiplier.compute(timeRemaining, doubleSupportDurations, singleSupportDurations, useTwoCMPs, isInTransfer);
       remainingStanceCMPProjectionMultipliers.compute(timeRemaining, doubleSupportDurations, singleSupportDurations, useTwoCMPs, isInTransfer, isInTransferEntry);
+   }
+
+   private void updateSegmentedSingleSupportTrajectory(boolean isInTransfer)
+   {
+      if (isInTransfer)
+      {
+         double doubleSupportDuration = doubleSupportDurations.get(0).getDoubleValue();
+         double steppingDuration = singleSupportDurations.get(0).getDoubleValue() + doubleSupportDuration;
+
+         double totalTimeSpentOnExitCMP = steppingDuration * exitCMPDurationInPercentOfStepTime.getDoubleValue();
+         double totalTimeSpentOnEntryCMP = steppingDuration * (1.0 - exitCMPDurationInPercentOfStepTime.getDoubleValue());
+
+         double doubleSupportTimeSpentBeforeEntryCornerPoint = doubleSupportDuration * doubleSupportSplitFraction.getDoubleValue();
+         double doubleSupportTimeSpentAfterEntryCornerPoint = doubleSupportDuration * (1.0 - doubleSupportSplitFraction.getDoubleValue());
+
+         double timeRemainingOnEntryCMP = totalTimeSpentOnEntryCMP - doubleSupportTimeSpentBeforeEntryCornerPoint;
+         double timeToSpendOnFinalCMPBeforeDoubleSupport = totalTimeSpentOnExitCMP - doubleSupportTimeSpentAfterEntryCornerPoint;
+
+         timeSpentOnInitialCMP.set(timeRemainingOnEntryCMP);
+         timeSpentOnFinalCMP.set(timeToSpendOnFinalCMPBeforeDoubleSupport);
+         totalTrajectoryTime.set(timeRemainingOnEntryCMP + timeToSpendOnFinalCMPBeforeDoubleSupport);
+
+         double alpha = 0.50;
+         double minTimeOnExitCMP = minimumTimeToSpendOnExitCMP.getDoubleValue();
+         minTimeOnExitCMP = Math.min(minTimeOnExitCMP, timeSpentOnFinalCMP.getDoubleValue() - alpha * minimumSplineDuration.getDoubleValue());
+
+         double startOfSplineTime = timeSpentOnInitialCMP.getDoubleValue() - alpha * maximumSplineDuration.getDoubleValue();
+         startOfSplineTime = Math.max(startOfSplineTime, 0.0);
+         this.startOfSplineTime.set(startOfSplineTime);
+
+         double endOfSplineTime = timeSpentOnInitialCMP.getDoubleValue() + (1.0 - alpha) * maximumSplineDuration.getDoubleValue();
+         endOfSplineTime = Math.min(endOfSplineTime, totalTrajectoryTime.getDoubleValue() - minTimeOnExitCMP);
+         if (endOfSplineTime > totalTrajectoryTime.getDoubleValue() - minTimeOnExitCMP)
+         {
+            endOfSplineTime = totalTrajectoryTime.getDoubleValue() - minTimeOnExitCMP;
+            startOfSplineTime = timeSpentOnInitialCMP.getDoubleValue() - (endOfSplineTime - timeSpentOnInitialCMP.getDoubleValue());
+         }
+         this.startOfSplineTime.set(startOfSplineTime);
+         this.endOfSplineTime.set(endOfSplineTime);
+      }
+      else
+      {
+         timeSpentOnInitialCMP.set(Double.NaN);
+         timeSpentOnFinalCMP.set(Double.NaN);
+         totalTrajectoryTime.set(Double.NaN);
+         startOfSplineTime.set(Double.NaN);
+         endOfSplineTime.set(Double.NaN);
+      }
    }
 
    public double getCMPRecursionExitMultiplier(int footstepIndex)

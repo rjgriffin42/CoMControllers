@@ -73,9 +73,24 @@ public class SphereSimulationTest
       BooleanYoVariable sendFootsteps = (BooleanYoVariable) rootRegistry.getVariable("sendFootsteps");
       DoubleYoVariable initialTransferDuration = (DoubleYoVariable) rootRegistry.getVariable("icpPlannerInitialTransferDuration");
       DoubleYoVariable singleSupportTime = (DoubleYoVariable) rootRegistry.getVariable("icpPlannerSingleSupportTime");
+      DoubleYoVariable doubleSupportTime = (DoubleYoVariable) rootRegistry.getVariable("icpPlannerDoubleSupportTime");
+      DoubleYoVariable controllerSingleSupportTime = (DoubleYoVariable) rootRegistry.getVariable("controllerSingleSupportDuration");
+      DoubleYoVariable controllerDoubleSupportTime = (DoubleYoVariable) rootRegistry.getVariable("controllerDoubleSupportDuration");
+
+      double stepTime = 1.0;
+      double dsRatio = 0.2;
+      double singleSupport = (1.0 - dsRatio) * stepTime;
+      double doubleSupport = dsRatio * stepTime;
+      singleSupportTime.set(singleSupport);
+      doubleSupportTime.set(doubleSupport);
+      controllerSingleSupportTime.set(singleSupport);
+      controllerDoubleSupportTime.set(doubleSupport);
+
+      double phaseInSSForPush = 0.7;
 
       double initializationTime = 3.0;
-      double timeForPush = initializationTime + initialTransferDuration.getDoubleValue() + 0.7 * singleSupportTime.getDoubleValue();
+
+      double timeForPush = initializationTime + initialTransferDuration.getDoubleValue() + phaseInSSForPush * singleSupportTime.getDoubleValue();
 
       blockingSimulationRunner.simulateAndBlock(initializationTime);
 

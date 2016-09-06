@@ -35,12 +35,27 @@ public class ContinuousRemainingStanceCMPProjectionMultipliers implements Remain
 
    private final DoubleYoVariable omega;
 
+   private final DoubleYoVariable exitCMPDurationInPercentOfStepTime;
+   private final DoubleYoVariable doubleSupportSplitRatio;
+
+   private final DoubleYoVariable startOfSplineTime;
+   private final DoubleYoVariable endOfSplineTime;
+   private final DoubleYoVariable totalTrajectoryTime;
+
    public ContinuousRemainingStanceCMPProjectionMultipliers(DoubleYoVariable omega, DoubleYoVariable doubleSupportSplitRatio,
-         DoubleYoVariable exitCMPDurationInPercentOfStepTime, YoVariableRegistry parentRegistry)
+         DoubleYoVariable exitCMPDurationInPercentOfStepTime, DoubleYoVariable startOfSplineTime, DoubleYoVariable endOfSplineTime, DoubleYoVariable totalTrajectoryTime,
+                                                            YoVariableRegistry parentRegistry)
    {
       this.omega = omega;
-      this.exitCMPProjectionMatrix = new ExitCMPProjectionMatrix(omega, doubleSupportSplitRatio, exitCMPDurationInPercentOfStepTime);
-      this.entryCMPProjectionMatrix = new EntryCMPProjectionMatrix(omega, doubleSupportSplitRatio, exitCMPDurationInPercentOfStepTime);
+
+      this.doubleSupportSplitRatio = doubleSupportSplitRatio;
+      this.exitCMPDurationInPercentOfStepTime = exitCMPDurationInPercentOfStepTime;
+
+      this.startOfSplineTime = startOfSplineTime;
+      this.endOfSplineTime = endOfSplineTime;
+      this.totalTrajectoryTime = totalTrajectoryTime;
+      this.exitCMPProjectionMatrix = new ExitCMPProjectionMatrix(omega, doubleSupportSplitRatio, exitCMPDurationInPercentOfStepTime, startOfSplineTime, endOfSplineTime, totalTrajectoryTime);
+      this.entryCMPProjectionMatrix = new EntryCMPProjectionMatrix(omega, doubleSupportSplitRatio, exitCMPDurationInPercentOfStepTime, startOfSplineTime);
       this.previousExitCMPProjectionMatrix = new PreviousExitCMPProjectionMatrix(omega, doubleSupportSplitRatio);
 
       cubicProjectionMatrix = new CubicProjectionMatrix();
@@ -65,7 +80,32 @@ public class ContinuousRemainingStanceCMPProjectionMultipliers implements Remain
    }
 
    public void compute(double timeRemaining, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations,
-         boolean useTwoCMPs, boolean isInTransfer, boolean isInTransferEntry)
+                       boolean useTwoCMPs, boolean isInTransfer, boolean isInTransferEntry)
+   {
+      if (isInTransfer)
+      {
+         computeUsingSpline(timeRemaining, doubleSupportDurations, singleSupportDurations, useTwoCMPs, isInTransfer);
+      }
+      else
+      {
+         double timeInState = totalTrajectoryTime.getDoubleValue() - timeRemaining;
+         if (timeInState < startOfSplineTime.getDoubleValue())
+         {
+            computeInSingleSupportFirstSegment(timeRemaining, doubleSupportDurations, singleSupportDurations);
+         }
+         else if (timeInState >= endOfSplineTime.getDoubleValue())
+         {
+            computeInSingleSupportThirdSegment(timeRemaining);
+         }
+         else
+         {
+            computeUsingSpline(timeRemaining, doubleSupportDurations, singleSupportDurations, useTwoCMPs, isInTransfer);
+         }
+      }
+   }
+
+   public void computeUsingSpline(double timeRemaining, ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations,
+         boolean useTwoCMPs, boolean isInTransfer)
    {
       if (isInTransfer)
       {
@@ -74,8 +114,8 @@ public class ContinuousRemainingStanceCMPProjectionMultipliers implements Remain
       }
       else
       {
-         cubicProjectionMatrix.setSegmentDuration(singleSupportDurations.get(0).getDoubleValue());
-         cubicProjectionDerivativeMatrix.setSegmentDuration(singleSupportDurations.get(0).getDoubleValue());
+         cubicProjectionMatrix.setSegmentDuration(totalTrajectoryTime.getDoubleValue());
+         cubicProjectionDerivativeMatrix.setSegmentDuration(totalTrajectoryTime.getDoubleValue());
       }
 
       cubicProjectionMatrix.update(timeRemaining);
@@ -95,6 +135,34 @@ public class ContinuousRemainingStanceCMPProjectionMultipliers implements Remain
 
       if (!useTwoCMPs && !isInTransfer)
          exitMultiplier.set(1.0 - Math.exp(-omega.getDoubleValue() * timeRemaining));
+   }
+
+   private void computeInSingleSupportFirstSegment(double timeRemaining, ArrayList<DoubleYoVariable> doubleSupportDurations,
+                                                   ArrayList<DoubleYoVariable> singleSupportDurations)
+   {
+      double timeInState = totalTrajectoryTime.getDoubleValue() - timeRemaining;
+      double stepDuration = doubleSupportDurations.get(0).getDoubleValue() + singleSupportDurations.get(0).getDoubleValue();
+
+      double upcomingInitialDoubleSupportDuration = doubleSupportSplitRatio.getDoubleValue() * doubleSupportDurations.get(1).getDoubleValue();
+      double endOfDoubleSupportDuration = (1.0 - doubleSupportSplitRatio.getDoubleValue()) * doubleSupportDurations.get(0).getDoubleValue();
+
+      double timeSpentOnExitCMP = exitCMPDurationInPercentOfStepTime.getDoubleValue() * stepDuration;
+      double timeSpentOnEntryCMP = (1.0 - exitCMPDurationInPercentOfStepTime.getDoubleValue()) * stepDuration;
+
+      previousExitMultiplier.set(0.0);
+
+      double currentTimeRecursion = Math.exp(omega.getDoubleValue() * (timeInState + endOfDoubleSupportDuration - timeSpentOnEntryCMP));
+      entryMultiplier.set(1.0 - currentTimeRecursion);
+
+      double totalTimeOnExit = upcomingInitialDoubleSupportDuration - timeSpentOnExitCMP;
+      exitMultiplier.set(currentTimeRecursion * (1.0 - Math.exp(omega.getDoubleValue() * totalTimeOnExit)));
+   }
+
+   private void computeInSingleSupportThirdSegment(double timeRemaining)
+   {
+      previousExitMultiplier.set(0.0);
+      entryMultiplier.set(0.0);
+      exitMultiplier.set(Math.exp(-omega.getDoubleValue() * timeRemaining));
    }
 
    public double getRemainingExitMultiplier()

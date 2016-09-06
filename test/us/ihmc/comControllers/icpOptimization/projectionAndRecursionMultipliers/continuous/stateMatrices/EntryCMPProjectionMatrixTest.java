@@ -23,7 +23,11 @@ public class EntryCMPProjectionMatrixTest
       DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
       DoubleYoVariable doubleSupportSplitRatio = new DoubleYoVariable("doubleSupportSplitRatio", registry);
       DoubleYoVariable exitCMPDurationInPercentOfSteptime = new DoubleYoVariable("exitCMPDurationInPercentOfSteptime", registry);
-      EntryCMPProjectionMatrix entryCMPProjectionMatrix = new EntryCMPProjectionMatrix(omega, doubleSupportSplitRatio, exitCMPDurationInPercentOfSteptime);
+      DoubleYoVariable startOfSplineTime = new DoubleYoVariable("startOfSplineTime", registry);
+
+
+      EntryCMPProjectionMatrix entryCMPProjectionMatrix = new EntryCMPProjectionMatrix(omega, doubleSupportSplitRatio, exitCMPDurationInPercentOfSteptime,
+                                                                                       startOfSplineTime);
 
       Assert.assertEquals("", 4, entryCMPProjectionMatrix.numRows);
       Assert.assertEquals("", 1, entryCMPProjectionMatrix.numCols);
@@ -44,8 +48,10 @@ public class EntryCMPProjectionMatrixTest
       DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
       DoubleYoVariable doubleSupportSplitRatio = new DoubleYoVariable("doubleSupportSplitRatio", registry);
       DoubleYoVariable exitCMPDurationInPercentOfSteptime = new DoubleYoVariable("exitCMPDurationInPercentOfSteptime", registry);
+      DoubleYoVariable startOfSplineTime = new DoubleYoVariable("startOfSplineTime", registry);
 
-      EntryCMPProjectionMatrix entryCMPProjectionMatrix = new EntryCMPProjectionMatrix(omega, doubleSupportSplitRatio, exitCMPDurationInPercentOfSteptime);
+      EntryCMPProjectionMatrix entryCMPProjectionMatrix = new EntryCMPProjectionMatrix(omega, doubleSupportSplitRatio, exitCMPDurationInPercentOfSteptime,
+                                                                                       startOfSplineTime);
 
       for (int i = 0; i < iters; i++)
       {

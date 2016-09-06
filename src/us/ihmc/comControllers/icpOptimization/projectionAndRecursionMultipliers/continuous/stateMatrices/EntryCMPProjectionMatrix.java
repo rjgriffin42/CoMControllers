@@ -11,13 +11,18 @@ public class EntryCMPProjectionMatrix extends DenseMatrix64F
    private final DoubleYoVariable doubleSupportSplitRatio;
    private final DoubleYoVariable exitCMPDurationInPercentOfStepTime;
 
-   public EntryCMPProjectionMatrix(DoubleYoVariable omega, DoubleYoVariable doubleSupportSplitRatio, DoubleYoVariable exitCMPDurationInPercentOfStepTime)
+   private final DoubleYoVariable startOfSplineTime;
+
+   public EntryCMPProjectionMatrix(DoubleYoVariable omega, DoubleYoVariable doubleSupportSplitRatio, DoubleYoVariable exitCMPDurationInPercentOfStepTime,
+                                   DoubleYoVariable startOfSplineTime)
    {
       super(4, 1);
 
       this.omega = omega;
       this.doubleSupportSplitRatio = doubleSupportSplitRatio;
       this.exitCMPDurationInPercentOfStepTime = exitCMPDurationInPercentOfStepTime;
+
+      this.startOfSplineTime = startOfSplineTime;
    }
 
    public void reset()
@@ -56,7 +61,7 @@ public class EntryCMPProjectionMatrix extends DenseMatrix64F
          {
             double timeSpentOnEntryCMP = (1.0 - exitCMPDurationInPercentOfStepTime.getDoubleValue()) * stepDuration;
 
-            double duration = endOfDoubleSupportDuration - timeSpentOnEntryCMP;
+            double duration = startOfSplineTime.getDoubleValue() + endOfDoubleSupportDuration - timeSpentOnEntryCMP;
             double projection = Math.exp(omega.getDoubleValue() * duration);
 
             set(0, 0, 1.0 - projection);

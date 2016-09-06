@@ -19,7 +19,7 @@ public class FootstepRecursionMultiplierCalculatorTest
    private final DoubleYoVariable exitCMPDurationInPercentOfStepTime = new DoubleYoVariable("timeSpentOnExitCMPInPercentOfStepTime", registry);
    private final DoubleYoVariable doubleSupportSplitFraction = new DoubleYoVariable("doubleSupportSplitFraction", registry);
 
-   private final FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(exitCMPDurationInPercentOfStepTime,
+   private final FootstepRecursionMultiplierCalculator footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(null, exitCMPDurationInPercentOfStepTime,
          doubleSupportSplitFraction, omega, maximumNumberOfStepsToConsider, registry);
 
    private final double epsilon = 0.0001;

@@ -22,7 +22,9 @@ public class StateEndRecursionMatrixTest
 
       DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
       DoubleYoVariable doubleSupportSplitRatio = new DoubleYoVariable("doubleSupportSplitRatio", registry);
-      StateEndRecursionMatrix stateEndRecursionMatrix = new StateEndRecursionMatrix(omega, doubleSupportSplitRatio);
+      DoubleYoVariable exitCMPRatio = new DoubleYoVariable("exitCMPRatio", registry);
+
+      StateEndRecursionMatrix stateEndRecursionMatrix = new StateEndRecursionMatrix(omega, doubleSupportSplitRatio, exitCMPRatio);
 
       Assert.assertEquals("", 4, stateEndRecursionMatrix.numRows);
       Assert.assertEquals("", 1, stateEndRecursionMatrix.numCols);
@@ -42,8 +44,9 @@ public class StateEndRecursionMatrixTest
 
       DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
       DoubleYoVariable doubleSupportSplitRatio = new DoubleYoVariable("doubleSupportSplitRatio", registry);
+      DoubleYoVariable exitCMPRatio = new DoubleYoVariable("exitCMPRatio", registry);
 
-      StateEndRecursionMatrix stateEndRecursionMatrix = new StateEndRecursionMatrix(omega, doubleSupportSplitRatio);
+      StateEndRecursionMatrix stateEndRecursionMatrix = new StateEndRecursionMatrix(omega, doubleSupportSplitRatio, exitCMPRatio);
 
       for (int i = 0; i < iters; i++)
       {
@@ -57,11 +60,12 @@ public class StateEndRecursionMatrixTest
          double upcomingDoubleSupportDuration = 2.0 * random.nextDouble();
          double singleSupportDuration = 5.0 * random.nextDouble();
 
-         String name = "splitRatio = " + splitRatio + ",\n doubleSupportDuration = " + currentDoubleSupportDuration + ", singleSupportDuration = " + singleSupportDuration;
-         boolean useTwoCMPs = false;
-         boolean isInTransfer = true;
+         double startOfSplineTime = 0.1 * singleSupportDuration;
+         double endOfSplineTime = 0.8 * singleSupportDuration;
 
-         stateEndRecursionMatrix.compute(upcomingDoubleSupportDuration, currentDoubleSupportDuration, singleSupportDuration, useTwoCMPs, isInTransfer);
+         String name = "splitRatio = " + splitRatio + ",\n doubleSupportDuration = " + currentDoubleSupportDuration + ", singleSupportDuration = " + singleSupportDuration;
+
+         stateEndRecursionMatrix.computeInTransfer(currentDoubleSupportDuration);
          shouldBe.zero();
          shouldBe.set(0, 0, Math.exp(-omega0 * currentDoubleSupportDuration));
          shouldBe.set(1, 0, omega0 * Math.exp(-omega0 * currentDoubleSupportDuration));
@@ -69,9 +73,7 @@ public class StateEndRecursionMatrixTest
          shouldBe.set(3, 0, omega0);
          JUnitTools.assertMatrixEquals(name, shouldBe, stateEndRecursionMatrix, epsilon);
 
-         isInTransfer = false;
-
-         stateEndRecursionMatrix.compute(upcomingDoubleSupportDuration, currentDoubleSupportDuration, singleSupportDuration, useTwoCMPs, isInTransfer);
+         stateEndRecursionMatrix.computeInSingleSupport(upcomingDoubleSupportDuration, currentDoubleSupportDuration, singleSupportDuration, startOfSplineTime, endOfSplineTime);
          shouldBe.zero();
          shouldBe.set(0, 0, Math.exp(-omega0 * singleSupportDuration));
          shouldBe.set(1, 0, omega0 * Math.exp(-omega0 * singleSupportDuration));
@@ -81,10 +83,7 @@ public class StateEndRecursionMatrixTest
 
          double endOfDoubleSupport = (1.0 - splitRatio) * currentDoubleSupportDuration;
 
-         useTwoCMPs = true;
-         isInTransfer = true;
-
-         stateEndRecursionMatrix.compute(upcomingDoubleSupportDuration, currentDoubleSupportDuration, singleSupportDuration, useTwoCMPs, isInTransfer);
+         stateEndRecursionMatrix.computeInTransfer(currentDoubleSupportDuration);
          shouldBe.zero();
          shouldBe.set(0, 0, Math.exp(-omega0 * currentDoubleSupportDuration));
          shouldBe.set(1, 0, omega0 * Math.exp(-omega0 * currentDoubleSupportDuration));
@@ -95,8 +94,7 @@ public class StateEndRecursionMatrixTest
          double upcomingInitialDoubleSupport = splitRatio * upcomingDoubleSupportDuration;
          double stepDuration = currentDoubleSupportDuration + singleSupportDuration;
 
-         isInTransfer = false;
-         stateEndRecursionMatrix.compute(upcomingDoubleSupportDuration, currentDoubleSupportDuration, singleSupportDuration, useTwoCMPs, isInTransfer);
+         stateEndRecursionMatrix.computeInSingleSupport(upcomingDoubleSupportDuration, currentDoubleSupportDuration, singleSupportDuration, startOfSplineTime, endOfSplineTime);
          shouldBe.zero();
          double duration = upcomingInitialDoubleSupport + endOfDoubleSupport - stepDuration;
          shouldBe.set(0, 0, Math.exp(omega0 * duration));

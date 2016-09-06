@@ -31,6 +31,8 @@ import java.util.ArrayList;
 public class ICPOptimizationController
 {
    private static final boolean VISUALIZE = true;
+   private static final boolean referenceFromNewCMP = true;
+
    private static final String namePrefix = "icpOptimizationCalculator";
    private static final String yoNamePrefix = "controller";
    private static final ReferenceFrame worldFrame = ReferenceFrame.getWorldFrame();
@@ -191,8 +193,8 @@ public class ICPOptimizationController
       exitCMPDurationInPercentOfStepTime.set(icpPlannerParameters.getTimeSpentOnExitCMPInPercentOfStepTime());
       doubleSupportSplitFraction.set(icpPlannerParameters.getDoubleSupportSplitFraction());
 
-      footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(exitCMPDurationInPercentOfStepTime, doubleSupportSplitFraction, omega,
-            maximumNumberOfFootstepsToConsider, registry);
+      footstepRecursionMultiplierCalculator = new FootstepRecursionMultiplierCalculator(icpPlannerParameters, exitCMPDurationInPercentOfStepTime,
+                                                                                        doubleSupportSplitFraction, omega, maximumNumberOfFootstepsToConsider, registry);
 
       for (int i = 0; i < maximumNumberOfFootstepsToConsider; i++)
       {
@@ -215,8 +217,10 @@ public class ICPOptimizationController
          YoGraphicPosition actualEndOfStateICP = new YoGraphicPosition("actualEndOfStateICP", this.actualEndOfStateICP, 0.005, YoAppearance.Aquamarine(), GraphicType.SOLID_BALL);
 
          YoGraphicPosition nominalReferenceICP = new YoGraphicPosition("nominalReferenceICP", this.nominalReferenceICP, 0.01, YoAppearance.LightYellow(), GraphicType.BALL);
-         YoGraphicPosition referenceICP = new YoGraphicPosition("controllerReferenceICP", controllerReferenceICP, 0.001, YoAppearance.Yellow(), GraphicType.SOLID_BALL);
          YoGraphicPosition nominalEndOfStateICP = new YoGraphicPosition("nominalEndOfStateICP", this.nominalEndOfStateICP, 0.005, YoAppearance.Green(), GraphicType.SOLID_BALL);
+         YoGraphicPosition referenceICP = new YoGraphicPosition("controllerReferenceICP", controllerReferenceICP, 0.001, YoAppearance.Yellow(), GraphicType.SOLID_BALL);
+         YoGraphicPosition referenceCMP = new YoGraphicPosition("controllerReferenceCMP", controllerReferenceCMP, 0.005, YoAppearance.Beige(), GraphicType.BALL_WITH_CROSS);
+         YoGraphicPosition perfectCMP = new YoGraphicPosition("perfectCMP", controllerPerfectCMP, 0.005, YoAppearance.Beige(), GraphicType.BALL_WITH_ROTATED_CROSS);
 
          yoGraphicsListRegistry.registerArtifact(name, previousExitCMP.createArtifact());
          yoGraphicsListRegistry.registerArtifact(name, entryCMP.createArtifact());
@@ -225,8 +229,11 @@ public class ICPOptimizationController
          yoGraphicsListRegistry.registerArtifact(name, actualEndOfStateICP.createArtifact());
          yoGraphicsListRegistry.registerArtifact(name, beginningOfStateICP.createArtifact());
          yoGraphicsListRegistry.registerArtifact(name, nominalReferenceICP.createArtifact());
-         yoGraphicsListRegistry.registerArtifact(name, referenceICP.createArtifact());
          yoGraphicsListRegistry.registerArtifact(name, nominalEndOfStateICP.createArtifact());
+
+         yoGraphicsListRegistry.registerArtifact(name, referenceICP.createArtifact());
+         yoGraphicsListRegistry.registerArtifact(name, referenceCMP.createArtifact());
+         yoGraphicsListRegistry.registerArtifact(name, perfectCMP.createArtifact());
       }
 
       parentRegistry.addChild(registry);
@@ -420,8 +427,11 @@ public class ICPOptimizationController
       solver.getCMPFeedback(desiredCMP);
       solver.getCMPFeedbackDifference(desiredCMPDelta);
 
-      controllerReferenceCMP.getFrameTuple2d(desiredCMP);
-      desiredCMP.add(desiredCMPDelta);
+      if (referenceFromNewCMP)
+      {
+         controllerReferenceCMP.getFrameTuple2d(desiredCMP);
+         desiredCMP.add(desiredCMPDelta);
+      }
 
       controllerFeedbackCMP.set(desiredCMP);
       controllerFeedbackCMPDelta.set(desiredCMPDelta);

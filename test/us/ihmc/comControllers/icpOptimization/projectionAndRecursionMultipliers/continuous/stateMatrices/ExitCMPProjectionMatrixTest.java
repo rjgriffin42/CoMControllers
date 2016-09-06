@@ -23,7 +23,12 @@ public class ExitCMPProjectionMatrixTest
       DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
       DoubleYoVariable doubleSupportSplitRatio = new DoubleYoVariable("doubleSupportSplitRatio", registry);
       DoubleYoVariable exitCMPDurationInPercentOfSteptime = new DoubleYoVariable("exitCMPDurationInPercentOfSteptime", registry);
-      ExitCMPProjectionMatrix exitCMPProjectionMatrix = new ExitCMPProjectionMatrix(omega, doubleSupportSplitRatio, exitCMPDurationInPercentOfSteptime);
+      DoubleYoVariable startOfSplineTime = new DoubleYoVariable("startOfSplineTime", registry);
+      DoubleYoVariable endOfSplineTime = new DoubleYoVariable("endOfSplineTime", registry);
+      DoubleYoVariable totalTrajectoryTime = new DoubleYoVariable("totalTrajectoryTime", registry);
+
+      ExitCMPProjectionMatrix exitCMPProjectionMatrix = new ExitCMPProjectionMatrix(omega, doubleSupportSplitRatio, exitCMPDurationInPercentOfSteptime,
+                                                                                    startOfSplineTime, endOfSplineTime, totalTrajectoryTime);
 
       Assert.assertEquals("", 4, exitCMPProjectionMatrix.numRows);
       Assert.assertEquals("", 1, exitCMPProjectionMatrix.numCols);
@@ -44,8 +49,12 @@ public class ExitCMPProjectionMatrixTest
       DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
       DoubleYoVariable doubleSupportSplitRatio = new DoubleYoVariable("doubleSupportSplitRatio", registry);
       DoubleYoVariable exitCMPDurationInPercentOfSteptime = new DoubleYoVariable("exitCMPDurationInPercentOfSteptime", registry);
+      DoubleYoVariable startOfSplineTime = new DoubleYoVariable("startOfSplineTime", registry);
+      DoubleYoVariable endOfSplineTime = new DoubleYoVariable("endOfSplineTime", registry);
+      DoubleYoVariable totalTrajectoryTime = new DoubleYoVariable("totalTrajectoryTime", registry);
 
-      ExitCMPProjectionMatrix exitCMPProjectionMatrix = new ExitCMPProjectionMatrix(omega, doubleSupportSplitRatio, exitCMPDurationInPercentOfSteptime);
+      ExitCMPProjectionMatrix exitCMPProjectionMatrix = new ExitCMPProjectionMatrix(omega, doubleSupportSplitRatio, exitCMPDurationInPercentOfSteptime,
+                                                                                    startOfSplineTime, endOfSplineTime, totalTrajectoryTime);
 
       for (int i = 0; i < iters; i++)
       {
@@ -58,6 +67,7 @@ public class ExitCMPProjectionMatrixTest
          exitCMPDurationInPercentOfSteptime.set(exitRatio);
 
          double doubleSupportDuration = 2.0 * random.nextDouble();
+         double upcomingDoubleSupportDuration = 2.0 * random.nextDouble();
          double singleSupportDuration = 5.0 * random.nextDouble();
 
          String name = "splitRatio = " + splitRatio + ", exitRatio = " + exitRatio + ",\n doubleSupportDuration = " + doubleSupportDuration + ", singleSupportDuration = " + singleSupportDuration;
@@ -69,7 +79,7 @@ public class ExitCMPProjectionMatrixTest
          double timeOnEntry = (1.0 - exitRatio) * (singleSupportDuration + doubleSupportDuration);
          double timeOnExit = exitRatio * (singleSupportDuration + doubleSupportDuration);
 
-         exitCMPProjectionMatrix.compute(doubleSupportDuration, singleSupportDuration, useTwoCMPs, isInTransfer);
+         exitCMPProjectionMatrix.compute(upcomingDoubleSupportDuration, doubleSupportDuration, singleSupportDuration, useTwoCMPs, isInTransfer);
          shouldBe.zero();
          shouldBe.set(0, 0, Math.exp(-omega0 * initialDoubleSupport) * (1.0 - Math.exp(-omega0 * endOfDoubleSupport)));
          shouldBe.set(1, 0, omega0 * Math.exp(-omega0 * initialDoubleSupport) * (1.0 - Math.exp(-omega0 * endOfDoubleSupport)));
@@ -78,7 +88,7 @@ public class ExitCMPProjectionMatrixTest
 
          isInTransfer = false;
 
-         exitCMPProjectionMatrix.compute(doubleSupportDuration, singleSupportDuration, useTwoCMPs, isInTransfer);
+         exitCMPProjectionMatrix.compute(upcomingDoubleSupportDuration, doubleSupportDuration, singleSupportDuration, useTwoCMPs, isInTransfer);
          shouldBe.zero();
          shouldBe.set(0, 0, (1.0 - Math.exp(-omega0 * singleSupportDuration)));
          shouldBe.set(1, 0, -omega0 * Math.exp(-omega0 * singleSupportDuration));
@@ -88,13 +98,13 @@ public class ExitCMPProjectionMatrixTest
          useTwoCMPs = true;
          isInTransfer = true;
 
-         exitCMPProjectionMatrix.compute(doubleSupportDuration, singleSupportDuration, useTwoCMPs, isInTransfer);
+         exitCMPProjectionMatrix.compute(upcomingDoubleSupportDuration, doubleSupportDuration, singleSupportDuration, useTwoCMPs, isInTransfer);
          shouldBe.zero();
          JUnitTools.assertMatrixEquals(name, shouldBe, exitCMPProjectionMatrix, epsilon);
 
          isInTransfer = false;
          double duration = endOfDoubleSupport - timeOnEntry;
-         exitCMPProjectionMatrix.compute(doubleSupportDuration, singleSupportDuration, useTwoCMPs, isInTransfer);
+         exitCMPProjectionMatrix.compute(upcomingDoubleSupportDuration, doubleSupportDuration, singleSupportDuration, useTwoCMPs, isInTransfer);
          shouldBe.zero();
          shouldBe.set(0, 0, Math.exp(omega0 * duration) * (1.0 - Math.exp(omega0 * (initialDoubleSupport - timeOnExit))));
          shouldBe.set(1, 0, omega0 * Math.exp(omega0 * duration) * (1.0 - Math.exp(omega0 * (initialDoubleSupport - timeOnExit))));
