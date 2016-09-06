@@ -207,5 +207,7 @@
     <orderEntry type="library" name="Gradle: org.ros.rosjava_messages:roscpp:1.11.10" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: org.pitest:pitest-command-line:1.1.9" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: org.pitest:pitest:1.1.9" level="project" />
+    <orderEntry type="module" module-name="IHMCGraphics3DDescription" />
+    <orderEntry type="module" module-name="IHMCRobotDescription" />
   </component>
 </module>
