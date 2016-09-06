@@ -3,6 +3,7 @@ package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers
 import org.ejml.data.DenseMatrix64F;
 import org.ejml.ops.CommonOps;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.RemainingStanceCMPProjectionMultipliers;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.interpolation.CubicProjectionDerivativeMatrix;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.interpolation.CubicProjectionMatrix;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.stateMatrices.EntryCMPProjectionMatrix;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.stateMatrices.ExitCMPProjectionMatrix;
@@ -18,6 +19,7 @@ public class ContinuousRemainingStanceCMPProjectionMultipliers implements Remain
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
 
    private final CubicProjectionMatrix cubicProjectionMatrix;
+   private final CubicProjectionDerivativeMatrix cubicProjectionDerivativeMatrix;
 
    private final ExitCMPProjectionMatrix exitCMPProjectionMatrix;
    private final EntryCMPProjectionMatrix entryCMPProjectionMatrix;
@@ -42,6 +44,7 @@ public class ContinuousRemainingStanceCMPProjectionMultipliers implements Remain
       this.previousExitCMPProjectionMatrix = new PreviousExitCMPProjectionMatrix(omega, doubleSupportSplitRatio);
 
       cubicProjectionMatrix = new CubicProjectionMatrix();
+      cubicProjectionDerivativeMatrix = new CubicProjectionDerivativeMatrix();
 
       parentRegistry.addChild(registry);
    }
@@ -65,11 +68,18 @@ public class ContinuousRemainingStanceCMPProjectionMultipliers implements Remain
          boolean useTwoCMPs, boolean isInTransfer, boolean isInTransferEntry)
    {
       if (isInTransfer)
+      {
          cubicProjectionMatrix.setSegmentDuration(doubleSupportDurations.get(0).getDoubleValue());
+         cubicProjectionDerivativeMatrix.setSegmentDuration(doubleSupportDurations.get(0).getDoubleValue());
+      }
       else
+      {
          cubicProjectionMatrix.setSegmentDuration(singleSupportDurations.get(0).getDoubleValue());
+         cubicProjectionDerivativeMatrix.setSegmentDuration(singleSupportDurations.get(0).getDoubleValue());
+      }
 
       cubicProjectionMatrix.update(timeRemaining);
+      cubicProjectionDerivativeMatrix.update(timeRemaining);
 
       exitCMPProjectionMatrix.compute(doubleSupportDurations, singleSupportDurations, useTwoCMPs, isInTransfer);
       entryCMPProjectionMatrix.compute(doubleSupportDurations, singleSupportDurations, useTwoCMPs, isInTransfer);
@@ -120,5 +130,10 @@ public class ContinuousRemainingStanceCMPProjectionMultipliers implements Remain
    public DenseMatrix64F getCubicProjectionMatrix()
    {
       return cubicProjectionMatrix;
+   }
+
+   public DenseMatrix64F getCubicProjectionDerivativeMatrix()
+   {
+      return cubicProjectionDerivativeMatrix;
    }
 }

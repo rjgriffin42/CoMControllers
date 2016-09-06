@@ -164,11 +164,12 @@ public class FootstepRecursionMultiplierCalculator
 
    private final DenseMatrix64F boundaryConditionMatrix = new DenseMatrix64F(4, 2);
    private final DenseMatrix64F referenceICPMatrix = new DenseMatrix64F(1, 2);
+   private final DenseMatrix64F referenceICPVelocityMatrix = new DenseMatrix64F(1, 2);
 
-   public void computeNominalICPPoints(FramePoint2d finalICP, ArrayList<YoFramePoint2d> footstepLocations, ArrayList<FrameVector2d> entryOffsets,
+   public void computeICPPoints(FramePoint2d finalICP, ArrayList<YoFramePoint2d> footstepLocations, ArrayList<FrameVector2d> entryOffsets,
                                        ArrayList<FrameVector2d> exitOffsets, FramePoint2d previousExitCMP, FramePoint2d entryCMP, FramePoint2d exitCMP,
                                        int numberOfFootstepsToConsider, FramePoint2d predictedEndOfStateICP, FramePoint2d beginningOfStateICPToPack,
-                                       FramePoint2d referenceICPToPack)
+                                       FramePoint2d referenceICPToPack, FrameVector2d referenceICPVelocityToPack)
    {
       predictedEndOfStateICP.set(finalICP);
       predictedEndOfStateICP.scale(getFinalICPRecursionMultiplier());
@@ -226,8 +227,12 @@ public class FootstepRecursionMultiplierCalculator
       beginningOfStateICPToPack.setY(boundaryConditionMatrix.get(0, 1));
 
       CommonOps.mult(remainingStanceCMPProjectionMultipliers.getCubicProjectionMatrix(), boundaryConditionMatrix, referenceICPMatrix);
+      CommonOps.mult(remainingStanceCMPProjectionMultipliers.getCubicProjectionDerivativeMatrix(), boundaryConditionMatrix, referenceICPVelocityMatrix);
 
       referenceICPToPack.setX(referenceICPMatrix.get(0, 0));
       referenceICPToPack.setY(referenceICPMatrix.get(0, 1));
+
+      referenceICPVelocityToPack.setX(referenceICPVelocityMatrix.get(0, 0));
+      referenceICPVelocityToPack.setY(referenceICPVelocityMatrix.get(0, 1));
    }
 }

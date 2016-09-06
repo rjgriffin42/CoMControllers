@@ -658,7 +658,7 @@ public class SphereControlToolbox
          @Override
          public int numberOfFootstepsToConsider()
          {
-            return 2;
+            return 1;
          }
 
          @Override public double getFootstepWeight()
@@ -703,7 +703,7 @@ public class SphereControlToolbox
 
          @Override public boolean useStepAdjustment()
          {
-            return true;
+            return false;
          }
 
          @Override public boolean useFootstepRegularization()
