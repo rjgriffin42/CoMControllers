@@ -266,31 +266,49 @@ public class FootstepRecursionMultiplierCalculator
       referenceICPToPack.set(predictedEndOfStateICP);
       referenceICPToPack.scale(1.0 / currentStateProjectionMultiplier.getPositionMultiplier());
 
-      tmpPoint.set(entryCMP);
-      tmpPoint.scale(getRemainingStanceEntryCMPProjectionMultiplier());
-      referenceICPToPack.add(tmpPoint);
+      if (!entryCMP.containsNaN())
+      {
+         tmpPoint.set(entryCMP);
+         tmpPoint.scale(getRemainingStanceEntryCMPProjectionMultiplier());
+         referenceICPToPack.add(tmpPoint);
+      }
 
-      tmpPoint.set(exitCMP);
-      tmpPoint.scale(getRemainingStanceExitCMPProjectionMultiplier());
-      referenceICPToPack.add(tmpPoint);
+      if (!exitCMP.containsNaN())
+      {
+         tmpPoint.set(exitCMP);
+         tmpPoint.scale(getRemainingStanceExitCMPProjectionMultiplier());
+         referenceICPToPack.add(tmpPoint);
+      }
 
-      tmpPoint.set(previousExitCMP);
-      tmpPoint.scale(getRemainingPreviousStanceExitCMPProjectionMultiplier());
-      referenceICPToPack.add(tmpPoint);
+      if (!previousExitCMP.containsNaN())
+      {
+         tmpPoint.set(previousExitCMP);
+         tmpPoint.scale(getRemainingPreviousStanceExitCMPProjectionMultiplier());
+         referenceICPToPack.add(tmpPoint);
+      }
 
       referenceICPVelocityToPack.set(predictedEndOfStateICP);
-      referenceICPVelocityToPack.scale(1.0 / currentStateProjectionMultiplier.getVelocityMultiplier());
+      referenceICPVelocityToPack.scale(currentStateProjectionMultiplier.getVelocityMultiplier());
 
-      tmpPoint.set(entryCMP);
-      tmpPoint.scale(remainingStanceCMPProjectionMultipliers.getRemainingEntryVelocityMultiplier());
-      referenceICPVelocityToPack.add(tmpPoint);
+      if (!entryCMP.containsNaN())
+      {
+         tmpPoint.set(entryCMP);
+         tmpPoint.scale(remainingStanceCMPProjectionMultipliers.getRemainingEntryVelocityMultiplier());
+         referenceICPVelocityToPack.add(tmpPoint);
+      }
 
-      tmpPoint.set(exitCMP);
-      tmpPoint.scale(remainingStanceCMPProjectionMultipliers.getRemainingExitVelocityMultiplier());
-      referenceICPVelocityToPack.add(tmpPoint);
+      if (!exitCMP.containsNaN())
+      {
+         tmpPoint.set(exitCMP);
+         tmpPoint.scale(remainingStanceCMPProjectionMultipliers.getRemainingExitVelocityMultiplier());
+         referenceICPVelocityToPack.add(tmpPoint);
+      }
 
-      tmpPoint.set(previousExitCMP);
-      tmpPoint.scale(remainingStanceCMPProjectionMultipliers.getRemainingPreviousExitVelocityMultiplier());
-      referenceICPVelocityToPack.add(tmpPoint);
+      if (!previousExitCMP.containsNaN())
+      {
+         tmpPoint.set(previousExitCMP);
+         tmpPoint.scale(remainingStanceCMPProjectionMultipliers.getRemainingPreviousExitVelocityMultiplier());
+         referenceICPVelocityToPack.add(tmpPoint);
+      }
    }
 }

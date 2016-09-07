@@ -49,11 +49,12 @@ public class SwingExitCMPProjectionMatrix extends DenseMatrix64F
       double endOfDoubleSupportDuration = (1.0 - doubleSupportSplitRatio.getDoubleValue()) * currentDoubleSupportDuration;
 
       double timeSpentOnExitCMP = exitCMPRatio.getDoubleValue() * stepDuration;
+      double timeSpentOnEntryCMP = (1.0 - exitCMPRatio.getDoubleValue()) * stepDuration;
 
       double exitTime = upcomingInitialDoubleSupportDuration - timeSpentOnExitCMP;
       double exitRecursion = Math.exp(omega.getDoubleValue() * exitTime);
 
-      double entryTime = startOfSplineTime.getDoubleValue() + endOfDoubleSupportDuration - stepDuration;
+      double entryTime = startOfSplineTime.getDoubleValue() + endOfDoubleSupportDuration - timeSpentOnEntryCMP;
       double entryRecursion = Math.exp(omega.getDoubleValue() * entryTime);
 
       double lastSegmentDuration = totalTrajectoryTime.getDoubleValue() - endOfSplineTime.getDoubleValue();

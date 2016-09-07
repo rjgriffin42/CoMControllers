@@ -77,7 +77,7 @@ public class SphereSimulationTest
       DoubleYoVariable controllerSingleSupportTime = (DoubleYoVariable) rootRegistry.getVariable("controllerSingleSupportDuration");
       DoubleYoVariable controllerDoubleSupportTime = (DoubleYoVariable) rootRegistry.getVariable("controllerDoubleSupportDuration");
 
-      double stepTime = 1.0;
+      double stepTime = 3.0;
       double dsRatio = 0.2;
       double singleSupport = (1.0 - dsRatio) * stepTime;
       double doubleSupport = dsRatio * stepTime;

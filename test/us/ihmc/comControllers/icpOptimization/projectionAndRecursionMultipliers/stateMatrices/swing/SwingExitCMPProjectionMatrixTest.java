@@ -90,11 +90,12 @@ public class SwingExitCMPProjectionMatrixTest
          double endOfDoubleSupport = (1.0 - splitRatio) * doubleSupportDuration;
 
          double timeOnExit = exitRatio * (singleSupportDuration + doubleSupportDuration);
+         double timeOnEntry = (1.0 - exitRatio) * (singleSupportDuration + doubleSupportDuration);
 
          double thirdSegmentTime = singleSupportDuration - endOfSpline;
          double firstSegmentTime = startOfSpline;
 
-         double initialMultiplier = Math.exp(omega0 * (firstSegmentTime + endOfDoubleSupport - stepDuration));
+         double initialMultiplier = Math.exp(omega0 * (firstSegmentTime + endOfDoubleSupport - timeOnEntry));
          double initialProjection = (1.0 - Math.exp(omega0 * (upcomingInitialDoubleSupport - timeOnExit)));
 
          shouldBe.zero();
