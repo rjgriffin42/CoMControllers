@@ -17,7 +17,6 @@ public class RemainingStanceCMPProjectionMultipliers
          DoubleYoVariable exitCMPDurationInPercentOfStepTime, DoubleYoVariable startOfSplineTime, DoubleYoVariable endOfSplineTime,
          DoubleYoVariable totalTrajectoryTime, YoVariableRegistry parentRegistry)
    {
-
       exitMultiplier = new ExitCMPProjectionMultiplier(registry, omega, doubleSupportSplitRatio, exitCMPDurationInPercentOfStepTime, startOfSplineTime,
             endOfSplineTime, totalTrajectoryTime);
       entryMultiplier = new EntryCMPProjectionMultiplier(registry, omega, doubleSupportSplitRatio, exitCMPDurationInPercentOfStepTime, startOfSplineTime,

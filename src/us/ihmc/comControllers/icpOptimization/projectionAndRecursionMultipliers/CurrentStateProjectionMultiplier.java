@@ -2,6 +2,7 @@ package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers
 
 import org.ejml.data.DenseMatrix64F;
 import org.ejml.ops.CommonOps;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.interpolation.CubicProjectionDerivativeMatrix;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.interpolation.CubicProjectionMatrix;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.stateMatrices.swing.SwingStateEndRecursionMatrix;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.stateMatrices.transfer.TransferStateEndRecursionMatrix;
@@ -13,6 +14,8 @@ import java.util.ArrayList;
 public class CurrentStateProjectionMultiplier
 {
    private final CubicProjectionMatrix cubicProjectionMatrix;
+   private final CubicProjectionDerivativeMatrix cubicProjectionDerivativeMatrix;
+
    private final TransferStateEndRecursionMatrix transferStateEndRecursionMatrix;
    private final SwingStateEndRecursionMatrix swingStateEndRecursionMatrix;
 
@@ -46,6 +49,7 @@ public class CurrentStateProjectionMultiplier
       swingStateEndRecursionMatrix = new SwingStateEndRecursionMatrix(omega, doubleSupportSplitRatio);
 
       cubicProjectionMatrix = new CubicProjectionMatrix();
+      cubicProjectionDerivativeMatrix = new CubicProjectionDerivativeMatrix();
    }
 
    public void reset()
@@ -67,27 +71,39 @@ public class CurrentStateProjectionMultiplier
    public void compute(ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations, double timeRemaining,
          boolean useTwoCMPs, boolean isInTransfer)
    {
-      double projection;
+      double positionMultiplier, velocityMultiplier;
       if (isInTransfer)
       {
-         projection = computeInTransfer(doubleSupportDurations, timeRemaining);
+         positionMultiplier = computeInTransfer(doubleSupportDurations, timeRemaining);
+         velocityMultiplier = computeInTransferVelocity();
       }
       else
       {
          if (useTwoCMPs)
-            projection = computeSegmentedProjection(doubleSupportDurations, singleSupportDurations, timeRemaining);
+         {
+            positionMultiplier = computeSegmentedProjection(doubleSupportDurations, singleSupportDurations, timeRemaining);
+            velocityMultiplier = computeSegmentedVelocityProjection(timeRemaining);
+         }
          else
-            projection = computeInSwingOneCMP(timeRemaining);
+         {
+            positionMultiplier = computeInSwingOneCMP(timeRemaining);
+            velocityMultiplier = computeInSwingOneCMPVelocity();
+         }
       }
 
-      positionMultiplier.set(projection);
+      this.positionMultiplier.set(positionMultiplier);
+      this.velocityMultiplier.set(velocityMultiplier);
    }
 
    private double computeInTransfer(ArrayList<DoubleYoVariable> doubleSupportDurations, double timeRemaining)
    {
       transferStateEndRecursionMatrix.compute(doubleSupportDurations);
 
-      cubicProjectionMatrix.setSegmentDuration(doubleSupportDurations.get(0).getDoubleValue());
+      double splineDuration = doubleSupportDurations.get(0).getDoubleValue();
+
+      cubicProjectionDerivativeMatrix.setSegmentDuration(splineDuration);
+      cubicProjectionDerivativeMatrix.update(timeRemaining);
+      cubicProjectionMatrix.setSegmentDuration(splineDuration);
       cubicProjectionMatrix.update(timeRemaining);
       CommonOps.mult(cubicProjectionMatrix, transferStateEndRecursionMatrix, matrixOut);
 
@@ -139,9 +155,13 @@ public class CurrentStateProjectionMultiplier
       double lastSegmentDuration = totalTrajectoryTime.getDoubleValue() - endOfSplineTime.getDoubleValue();
       double timeRemainingInSpline = timeRemaining - lastSegmentDuration;
       double splineDuration = endOfSplineTime.getDoubleValue() - startOfSplineTime.getDoubleValue();
+
+      cubicProjectionDerivativeMatrix.setSegmentDuration(splineDuration);
+      cubicProjectionDerivativeMatrix.update(timeRemainingInSpline);
       cubicProjectionMatrix.setSegmentDuration(splineDuration);
       cubicProjectionMatrix.update(timeRemainingInSpline);
-      CommonOps.mult(cubicProjectionMatrix, transferStateEndRecursionMatrix, matrixOut);
+
+      CommonOps.mult(cubicProjectionMatrix, swingStateEndRecursionMatrix, matrixOut);
 
       return 1.0 / matrixOut.get(0, 0);
    }
@@ -151,4 +171,44 @@ public class CurrentStateProjectionMultiplier
       return computeInSwingOneCMP(timeRemaining);
    }
 
+   private double computeInTransferVelocity()
+   {
+      CommonOps.mult(cubicProjectionDerivativeMatrix, transferStateEndRecursionMatrix, matrixOut);
+
+      return 1.0 / matrixOut.get(0, 0);
+   }
+
+   private double computeInSwingOneCMPVelocity()
+   {
+      return omega.getDoubleValue() * positionMultiplier.getDoubleValue();
+   }
+
+   private double computeSegmentedVelocityProjection(double timeRemaining)
+   {
+      double timeInState = totalTrajectoryTime.getDoubleValue() - timeRemaining;
+
+      if (timeInState < startOfSplineTime.getDoubleValue())
+         return computeFirstSegmentVelocityProjection();
+      else if (timeInState >= endOfSplineTime.getDoubleValue())
+         return computeThirdSegmentVelocityProjection();
+      else
+         return computeSecondSegmentVelocityProjection();
+   }
+
+   private double computeFirstSegmentVelocityProjection()
+   {
+      return omega.getDoubleValue() * positionMultiplier.getDoubleValue();
+   }
+
+   private double computeSecondSegmentVelocityProjection()
+   {
+      CommonOps.mult(cubicProjectionDerivativeMatrix, swingStateEndRecursionMatrix, matrixOut);
+
+      return 1.0 / matrixOut.get(0, 0);
+   }
+
+   private double computeThirdSegmentVelocityProjection()
+   {
+      return omega.getDoubleValue() * positionMultiplier.getDoubleValue();
+   }
 }

@@ -279,7 +279,7 @@ public class FootstepRecursionMultiplierCalculator
       referenceICPToPack.add(tmpPoint);
 
       referenceICPVelocityToPack.set(predictedEndOfStateICP);
-      referenceICPVelocityToPack.scale(1.0 / currentStateProjectionMultiplier.getPositionMultiplier());
+      referenceICPVelocityToPack.scale(1.0 / currentStateProjectionMultiplier.getVelocityMultiplier());
 
       tmpPoint.set(entryCMP);
       tmpPoint.scale(remainingStanceCMPProjectionMultipliers.getRemainingEntryVelocityMultiplier());
