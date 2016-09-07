@@ -50,7 +50,7 @@ public class EntryCMPProjectionMultiplier
       cubicProjectionDerivativeMatrix = new CubicProjectionDerivativeMatrix();
 
       transferEntryCMPProjectionMatrix = new TransferEntryCMPProjectionMatrix(omega, doubleSupportSplitRatio);
-      swingEntryCMPProjectionMatrix = new SwingEntryCMPProjectionMatrix(omega, doubleSupportSplitRatio, startOfSplineTime, endOfSplineTime);
+      swingEntryCMPProjectionMatrix = new SwingEntryCMPProjectionMatrix(omega, doubleSupportSplitRatio, exitCMPRatio, startOfSplineTime);
    }
 
    public void reset()
@@ -76,23 +76,28 @@ public class EntryCMPProjectionMultiplier
       if (isInTransfer)
       {
          positionMultiplier = computeInTransfer(doubleSupportDurations, timeRemaining, useTwoCMPs);
+      }
+      else
+      {
+         if (useTwoCMPs)
+            positionMultiplier = computeSegmentedProjection(doubleSupportDurations, singleSupportDurations, timeRemaining);
+         else
+            positionMultiplier = computeInSwingOneCMP();
+      }
+      this.positionMultiplier.set(positionMultiplier);
+
+      if (isInTransfer)
+      {
          velocityMultiplier = computeInTransferVelocity();
       }
       else
       {
          if (useTwoCMPs)
-         {
-            positionMultiplier = computeSegmentedProjection(doubleSupportDurations, singleSupportDurations, timeRemaining);
             velocityMultiplier = computeSegmentedVelocityProjection(timeRemaining);
-         }
          else
-         {
-            positionMultiplier = computeInSwingOneCMP();
             velocityMultiplier = computeInSwingOneCMPVelocity();
-         }
       }
 
-      this.positionMultiplier.set(positionMultiplier);
       this.velocityMultiplier.set(velocityMultiplier);
    }
 

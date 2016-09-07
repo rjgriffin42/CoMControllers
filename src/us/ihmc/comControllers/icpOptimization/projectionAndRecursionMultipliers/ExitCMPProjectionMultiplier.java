@@ -76,23 +76,28 @@ public class ExitCMPProjectionMultiplier
       if (isInTransfer)
       {
          positionMultiplier = computeInTransfer(doubleSupportDurations, timeRemaining, useTwoCMPs);
+      }
+      else
+      {
+         if (useTwoCMPs)
+            positionMultiplier = computeSegmentedProjection(doubleSupportDurations, singleSupportDurations, timeRemaining);
+         else
+            positionMultiplier = computeInSwingOneCMP(timeRemaining);
+      }
+      this.positionMultiplier.set(positionMultiplier);
+
+      if (isInTransfer)
+      {
          velocityMultiplier = computeInTransferVelocity();
       }
       else
       {
          if (useTwoCMPs)
-         {
-            positionMultiplier = computeSegmentedProjection(doubleSupportDurations, singleSupportDurations, timeRemaining);
             velocityMultiplier = computeSegmentedVelocityProjection(timeRemaining);
-         }
          else
-         {
-            positionMultiplier = computeInSwingOneCMP(timeRemaining);
             velocityMultiplier = computeInSwingOneCMPVelocity();
-         }
       }
 
-      this.positionMultiplier.set(positionMultiplier);
       this.velocityMultiplier.set(velocityMultiplier);
    }
 
@@ -114,7 +119,7 @@ public class ExitCMPProjectionMultiplier
 
    private double computeInSwingOneCMP(double timeRemaining)
    {
-      return 1.0 - Math.exp(omega.getDoubleValue() * timeRemaining);
+      return 1.0 - Math.exp(-omega.getDoubleValue() * timeRemaining);
    }
 
    private double computeInTransferVelocity()
@@ -178,7 +183,7 @@ public class ExitCMPProjectionMultiplier
       double splineDuration = endOfSplineTime.getDoubleValue() - startOfSplineTime.getDoubleValue();
 
       cubicProjectionDerivativeMatrix.setSegmentDuration(splineDuration);
-      cubicProjectionDerivativeMatrix.update(timeRemaining);
+      cubicProjectionDerivativeMatrix.update(timeRemainingInSpline);
       cubicProjectionMatrix.setSegmentDuration(splineDuration);
       cubicProjectionMatrix.update(timeRemainingInSpline);
 

@@ -1,4 +1,4 @@
-package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.stateMatrices;
+package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.stateMatrices.transfer;
 
 import org.ejml.data.DenseMatrix64F;
 import org.junit.Assert;
@@ -11,7 +11,7 @@ import us.ihmc.tools.testing.TestPlanAnnotations.DeployableTestMethod;
 
 import java.util.Random;
 
-public class PreviousTransferExitCMPProjectionMatrixTest
+public class TransferPreviousExitCMPProjectionMatrixTest
 {
    private static final double epsilon = 0.00001;
 
@@ -40,7 +40,6 @@ public class PreviousTransferExitCMPProjectionMatrixTest
       int iters = 100;
 
 
-
       DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
       DoubleYoVariable doubleSupportSplitRatio = new DoubleYoVariable("doubleSupportSplitRatio", registry);
 
@@ -57,22 +56,14 @@ public class PreviousTransferExitCMPProjectionMatrixTest
          double doubleSupportDuration = 2.0 * random.nextDouble();
 
          String name = "splitRatio = " + splitRatio + ", doubleSupportDuration = " + doubleSupportDuration;
-         boolean isInTransfer = false;
 
          double initialDoubleSupport = splitRatio * doubleSupportDuration;
-
-         entryCMPProjectionMatrix.compute(doubleSupportDuration);
-         shouldBe.zero();
-         JUnitTools.assertMatrixEquals(name, shouldBe, entryCMPProjectionMatrix, epsilon);
-
-         isInTransfer = true;
 
          entryCMPProjectionMatrix.compute(doubleSupportDuration);
          shouldBe.zero();
          shouldBe.set(0, 0, 1.0 - Math.exp(-omega0 * initialDoubleSupport));
          shouldBe.set(1, 0, -omega0 * Math.exp(-omega0 * initialDoubleSupport));
          JUnitTools.assertMatrixEquals(name, shouldBe, entryCMPProjectionMatrix, epsilon);
-
       }
    }
 }

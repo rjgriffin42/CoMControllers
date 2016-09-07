@@ -17,6 +17,7 @@ import javax.vecmath.Vector3d;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 public class SphereRobotModel implements FullRobotModel
 {
@@ -37,6 +38,8 @@ public class SphereRobotModel implements FullRobotModel
 
    private final CenterOfMassJacobian centerOfMassJacobian;
 
+   private final double totalMass;
+
    public SphereRobotModel()
    {
       elevatorFrame = ReferenceFrame.constructBodyFrameWithUnchangingTransformToParent("elevator", worldFrame, new RigidBodyTransform());
@@ -52,6 +55,12 @@ public class SphereRobotModel implements FullRobotModel
       centerOfMassJacobian = new CenterOfMassJacobian(elevator);
 
       oneDoFJoints = ScrewTools.createOneDoFJointPath(elevator, body);
+      totalMass = TotalMassCalculator.computeSubTreeMass(body);
+   }
+
+   public double getTotalMass()
+   {
+      return totalMass;
    }
 
    public ReferenceFrame getWorldFrame()
@@ -85,12 +94,27 @@ public class SphereRobotModel implements FullRobotModel
       return oneDoFJoints;
    }
 
+   public Map<String, OneDoFJoint> getOneDoFJointsAsMap()
+   {
+      return null;
+   }
+
+   @Override public void getOneDoFJointsFromRootToHere(OneDoFJoint oneDoFJointAtEndOfChain, ArrayList<OneDoFJoint> oneDoFJointsToPack)
+   {
+
+   }
+
    public void getOneDoFJoints(ArrayList<OneDoFJoint> oneDoFJointsToPack)
    {
       List<OneDoFJoint> list = Arrays.asList(oneDoFJoints);
 
       for (int i = 0; i < list.size(); i++)
          oneDoFJointsToPack.set(i, list.get(i));
+   }
+
+   @Override public OneDoFJoint getOneDoFJointByName(String name)
+   {
+      return null;
    }
 
    @Override
@@ -109,12 +133,32 @@ public class SphereRobotModel implements FullRobotModel
       return null;
    }
 
+   @Override public RigidBody getEndEffector(Enum<?> segmentEnum)
+   {
+      return null;
+   }
+
    public OneDoFJoint getNeckJoint(NeckJointName neckJointName)
    {
       return null;
    }
 
    public InverseDynamicsJoint getLidarJoint(String lidarName)
+   {
+      return null;
+   }
+
+   @Override public ReferenceFrame getLidarBaseFrame(String name)
+   {
+      return null;
+   }
+
+   @Override public RigidBodyTransform getLidarBaseToSensorTransform(String name)
+   {
+      return null;
+   }
+
+   @Override public ReferenceFrame getCameraFrame(String name)
    {
       return null;
    }
@@ -130,6 +174,11 @@ public class SphereRobotModel implements FullRobotModel
    }
 
    public RigidBody getHead()
+   {
+      return null;
+   }
+
+   public ReferenceFrame getHeadBaseFrame()
    {
       return null;
    }
