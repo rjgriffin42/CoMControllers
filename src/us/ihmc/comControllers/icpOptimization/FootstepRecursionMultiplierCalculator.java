@@ -3,8 +3,8 @@ package us.ihmc.comControllers.icpOptimization;
 import org.ejml.data.DenseMatrix64F;
 import org.ejml.ops.CommonOps;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.*;
-import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.ContinuousCurrentStateProjectionMultiplier;
-import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.ContinuousRemainingStanceCMPProjectionMultipliers;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.CurrentStateProjectionMultiplier;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.RemainingStanceCMPProjectionMultipliers;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.StanceCMPProjectionMultipliers;
 import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerParameters;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
@@ -17,8 +17,6 @@ import java.util.ArrayList;
 
 public class FootstepRecursionMultiplierCalculator
 {
-   private static final boolean USE_CONTINUOUS_METHOD = true;
-
    private static final String namePrefix = "controller";
 
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
@@ -29,8 +27,8 @@ public class FootstepRecursionMultiplierCalculator
    private final FinalICPRecursionMultiplier finalICPRecursionMultiplier;
    private final CMPRecursionMultipliers cmpRecursionMultipliers;
    private final StanceCMPProjectionMultipliers stanceCMPProjectionMultipliers;
-   private final ContinuousRemainingStanceCMPProjectionMultipliers remainingStanceCMPProjectionMultipliers;
-   private final ContinuousCurrentStateProjectionMultiplier currentStateProjectionMultiplier;
+   private final RemainingStanceCMPProjectionMultipliers remainingStanceCMPProjectionMultipliers;
+   private final CurrentStateProjectionMultiplier currentStateProjectionMultiplier;
 
    private final DoubleYoVariable doubleSupportSplitFraction;
    private final DoubleYoVariable exitCMPDurationInPercentOfStepTime;
@@ -41,7 +39,6 @@ public class FootstepRecursionMultiplierCalculator
    private final DoubleYoVariable totalTrajectoryTime;
    private final DoubleYoVariable timeSpentOnInitialCMP;
    private final DoubleYoVariable timeSpentOnFinalCMP;
-   private final DoubleYoVariable progressionInPercent;
    private final DoubleYoVariable startOfSplineTime;
    private final DoubleYoVariable endOfSplineTime;
 
@@ -76,15 +73,13 @@ public class FootstepRecursionMultiplierCalculator
       totalTrajectoryTime = new DoubleYoVariable(namePrefix + "TotalTrajectoryTime", registry);
       timeSpentOnInitialCMP = new DoubleYoVariable(namePrefix + "TimeSpentOnInitialCMP", registry);
       timeSpentOnFinalCMP = new DoubleYoVariable(namePrefix + "TimeSpentOnFinalCMP", registry);
-      progressionInPercent = new DoubleYoVariable(namePrefix + "ProgressionInPercent", registry);
       startOfSplineTime = new DoubleYoVariable(namePrefix + "StartOfSplineTime", registry);
       endOfSplineTime = new DoubleYoVariable(namePrefix + "EndOfSplineTime", registry);
 
-      remainingStanceCMPProjectionMultipliers = new ContinuousRemainingStanceCMPProjectionMultipliers(omega, doubleSupportSplitFraction,
+      remainingStanceCMPProjectionMultipliers = new RemainingStanceCMPProjectionMultipliers(omega, doubleSupportSplitFraction,
                exitCMPDurationInPercentOfStepTime, startOfSplineTime, endOfSplineTime, totalTrajectoryTime, registry);
-      currentStateProjectionMultiplier = new ContinuousCurrentStateProjectionMultiplier(registry, omega, doubleSupportSplitFraction,
-                                                                                        exitCMPDurationInPercentOfStepTime, startOfSplineTime, endOfSplineTime,
-                                                                                        totalTrajectoryTime);
+      currentStateProjectionMultiplier = new CurrentStateProjectionMultiplier(registry, omega, doubleSupportSplitFraction, startOfSplineTime, endOfSplineTime,
+            totalTrajectoryTime);
 
       finalICPRecursionMultiplier = new FinalICPRecursionMultiplier(registry, omega, doubleSupportSplitFraction);
 
@@ -127,16 +122,15 @@ public class FootstepRecursionMultiplierCalculator
       cmpRecursionMultipliers.compute(numberOfStepsToConsider, doubleSupportDurations, singleSupportDurations, useTwoCMPs, isInTransfer);
    }
 
-   public void computeRemainingProjectionMultipliers(double timeRemaining, boolean useTwoCMPs, boolean isInTransfer, boolean isInTransferEntry)
+   public void computeRemainingProjectionMultipliers(double timeRemaining, boolean useTwoCMPs, boolean isInTransfer)
    {
-
       if (useTwoCMPs)
       {
          updateSegmentedSingleSupportTrajectory(isInTransfer);
       }
 
-      currentStateProjectionMultiplier.compute(timeRemaining, doubleSupportDurations, singleSupportDurations, useTwoCMPs, isInTransfer);
-      remainingStanceCMPProjectionMultipliers.compute(timeRemaining, doubleSupportDurations, singleSupportDurations, useTwoCMPs, isInTransfer, isInTransferEntry);
+      currentStateProjectionMultiplier.compute(doubleSupportDurations, singleSupportDurations, timeRemaining, useTwoCMPs, isInTransfer);
+      remainingStanceCMPProjectionMultipliers.compute(timeRemaining, doubleSupportDurations, singleSupportDurations, useTwoCMPs, isInTransfer);
    }
 
    private void updateSegmentedSingleSupportTrajectory(boolean isInTransfer)
@@ -229,26 +223,18 @@ public class FootstepRecursionMultiplierCalculator
 
    public double getCurrentStateProjectionMultiplier()
    {
-      return currentStateProjectionMultiplier.getDoubleValue();
+      return currentStateProjectionMultiplier.getPositionMultiplier();
    }
 
    private final FramePoint2d tmpPoint = new FramePoint2d();
    private final FramePoint2d tmpEntry = new FramePoint2d();
    private final FramePoint2d tmpExit = new FramePoint2d();
 
-   private final DenseMatrix64F entryCMPMatrix = new DenseMatrix64F(1, 2);
-   private final DenseMatrix64F exitCMPMatrix = new DenseMatrix64F(1, 2);
-   private final DenseMatrix64F previousExitCMPMatrix = new DenseMatrix64F(1, 2);
-   private final DenseMatrix64F endOfStateICPMatrix = new DenseMatrix64F(1, 2);
-
-   private final DenseMatrix64F boundaryConditionMatrix = new DenseMatrix64F(4, 2);
-   private final DenseMatrix64F referenceICPMatrix = new DenseMatrix64F(1, 2);
    private final DenseMatrix64F referenceICPVelocityMatrix = new DenseMatrix64F(1, 2);
 
    public void computeICPPoints(FramePoint2d finalICP, ArrayList<YoFramePoint2d> footstepLocations, ArrayList<FrameVector2d> entryOffsets,
-                                       ArrayList<FrameVector2d> exitOffsets, FramePoint2d previousExitCMP, FramePoint2d entryCMP, FramePoint2d exitCMP,
-                                       int numberOfFootstepsToConsider, FramePoint2d predictedEndOfStateICP, FramePoint2d beginningOfStateICPToPack,
-                                       FramePoint2d referenceICPToPack, FrameVector2d referenceICPVelocityToPack)
+         ArrayList<FrameVector2d> exitOffsets, FramePoint2d previousExitCMP, FramePoint2d entryCMP, FramePoint2d exitCMP, int numberOfFootstepsToConsider,
+         FramePoint2d predictedEndOfStateICP, FramePoint2d referenceICPToPack, FrameVector2d referenceICPVelocityToPack)
    {
       predictedEndOfStateICP.set(finalICP);
       predictedEndOfStateICP.scale(getFinalICPRecursionMultiplier());
@@ -278,40 +264,34 @@ public class FootstepRecursionMultiplierCalculator
          predictedEndOfStateICP.add(tmpExit);
       }
 
-      endOfStateICPMatrix.set(0, 0, predictedEndOfStateICP.getX());
-      endOfStateICPMatrix.set(0, 1, predictedEndOfStateICP.getY());
+      referenceICPToPack.set(predictedEndOfStateICP);
+      referenceICPToPack.scale(1.0 / currentStateProjectionMultiplier.getPositionMultiplier());
 
-      entryCMPMatrix.set(0, 0, entryCMP.getX());
-      entryCMPMatrix.set(0, 1, entryCMP.getY());
+      tmpPoint.set(entryCMP);
+      tmpPoint.scale(getRemainingStanceEntryCMPProjectionMultiplier());
+      referenceICPToPack.add(tmpPoint);
 
-      exitCMPMatrix.set(0, 0, exitCMP.getX());
-      exitCMPMatrix.set(0, 1, exitCMP.getY());
+      tmpPoint.set(exitCMP);
+      tmpPoint.scale(getRemainingStanceExitCMPProjectionMultiplier());
+      referenceICPToPack.add(tmpPoint);
 
-      if (!previousExitCMP.containsNaN())
-      {
-         previousExitCMPMatrix.set(0, 0, previousExitCMP.getX());
-         previousExitCMPMatrix.set(0, 1, previousExitCMP.getY());
-      }
-      else
-      {
-         previousExitCMPMatrix.zero();
-      }
+      tmpPoint.set(previousExitCMP);
+      tmpPoint.scale(getRemainingPreviousStanceExitCMPProjectionMultiplier());
+      referenceICPToPack.add(tmpPoint);
 
-      CommonOps.mult(currentStateProjectionMultiplier.getStateEndRecursionMatrix(), endOfStateICPMatrix, boundaryConditionMatrix);
-      CommonOps.multAdd(remainingStanceCMPProjectionMultipliers.getEntryMultiplierMatrix(), entryCMPMatrix, boundaryConditionMatrix);
-      CommonOps.multAdd(remainingStanceCMPProjectionMultipliers.getExitMultiplierMatrix(), exitCMPMatrix, boundaryConditionMatrix);
-      CommonOps.multAdd(remainingStanceCMPProjectionMultipliers.getPreviousExitMultiplierMatrix(), previousExitCMPMatrix, boundaryConditionMatrix);
+      referenceICPVelocityToPack.set(predictedEndOfStateICP);
+      referenceICPVelocityToPack.scale(1.0 / currentStateProjectionMultiplier.getPositionMultiplier());
 
-      beginningOfStateICPToPack.setX(boundaryConditionMatrix.get(0, 0));
-      beginningOfStateICPToPack.setY(boundaryConditionMatrix.get(0, 1));
+      tmpPoint.set(entryCMP);
+      tmpPoint.scale(remainingStanceCMPProjectionMultipliers.getRemainingEntryVelocityMultiplier());
+      referenceICPVelocityToPack.add(tmpPoint);
 
-      CommonOps.mult(remainingStanceCMPProjectionMultipliers.getCubicProjectionMatrix(), boundaryConditionMatrix, referenceICPMatrix);
-      CommonOps.mult(remainingStanceCMPProjectionMultipliers.getCubicProjectionDerivativeMatrix(), boundaryConditionMatrix, referenceICPVelocityMatrix);
+      tmpPoint.set(exitCMP);
+      tmpPoint.scale(remainingStanceCMPProjectionMultipliers.getRemainingExitVelocityMultiplier());
+      referenceICPVelocityToPack.add(tmpPoint);
 
-      referenceICPToPack.setX(referenceICPMatrix.get(0, 0));
-      referenceICPToPack.setY(referenceICPMatrix.get(0, 1));
-
-      referenceICPVelocityToPack.setX(referenceICPVelocityMatrix.get(0, 0));
-      referenceICPVelocityToPack.setY(referenceICPVelocityMatrix.get(0, 1));
+      tmpPoint.set(previousExitCMP);
+      tmpPoint.scale(remainingStanceCMPProjectionMultipliers.getRemainingPreviousExitVelocityMultiplier());
+      referenceICPVelocityToPack.add(tmpPoint);
    }
 }

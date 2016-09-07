@@ -501,7 +501,7 @@ public class ICPOptimizationController
    }
 
    private final FramePoint2d tmpEndPoint = new FramePoint2d();
-   private final FramePoint2d tmpBeginningPoint = new FramePoint2d();
+   //private final FramePoint2d tmpBeginningPoint = new FramePoint2d();
    private final FramePoint2d tmpReferencePoint = new FramePoint2d();
    private final FrameVector2d tmpReferenceVelocity = new FrameVector2d();
    private final FramePoint2d tmpCMP = new FramePoint2d();
@@ -513,7 +513,7 @@ public class ICPOptimizationController
 
       footstepRecursionMultiplierCalculator
             .computeICPPoints(finalICP.getFrameTuple2d(), footstepSolutions, entryOffsets, exitOffsets, previousStanceExitCMP.getFrameTuple2d(),
-                  stanceEntryCMP2d, stanceExitCMP2d, numberOfFootstepsToConsider, tmpEndPoint, tmpBeginningPoint, tmpReferencePoint, tmpReferenceVelocity);
+                  stanceEntryCMP2d, stanceExitCMP2d, numberOfFootstepsToConsider, tmpEndPoint, tmpReferencePoint, tmpReferenceVelocity);
 
       CapturePointTools.computeDesiredCentroidalMomentumPivot(tmpReferencePoint, tmpReferenceVelocity, omega.getDoubleValue(), tmpCMP);
 
@@ -527,12 +527,12 @@ public class ICPOptimizationController
    {
       footstepRecursionMultiplierCalculator.computeICPPoints(finalICP.getFrameTuple2d(), upcomingFootstepLocations, entryOffsets, exitOffsets,
             previousStanceExitCMP.getFrameTuple2d(), stanceEntryCMP.getFrameTuple2d(), stanceExitCMP.getFrameTuple2d(), numberOfFootstepsToConsider,
-            tmpEndPoint, tmpBeginningPoint, tmpReferencePoint, tmpReferenceVelocity);
+            tmpEndPoint, tmpReferencePoint, tmpReferenceVelocity);
 
       CapturePointTools.computeDesiredCentroidalMomentumPivot(tmpReferencePoint, tmpReferenceVelocity, omega.getDoubleValue(), tmpCMP);
 
       nominalEndOfStateICP.set(tmpEndPoint);
-      nominalBeginningOfStateICP.set(tmpBeginningPoint);
+      //nominalBeginningOfStateICP.set(tmpBeginningPoint);
       nominalReferenceICP.set(tmpReferencePoint);
       nominalReferenceICPVelocity.set(tmpReferenceVelocity);
       nominalReferenceCMP.set(tmpCMP);
@@ -628,7 +628,7 @@ public class ICPOptimizationController
    private void computeStanceCMPProjection()
    {
       footstepRecursionMultiplierCalculator.computeRemainingProjectionMultipliers(timeRemainingInState.getDoubleValue(), localUseTwoCMPs,
-            isInTransfer.getBooleanValue(), isInTransferEntry.getBooleanValue());
+            isInTransfer.getBooleanValue());
 
       if (localUseTwoCMPs)
       {

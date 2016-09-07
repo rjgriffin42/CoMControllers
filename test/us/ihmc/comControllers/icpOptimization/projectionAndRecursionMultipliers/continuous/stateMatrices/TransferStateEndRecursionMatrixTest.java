@@ -3,6 +3,7 @@ package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers
 import org.ejml.data.DenseMatrix64F;
 import org.junit.Assert;
 import org.junit.Test;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.stateMatrices.transfer.TransferStateEndRecursionMatrix;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.tools.testing.JUnitTools;
@@ -10,7 +11,7 @@ import us.ihmc.tools.testing.TestPlanAnnotations.DeployableTestMethod;
 
 import java.util.Random;
 
-public class StateEndRecursionMatrixTest
+public class TransferStateEndRecursionMatrixTest
 {
    private static final double epsilon = 0.00001;
 
@@ -24,10 +25,10 @@ public class StateEndRecursionMatrixTest
       DoubleYoVariable doubleSupportSplitRatio = new DoubleYoVariable("doubleSupportSplitRatio", registry);
       DoubleYoVariable exitCMPRatio = new DoubleYoVariable("exitCMPRatio", registry);
 
-      StateEndRecursionMatrix stateEndRecursionMatrix = new StateEndRecursionMatrix(omega, doubleSupportSplitRatio, exitCMPRatio);
+      TransferStateEndRecursionMatrix transferStateEndRecursionMatrix = new TransferStateEndRecursionMatrix(omega);
 
-      Assert.assertEquals("", 4, stateEndRecursionMatrix.numRows);
-      Assert.assertEquals("", 1, stateEndRecursionMatrix.numCols);
+      Assert.assertEquals("", 4, transferStateEndRecursionMatrix.numRows);
+      Assert.assertEquals("", 1, transferStateEndRecursionMatrix.numCols);
    }
 
    @DeployableTestMethod(estimatedDuration = 1.0)
@@ -46,7 +47,7 @@ public class StateEndRecursionMatrixTest
       DoubleYoVariable doubleSupportSplitRatio = new DoubleYoVariable("doubleSupportSplitRatio", registry);
       DoubleYoVariable exitCMPRatio = new DoubleYoVariable("exitCMPRatio", registry);
 
-      StateEndRecursionMatrix stateEndRecursionMatrix = new StateEndRecursionMatrix(omega, doubleSupportSplitRatio, exitCMPRatio);
+      TransferStateEndRecursionMatrix transferStateEndRecursionMatrix = new TransferStateEndRecursionMatrix(omega);
 
       for (int i = 0; i < iters; i++)
       {
@@ -65,43 +66,43 @@ public class StateEndRecursionMatrixTest
 
          String name = "splitRatio = " + splitRatio + ",\n doubleSupportDuration = " + currentDoubleSupportDuration + ", singleSupportDuration = " + singleSupportDuration;
 
-         stateEndRecursionMatrix.computeInTransfer(currentDoubleSupportDuration);
+         transferStateEndRecursionMatrix.compute(currentDoubleSupportDuration);
          shouldBe.zero();
          shouldBe.set(0, 0, Math.exp(-omega0 * currentDoubleSupportDuration));
          shouldBe.set(1, 0, omega0 * Math.exp(-omega0 * currentDoubleSupportDuration));
          shouldBe.set(2, 0, 1.0);
          shouldBe.set(3, 0, omega0);
-         JUnitTools.assertMatrixEquals(name, shouldBe, stateEndRecursionMatrix, epsilon);
+         JUnitTools.assertMatrixEquals(name, shouldBe, transferStateEndRecursionMatrix, epsilon);
 
-         stateEndRecursionMatrix.computeInSingleSupport(upcomingDoubleSupportDuration, currentDoubleSupportDuration, singleSupportDuration, startOfSplineTime, endOfSplineTime);
+         transferStateEndRecursionMatrix.compute(currentDoubleSupportDuration);
          shouldBe.zero();
          shouldBe.set(0, 0, Math.exp(-omega0 * singleSupportDuration));
          shouldBe.set(1, 0, omega0 * Math.exp(-omega0 * singleSupportDuration));
          shouldBe.set(2, 0, 1.0);
          shouldBe.set(3, 0, omega0);
-         JUnitTools.assertMatrixEquals(name, shouldBe, stateEndRecursionMatrix, epsilon);
+         JUnitTools.assertMatrixEquals(name, shouldBe, transferStateEndRecursionMatrix, epsilon);
 
          double endOfDoubleSupport = (1.0 - splitRatio) * currentDoubleSupportDuration;
 
-         stateEndRecursionMatrix.computeInTransfer(currentDoubleSupportDuration);
+         transferStateEndRecursionMatrix.compute(currentDoubleSupportDuration);
          shouldBe.zero();
          shouldBe.set(0, 0, Math.exp(-omega0 * currentDoubleSupportDuration));
          shouldBe.set(1, 0, omega0 * Math.exp(-omega0 * currentDoubleSupportDuration));
          shouldBe.set(2, 0, 1.0);
          shouldBe.set(3, 0, omega0);
-         JUnitTools.assertMatrixEquals(name, shouldBe, stateEndRecursionMatrix, epsilon);
+         JUnitTools.assertMatrixEquals(name, shouldBe, transferStateEndRecursionMatrix, epsilon);
 
          double upcomingInitialDoubleSupport = splitRatio * upcomingDoubleSupportDuration;
          double stepDuration = currentDoubleSupportDuration + singleSupportDuration;
 
-         stateEndRecursionMatrix.computeInSingleSupport(upcomingDoubleSupportDuration, currentDoubleSupportDuration, singleSupportDuration, startOfSplineTime, endOfSplineTime);
+         transferStateEndRecursionMatrix.compute(currentDoubleSupportDuration);
          shouldBe.zero();
          double duration = upcomingInitialDoubleSupport + endOfDoubleSupport - stepDuration;
          shouldBe.set(0, 0, Math.exp(omega0 * duration));
          shouldBe.set(1, 0, omega0 * Math.exp(omega0 * duration));
          shouldBe.set(2, 0, 1.0);
          shouldBe.set(3, 0, omega0);
-         JUnitTools.assertMatrixEquals(name, shouldBe, stateEndRecursionMatrix, epsilon);
+         JUnitTools.assertMatrixEquals(name, shouldBe, transferStateEndRecursionMatrix, epsilon);
       }
    }
 }

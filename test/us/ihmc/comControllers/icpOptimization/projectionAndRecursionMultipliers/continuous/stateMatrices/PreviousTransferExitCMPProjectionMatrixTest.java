@@ -3,6 +3,7 @@ package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers
 import org.ejml.data.DenseMatrix64F;
 import org.junit.Assert;
 import org.junit.Test;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.stateMatrices.transfer.TransferPreviousExitCMPProjectionMatrix;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.tools.testing.JUnitTools;
@@ -10,7 +11,7 @@ import us.ihmc.tools.testing.TestPlanAnnotations.DeployableTestMethod;
 
 import java.util.Random;
 
-public class PreviousExitCMPProjectionMatrixTest
+public class PreviousTransferExitCMPProjectionMatrixTest
 {
    private static final double epsilon = 0.00001;
 
@@ -22,7 +23,7 @@ public class PreviousExitCMPProjectionMatrixTest
 
       DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
       DoubleYoVariable doubleSupportSplitRatio = new DoubleYoVariable("doubleSupportSplitRatio", registry);
-      PreviousExitCMPProjectionMatrix entryCMPProjectionMatrix = new PreviousExitCMPProjectionMatrix(omega, doubleSupportSplitRatio);
+      TransferPreviousExitCMPProjectionMatrix entryCMPProjectionMatrix = new TransferPreviousExitCMPProjectionMatrix(omega, doubleSupportSplitRatio);
 
       Assert.assertEquals("", 4, entryCMPProjectionMatrix.numRows);
       Assert.assertEquals("", 1, entryCMPProjectionMatrix.numCols);
@@ -43,7 +44,7 @@ public class PreviousExitCMPProjectionMatrixTest
       DoubleYoVariable omega = new DoubleYoVariable("omega", registry);
       DoubleYoVariable doubleSupportSplitRatio = new DoubleYoVariable("doubleSupportSplitRatio", registry);
 
-      PreviousExitCMPProjectionMatrix entryCMPProjectionMatrix = new PreviousExitCMPProjectionMatrix(omega, doubleSupportSplitRatio);
+      TransferPreviousExitCMPProjectionMatrix entryCMPProjectionMatrix = new TransferPreviousExitCMPProjectionMatrix(omega, doubleSupportSplitRatio);
 
       for (int i = 0; i < iters; i++)
       {
@@ -60,13 +61,13 @@ public class PreviousExitCMPProjectionMatrixTest
 
          double initialDoubleSupport = splitRatio * doubleSupportDuration;
 
-         entryCMPProjectionMatrix.compute(doubleSupportDuration, isInTransfer);
+         entryCMPProjectionMatrix.compute(doubleSupportDuration);
          shouldBe.zero();
          JUnitTools.assertMatrixEquals(name, shouldBe, entryCMPProjectionMatrix, epsilon);
 
          isInTransfer = true;
 
-         entryCMPProjectionMatrix.compute(doubleSupportDuration, isInTransfer);
+         entryCMPProjectionMatrix.compute(doubleSupportDuration);
          shouldBe.zero();
          shouldBe.set(0, 0, 1.0 - Math.exp(-omega0 * initialDoubleSupport));
          shouldBe.set(1, 0, -omega0 * Math.exp(-omega0 * initialDoubleSupport));
