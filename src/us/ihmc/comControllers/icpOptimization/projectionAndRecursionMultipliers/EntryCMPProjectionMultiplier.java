@@ -4,7 +4,7 @@ import org.ejml.data.DenseMatrix64F;
 import org.ejml.ops.CommonOps;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.interpolation.CubicProjectionDerivativeMatrix;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.interpolation.CubicProjectionMatrix;
-import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.stateMatrices.swing.SwingExitCMPProjectionMatrix;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.stateMatrices.swing.SwingEntryCMPProjectionMatrix;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.stateMatrices.transfer.TransferEntryCMPProjectionMatrix;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
@@ -17,7 +17,7 @@ public class EntryCMPProjectionMultiplier
    private final CubicProjectionDerivativeMatrix cubicProjectionDerivativeMatrix;
 
    private final TransferEntryCMPProjectionMatrix transferEntryCMPProjectionMatrix;
-   private final SwingExitCMPProjectionMatrix swingEntryCMPProjectionMatrix;
+   private final SwingEntryCMPProjectionMatrix swingEntryCMPProjectionMatrix;
 
    private final DoubleYoVariable omega;
    private final DoubleYoVariable exitCMPRatio;
@@ -50,7 +50,7 @@ public class EntryCMPProjectionMultiplier
       cubicProjectionDerivativeMatrix = new CubicProjectionDerivativeMatrix();
 
       transferEntryCMPProjectionMatrix = new TransferEntryCMPProjectionMatrix(omega, doubleSupportSplitRatio);
-      swingEntryCMPProjectionMatrix = new SwingExitCMPProjectionMatrix(omega, doubleSupportSplitRatio, exitCMPRatio, startOfSplineTime, endOfSplineTime, totalTrajectoryTime);
+      swingEntryCMPProjectionMatrix = new SwingEntryCMPProjectionMatrix(omega, doubleSupportSplitRatio, startOfSplineTime, endOfSplineTime);
    }
 
    public void reset()
