@@ -1,4 +1,4 @@
-package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.stateMatrices.swing;
+package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.stateMatrices.swing;
 
 import org.ejml.data.DenseMatrix64F;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;

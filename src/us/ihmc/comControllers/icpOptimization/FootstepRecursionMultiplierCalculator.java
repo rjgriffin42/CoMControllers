@@ -1,10 +1,9 @@
 package us.ihmc.comControllers.icpOptimization;
 
 import org.ejml.data.DenseMatrix64F;
-import org.ejml.ops.CommonOps;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.*;
-import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.CurrentStateProjectionMultiplier;
-import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.RemainingStanceCMPProjectionMultipliers;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.CurrentStateProjectionMultiplier;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.RemainingStanceCMPProjectionMultipliers;
 import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.StanceCMPProjectionMultipliers;
 import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerParameters;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
@@ -135,7 +134,7 @@ public class FootstepRecursionMultiplierCalculator
 
    private void updateSegmentedSingleSupportTrajectory(boolean isInTransfer)
    {
-      if (isInTransfer)
+      if (!isInTransfer)
       {
          double doubleSupportDuration = doubleSupportDurations.get(0).getDoubleValue();
          double steppingDuration = singleSupportDurations.get(0).getDoubleValue() + doubleSupportDuration;

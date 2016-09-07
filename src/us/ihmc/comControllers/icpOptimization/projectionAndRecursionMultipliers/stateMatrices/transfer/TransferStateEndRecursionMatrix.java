@@ -1,4 +1,4 @@
-package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.stateMatrices.transfer;
+package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.stateMatrices.transfer;
 
 import org.ejml.data.DenseMatrix64F;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;

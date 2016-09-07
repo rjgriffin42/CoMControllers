@@ -1,4 +1,4 @@
-package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous;
+package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers;
 
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;

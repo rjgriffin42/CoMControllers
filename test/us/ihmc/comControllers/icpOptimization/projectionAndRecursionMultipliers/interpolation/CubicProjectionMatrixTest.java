@@ -1,10 +1,9 @@
-package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.interpolation;
+package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.interpolation;
 
 import org.ejml.data.DenseMatrix64F;
 import org.ejml.ops.CommonOps;
 import org.junit.Assert;
 import org.junit.Test;
-import us.ihmc.convexOptimization.qpOASES.DenseMatrix;
 import us.ihmc.tools.testing.JUnitTools;
 import us.ihmc.tools.testing.TestPlanAnnotations.DeployableTestMethod;
 

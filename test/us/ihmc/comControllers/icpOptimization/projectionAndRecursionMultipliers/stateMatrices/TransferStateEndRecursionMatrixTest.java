@@ -1,9 +1,9 @@
-package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.stateMatrices;
+package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.stateMatrices;
 
 import org.ejml.data.DenseMatrix64F;
 import org.junit.Assert;
 import org.junit.Test;
-import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.stateMatrices.transfer.TransferStateEndRecursionMatrix;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.stateMatrices.transfer.TransferStateEndRecursionMatrix;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.tools.testing.JUnitTools;

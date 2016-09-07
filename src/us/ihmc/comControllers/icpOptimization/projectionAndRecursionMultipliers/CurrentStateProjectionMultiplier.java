@@ -1,14 +1,13 @@
-package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous;
+package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers;
 
 import org.ejml.data.DenseMatrix64F;
 import org.ejml.ops.CommonOps;
-import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.interpolation.CubicProjectionMatrix;
-import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.stateMatrices.swing.SwingStateEndRecursionMatrix;
-import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.stateMatrices.transfer.TransferStateEndRecursionMatrix;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.interpolation.CubicProjectionMatrix;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.stateMatrices.swing.SwingStateEndRecursionMatrix;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.stateMatrices.transfer.TransferStateEndRecursionMatrix;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 public class CurrentStateProjectionMultiplier

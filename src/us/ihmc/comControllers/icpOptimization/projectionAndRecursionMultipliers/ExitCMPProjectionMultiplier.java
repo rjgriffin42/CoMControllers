@@ -1,24 +1,23 @@
-package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous;
+package us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers;
 
 import org.ejml.data.DenseMatrix64F;
 import org.ejml.ops.CommonOps;
-import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.interpolation.CubicProjectionDerivativeMatrix;
-import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.interpolation.CubicProjectionMatrix;
-import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.stateMatrices.swing.SwingExitCMPProjectionMatrix;
-import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.stateMatrices.transfer.TransferEntryCMPProjectionMatrix;
-import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.continuous.stateMatrices.transfer.TransferExitCMPProjectionMatrix;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.interpolation.CubicProjectionDerivativeMatrix;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.interpolation.CubicProjectionMatrix;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.stateMatrices.swing.SwingExitCMPProjectionMatrix;
+import us.ihmc.comControllers.icpOptimization.projectionAndRecursionMultipliers.stateMatrices.transfer.TransferExitCMPProjectionMatrix;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 
 import java.util.ArrayList;
 
-public class EntryCMPProjectionMultiplier
+public class ExitCMPProjectionMultiplier
 {
    private final CubicProjectionMatrix cubicProjectionMatrix;
    private final CubicProjectionDerivativeMatrix cubicProjectionDerivativeMatrix;
 
-   private final TransferEntryCMPProjectionMatrix transferEntryCMPProjectionMatrix;
-   private final SwingExitCMPProjectionMatrix swingEntryCMPProjectionMatrix;
+   private final TransferExitCMPProjectionMatrix transferExitCMPProjectionMatrix;
+   private final SwingExitCMPProjectionMatrix swingExitCMPProjectionMatrix;
 
    private final DoubleYoVariable omega;
    private final DoubleYoVariable exitCMPRatio;
@@ -33,11 +32,11 @@ public class EntryCMPProjectionMultiplier
    private final DoubleYoVariable positionMultiplier;
    private final DoubleYoVariable velocityMultiplier;
 
-   public EntryCMPProjectionMultiplier(YoVariableRegistry registry, DoubleYoVariable omega, DoubleYoVariable doubleSupportSplitRatio,
+   public ExitCMPProjectionMultiplier(YoVariableRegistry registry, DoubleYoVariable omega, DoubleYoVariable doubleSupportSplitRatio,
          DoubleYoVariable exitCMPRatio, DoubleYoVariable startOfSplineTime, DoubleYoVariable endOfSplineTime, DoubleYoVariable totalTrajectoryTime)
    {
-      positionMultiplier = new DoubleYoVariable("EntryCMPProjectionMultiplier", registry);
-      velocityMultiplier = new DoubleYoVariable("EntryCMPVelocityProjectionMultiplier", registry);
+      positionMultiplier = new DoubleYoVariable("ExitCMPProjectionMultiplier", registry);
+      velocityMultiplier = new DoubleYoVariable("ExitCMPProjectionVelocityMultiplier", registry);
 
       this.omega = omega;
       this.exitCMPRatio = exitCMPRatio;
@@ -50,8 +49,8 @@ public class EntryCMPProjectionMultiplier
       cubicProjectionMatrix = new CubicProjectionMatrix();
       cubicProjectionDerivativeMatrix = new CubicProjectionDerivativeMatrix();
 
-      transferEntryCMPProjectionMatrix = new TransferEntryCMPProjectionMatrix(omega, doubleSupportSplitRatio);
-      swingEntryCMPProjectionMatrix = new SwingExitCMPProjectionMatrix(omega, doubleSupportSplitRatio, exitCMPRatio, startOfSplineTime, endOfSplineTime, totalTrajectoryTime);
+      transferExitCMPProjectionMatrix = new TransferExitCMPProjectionMatrix(omega, doubleSupportSplitRatio);
+      swingExitCMPProjectionMatrix = new SwingExitCMPProjectionMatrix(omega, doubleSupportSplitRatio, exitCMPRatio, startOfSplineTime, endOfSplineTime, totalTrajectoryTime);
    }
 
    public void reset()
@@ -88,7 +87,7 @@ public class EntryCMPProjectionMultiplier
          }
          else
          {
-            positionMultiplier = computeInSwingOneCMP();
+            positionMultiplier = computeInSwingOneCMP(timeRemaining);
             velocityMultiplier = computeInSwingOneCMPVelocity();
          }
       }
@@ -99,7 +98,7 @@ public class EntryCMPProjectionMultiplier
 
    private double computeInTransfer(ArrayList<DoubleYoVariable> doubleSupportDurations, double timeRemaining, boolean useTwoCMPs)
    {
-      transferEntryCMPProjectionMatrix.compute(doubleSupportDurations, useTwoCMPs);
+      transferExitCMPProjectionMatrix.compute(doubleSupportDurations, useTwoCMPs);
 
       double splineDuration = doubleSupportDurations.get(0).getDoubleValue();
 
@@ -108,26 +107,26 @@ public class EntryCMPProjectionMultiplier
       cubicProjectionMatrix.setSegmentDuration(splineDuration);
       cubicProjectionMatrix.update(timeRemaining);
 
-      CommonOps.mult(cubicProjectionMatrix, transferEntryCMPProjectionMatrix, matrixOut);
+      CommonOps.mult(cubicProjectionMatrix, transferExitCMPProjectionMatrix, matrixOut);
 
       return matrixOut.get(0, 0);
    }
 
-   private double computeInSwingOneCMP()
+   private double computeInSwingOneCMP(double timeRemaining)
    {
-      return 0.0;
+      return 1.0 - Math.exp(omega.getDoubleValue() * timeRemaining);
    }
 
    private double computeInTransferVelocity()
    {
-      CommonOps.mult(cubicProjectionDerivativeMatrix, transferEntryCMPProjectionMatrix, matrixOut);
+      CommonOps.mult(cubicProjectionDerivativeMatrix, transferExitCMPProjectionMatrix, matrixOut);
 
       return matrixOut.get(0, 0);
    }
 
    private double computeInSwingOneCMPVelocity()
    {
-      return 0.0;
+      return omega.getDoubleValue() * (positionMultiplier.getDoubleValue() - 1.0);
    }
 
    private double computeSegmentedProjection(ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations,
@@ -138,7 +137,7 @@ public class EntryCMPProjectionMultiplier
       if (timeInState < startOfSplineTime.getDoubleValue())
          return computeFirstSegmentProjection(doubleSupportDurations, singleSupportDurations, timeInState);
       else if (timeInState >= endOfSplineTime.getDoubleValue())
-         return computeThirdSegmentProjection();
+         return computeThirdSegmentProjection(timeRemaining);
       else
          return computeSecondSegmentProjection(doubleSupportDurations, singleSupportDurations, timeRemaining);
    }
@@ -146,19 +145,25 @@ public class EntryCMPProjectionMultiplier
    private double computeFirstSegmentProjection(ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations,
          double timeInState)
    {
+      double upcomingDoubleSupportDuration = doubleSupportDurations.get(1).getDoubleValue();
       double currentDoubleSupportDuration = doubleSupportDurations.get(0).getDoubleValue();
       double singleSupportDuration = singleSupportDurations.get(0).getDoubleValue();
 
       double stepDuration = currentDoubleSupportDuration + singleSupportDuration;
 
+      double timeSpentOnExitCMP = exitCMPRatio.getDoubleValue() * stepDuration;
       double timeSpentOnEntryCMP = (1.0 - exitCMPRatio.getDoubleValue()) * stepDuration;
 
+      double upcomingInitialDoubleSupportDuration = doubleSupportSplitRatio.getDoubleValue() * upcomingDoubleSupportDuration;
       double endOfDoubleSupportDuration = (1.0 - doubleSupportSplitRatio.getDoubleValue()) * currentDoubleSupportDuration;
+
+      double exitRecursionTime = upcomingInitialDoubleSupportDuration - timeSpentOnExitCMP;
+      double exitRecursion = 1.0 - Math.exp(omega.getDoubleValue() * exitRecursionTime);
 
       double entryRecursionTime = timeInState + endOfDoubleSupportDuration - timeSpentOnEntryCMP;
       double entryRecursion = Math.exp(omega.getDoubleValue() * entryRecursionTime);
 
-      double recursion = 1.0 - entryRecursion;
+      double recursion = entryRecursion * exitRecursion;
 
       return recursion;
    }
@@ -166,26 +171,25 @@ public class EntryCMPProjectionMultiplier
    private double computeSecondSegmentProjection(ArrayList<DoubleYoVariable> doubleSupportDurations, ArrayList<DoubleYoVariable> singleSupportDurations,
          double timeRemaining)
    {
-      swingEntryCMPProjectionMatrix.compute(doubleSupportDurations, singleSupportDurations);
+      swingExitCMPProjectionMatrix.compute(doubleSupportDurations, singleSupportDurations);
 
       double lastSegmentDuration = totalTrajectoryTime.getDoubleValue() - endOfSplineTime.getDoubleValue();
       double timeRemainingInSpline = timeRemaining - lastSegmentDuration;
       double splineDuration = endOfSplineTime.getDoubleValue() - startOfSplineTime.getDoubleValue();
 
+      cubicProjectionDerivativeMatrix.setSegmentDuration(splineDuration);
+      cubicProjectionDerivativeMatrix.update(timeRemaining);
       cubicProjectionMatrix.setSegmentDuration(splineDuration);
       cubicProjectionMatrix.update(timeRemainingInSpline);
 
-      cubicProjectionDerivativeMatrix.setSegmentDuration(splineDuration);
-      cubicProjectionDerivativeMatrix.update(timeRemainingInSpline);
-
-      CommonOps.mult(cubicProjectionMatrix, swingEntryCMPProjectionMatrix, matrixOut);
+      CommonOps.mult(cubicProjectionMatrix, swingExitCMPProjectionMatrix, matrixOut);
 
       return matrixOut.get(0, 0);
    }
 
-   private double computeThirdSegmentProjection()
+   private double computeThirdSegmentProjection(double timeRemaining)
    {
-      return computeInSwingOneCMP();
+      return computeInSwingOneCMP(timeRemaining);
    }
 
    private double computeSegmentedVelocityProjection(double timeRemaining)
@@ -202,18 +206,18 @@ public class EntryCMPProjectionMultiplier
 
    private double computeFirstSegmentVelocityProjection()
    {
-      return omega.getDoubleValue() * (positionMultiplier.getDoubleValue() - 1.0);
+      return omega.getDoubleValue() * positionMultiplier.getDoubleValue();
    }
 
    private double computeSecondSegmentVelocityProjection()
    {
-      CommonOps.mult(cubicProjectionDerivativeMatrix, swingEntryCMPProjectionMatrix, matrixOut);
+      CommonOps.mult(cubicProjectionDerivativeMatrix, swingExitCMPProjectionMatrix, matrixOut);
 
       return matrixOut.get(0, 0);
    }
 
    private double computeThirdSegmentVelocityProjection()
    {
-      return omega.getDoubleValue() * computeInSwingOneCMPVelocity();
+      return omega.getDoubleValue() * (positionMultiplier.getDoubleValue() - 1.0);
    }
 }
