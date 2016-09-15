@@ -1,10 +1,9 @@
 package us.ihmc.comControllers.controllers;
 
-import us.ihmc.comControllers.icpOptimization.ICPOptimizationController;
+import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.icpOptimization.ICPOptimizationController;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.YoPlaneContactState;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ICPControlGains;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ICPPlanner;
-import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ICPProportionalController;
 import us.ihmc.commonWalkingControlModules.wrenchDistribution.WrenchDistributorTools;
 import us.ihmc.graphics3DAdapter.graphics.appearances.YoAppearance;
 import us.ihmc.humanoidRobotics.footstep.FootSpoof;
@@ -113,7 +112,7 @@ public class SphereICPOptimizationController implements GenericSphereController
       icpGains.setKpParallelToMotion(2.0);
 
       icpOptimizationController = new ICPOptimizationController(controlToolbox.getCapturePointPlannerParameters(), controlToolbox.getICPOptimizationParameters(),
-            controlToolbox.getBipedSupportPolygons(), controlToolbox.getContactableFeet(), omega0, registry, yoGraphicsListRegistry);
+            controlToolbox.getBipedSupportPolygons(), controlToolbox.getContactableFeet(), registry, yoGraphicsListRegistry);
       icpOptimizationController.setStepDurations(controlToolbox.getDoubleSupportDuration(), controlToolbox.getSingleSupportDuration());
 
       stateMachine = new StateMachine<>("supportStateMachine", "supportStateTime", SupportState.class, controlToolbox.getYoTime(), registry);
@@ -244,7 +243,7 @@ public class SphereICPOptimizationController implements GenericSphereController
          if (controlToolbox.hasFootsteps())
             this.transitionToDefaultNextState();
 
-         icpOptimizationController.compute(yoTime.getDoubleValue(), desiredCapturePoint2d, desiredCapturePointVelocity2d, capturePoint2d);
+         icpOptimizationController.compute(yoTime.getDoubleValue(), desiredCapturePoint2d, desiredCapturePointVelocity2d, capturePoint2d, omega0.getDoubleValue());
          icpOptimizationController.getDesiredCMP(desiredCMP);
          yoDesiredCMP.setXY(desiredCMP);
       }
@@ -286,7 +285,7 @@ public class SphereICPOptimizationController implements GenericSphereController
 
       @Override public void doAction()
       {
-         icpOptimizationController.compute(yoTime.getDoubleValue(), desiredCapturePoint2d, desiredCapturePointVelocity2d, capturePoint2d);
+         icpOptimizationController.compute(yoTime.getDoubleValue(), desiredCapturePoint2d, desiredCapturePointVelocity2d, capturePoint2d, omega0.getDoubleValue());
          icpOptimizationController.getDesiredCMP(desiredCMP);
          yoDesiredCMP.setXY(desiredCMP);
 
@@ -337,7 +336,7 @@ public class SphereICPOptimizationController implements GenericSphereController
          icpPlanner.setSupportLeg(supportSide);
          icpPlanner.initializeForSingleSupport(yoTime.getDoubleValue());
 
-         icpOptimizationController.initializeForSingleSupport(yoTime.getDoubleValue(), supportSide);
+         icpOptimizationController.initializeForSingleSupport(yoTime.getDoubleValue(), supportSide, omega0.getDoubleValue());
 
          FootSpoof footSpoof = contactableFeet.get(supportSide.getOppositeSide());
          FramePose nextSupportPose = footPosesAtTouchdown.get(supportSide.getOppositeSide());
@@ -375,7 +374,7 @@ public class SphereICPOptimizationController implements GenericSphereController
          if (icpPlanner.isDone(yoTime.getDoubleValue()))
             transitionToDefaultNextState();
 
-         icpOptimizationController.compute(yoTime.getDoubleValue(), desiredCapturePoint2d, desiredCapturePointVelocity2d, capturePoint2d);
+         icpOptimizationController.compute(yoTime.getDoubleValue(), desiredCapturePoint2d, desiredCapturePointVelocity2d, capturePoint2d, omega0.getDoubleValue());
          icpOptimizationController.getDesiredCMP(desiredCMP);
          yoDesiredCMP.setXY(desiredCMP);
 
@@ -435,7 +434,7 @@ public class SphereICPOptimizationController implements GenericSphereController
          icpPlanner.setTransferToSide(transferToSide);
          icpPlanner.initializeForTransfer(yoTime.getDoubleValue());
 
-         icpOptimizationController.initializeForTransfer(yoTime.getDoubleValue(), transferToSide);
+         icpOptimizationController.initializeForTransfer(yoTime.getDoubleValue(), transferToSide, omega0.getDoubleValue());
 
          updateViz(true);
       }

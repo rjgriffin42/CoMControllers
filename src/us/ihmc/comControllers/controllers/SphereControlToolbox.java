@@ -1,7 +1,7 @@
 package us.ihmc.comControllers.controllers;
 
 import us.ihmc.SdfLoader.models.FullRobotModel;
-import us.ihmc.comControllers.icpOptimization.ICPOptimizationParameters;
+import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.icpOptimization.ICPOptimizationParameters;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.BipedSupportPolygons;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.YoPlaneContactState;
 import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerParameters;
@@ -387,7 +387,7 @@ public class SphereControlToolbox
 
       if (sendFootsteps.getBooleanValue())
       {
-         for (Footstep footstep : footstepTestHelper.createFootsteps(0.25, 0.2, 100))
+         for (Footstep footstep : footstepTestHelper.createFootsteps(0.25, 0.2, 5))
             footsteps.add(footstep);
 
          sendFootsteps.set(false);
@@ -673,7 +673,7 @@ public class SphereControlToolbox
 
          @Override public double getFeedbackWeight()
          {
-            return 1.5;
+            return 5.0;
          }
 
          @Override public double getFeedbackRegularizationWeight()
@@ -681,14 +681,19 @@ public class SphereControlToolbox
             return 0.0001;
          }
 
-         @Override public double getFeedbackGain()
+         @Override public double getFeedbackParallelGain()
          {
             return 6.0;
          }
 
-         @Override public double getActiveCMPWeight()
+         @Override public double getFeedbackOrthogonalGain()
          {
-            return 100.0;
+            return 6.0;
+         }
+
+         @Override public double getDynamicRelaxationWeight()
+         {
+            return 1000.0;
          }
 
          @Override public boolean useFeedback()
@@ -708,22 +713,17 @@ public class SphereControlToolbox
 
          @Override public boolean useFootstepRegularization()
          {
-            return false;
+            return true;
          }
 
          @Override public boolean useFeedbackWeightHardening()
          {
-            return false;
+            return true;
          }
 
-         @Override public boolean useActiveCMPOptimization()
+         @Override public boolean scaleStepRegularizationWeightWithTime()
          {
-            return false;
-         }
-
-         @Override public boolean scaleFirstStepWeightWithTime()
-         {
-            return false;
+            return true;
          }
 
          @Override public boolean scaleUpcomingStepWeights()
@@ -733,7 +733,7 @@ public class SphereControlToolbox
 
          @Override public boolean scaleFeedbackWeightWithGain()
          {
-            return false;
+            return true;
          }
 
          @Override public double getMinimumFootstepWeight()

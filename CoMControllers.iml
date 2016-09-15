@@ -91,10 +91,7 @@
     <orderEntry type="library" name="Gradle: org.apache.pdfbox:pdfbox:1.8.4" level="project" />
     <orderEntry type="library" name="Gradle: net.sourceforge.jmatio:jmatio:1.0" level="project" />
     <orderEntry type="library" name="Gradle: xml-apis:xml-apis:2.0.2" level="project" />
-    <orderEntry type="library" name="Gradle: com.badlogicgames.gdx:gdx-bullet:1.0.1" level="project" />
-    <orderEntry type="library" name="Gradle: com.badlogicgames.gdx:gdx:1.0.1" level="project" />
     <orderEntry type="library" name="Gradle: org.easytesting:fest-swing:1.2.1" level="project" />
-    <orderEntry type="library" name="Gradle: com.badlogicgames.gdx:gdx-bullet-platform:1.0.1:natives-desktop" level="project" />
     <orderEntry type="library" name="Gradle: commons-io:commons-io:2.4" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.lucene:lucene-analyzers-common:4.3.0" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.lucene:lucene-core:4.3.0" level="project" />
@@ -209,5 +206,9 @@
     <orderEntry type="library" scope="TEST" name="Gradle: org.pitest:pitest:1.1.9" level="project" />
     <orderEntry type="module" module-name="IHMCGraphics3DDescription" />
     <orderEntry type="module" module-name="IHMCRobotDescription" />
+    <orderEntry type="library" name="Gradle: com.badlogicgames.gdx:gdx-bullet:1.9.4" level="project" />
+    <orderEntry type="library" name="Gradle: com.badlogicgames.gdx:gdx:1.9.4" level="project" />
+    <orderEntry type="library" name="Gradle: com.badlogicgames.gdx:gdx-bullet-platform:1.9.4:natives-desktop" level="project" />
+    <orderEntry type="library" name="Gradle: org.ojalgo:ojalgo:40.0.0" level="project" />
   </component>
 </module>
