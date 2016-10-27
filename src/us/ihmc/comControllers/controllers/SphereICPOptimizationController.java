@@ -101,7 +101,7 @@ public class SphereICPOptimizationController implements GenericSphereController
       omega0.set(controlToolbox.getOmega0());
       heightController = new BasicHeightController(controlToolbox, registry);
       icpPlanner = new ICPPlanner(controlToolbox.getBipedSupportPolygons(), controlToolbox.getContactableFeet(),
-            controlToolbox.getCapturePointPlannerParameters(), registry, null);
+            controlToolbox.getCapturePointPlannerParameters(), registry, yoGraphicsListRegistry);
       icpPlanner.setDoubleSupportTime(controlToolbox.getDoubleSupportDuration());
       icpPlanner.setSingleSupportTime(controlToolbox.getSingleSupportDuration());
       icpPlanner.setOmega0(omega0.getDoubleValue());
@@ -112,7 +112,7 @@ public class SphereICPOptimizationController implements GenericSphereController
       icpGains.setKpParallelToMotion(2.0);
 
       icpOptimizationController = new ICPOptimizationController(controlToolbox.getCapturePointPlannerParameters(), controlToolbox.getICPOptimizationParameters(),
-            controlToolbox.getBipedSupportPolygons(), controlToolbox.getContactableFeet(), registry, yoGraphicsListRegistry);
+            null, controlToolbox.getBipedSupportPolygons(), controlToolbox.getContactableFeet(), controlToolbox.getControlDT(), registry, yoGraphicsListRegistry);
       icpOptimizationController.setStepDurations(controlToolbox.getDoubleSupportDuration(), controlToolbox.getSingleSupportDuration());
 
       stateMachine = new StateMachine<>("supportStateMachine", "supportStateTime", SupportState.class, controlToolbox.getYoTime(), registry);

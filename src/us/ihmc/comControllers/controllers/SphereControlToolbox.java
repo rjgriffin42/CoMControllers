@@ -1,6 +1,5 @@
 package us.ihmc.comControllers.controllers;
 
-import us.ihmc.SdfLoader.models.FullRobotModel;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.icpOptimization.ICPOptimizationParameters;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.BipedSupportPolygons;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.YoPlaneContactState;
@@ -13,6 +12,7 @@ import us.ihmc.graphics3DAdapter.graphics.appearances.AppearanceDefinition;
 import us.ihmc.graphics3DAdapter.graphics.appearances.YoAppearance;
 import us.ihmc.humanoidRobotics.footstep.FootSpoof;
 import us.ihmc.humanoidRobotics.footstep.Footstep;
+import us.ihmc.robotModels.FullRobotModel;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.BooleanYoVariable;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
@@ -46,14 +46,14 @@ public class SphereControlToolbox
    private static final double footWidthForControl = 0.12;
    private static final double toeWidthForControl = 0.12;
 
-   private static final double initialTransferDuration = 2.0;
-   private static final double singleSupportDuration = 1.0;
-   private static final double doubleSupportDuration = 0.3; //0.25;
+   private static final double initialTransferDuration = 1.0;
+   private static final double singleSupportDuration = 0.7;
+   private static final double doubleSupportDuration = 0.2; //0.25;
    private static final double doubleSupportSplitFraction = 0.5;
    private static final boolean useTwoCMPs = true;
 
    private static final double maxDurationForSmoothingEntryToExitCMPSwitch = 1.0;
-   private static final double timeSpentOnExitCMPInPercentOfStepTime = 0.5; // singleSupportDuration
+   private static final double timeSpentOnExitCMPInPercentOfStepTime = 0.5;
 
    private final YoVariableRegistry registry = new YoVariableRegistry(getClass().getSimpleName());
 
@@ -387,7 +387,7 @@ public class SphereControlToolbox
 
       if (sendFootsteps.getBooleanValue())
       {
-         for (Footstep footstep : footstepTestHelper.createFootsteps(0.25, 0.2, 5))
+         for (Footstep footstep : footstepTestHelper.createFootsteps(0.4, 0.6, 10))
             footsteps.add(footstep);
 
          sendFootsteps.set(false);
@@ -696,6 +696,11 @@ public class SphereControlToolbox
             return 1000.0;
          }
 
+         @Override public double getDynamicRelaxationDoubleSupportWeightModifier()
+         {
+            return 5.0;
+         }
+
          @Override public boolean useFeedback()
          {
             return true;
@@ -703,7 +708,7 @@ public class SphereControlToolbox
 
          @Override public boolean useFeedbackRegularization()
          {
-            return false;
+            return true;
          }
 
          @Override public boolean useStepAdjustment()
@@ -717,6 +722,11 @@ public class SphereControlToolbox
          }
 
          @Override public boolean useFeedbackWeightHardening()
+         {
+            return false;
+         }
+
+         @Override public boolean useICPFromBeginningOfState()
          {
             return true;
          }
@@ -756,14 +766,24 @@ public class SphereControlToolbox
             return 20.0;
          }
 
-         @Override public double getMaxCMPExitForward()
+         @Override public double getMaxCMPForwardExit()
          {
             return 0.05;
          }
 
-         @Override public double getMaxCMPExitSideways()
+         @Override public double getMaxCMPLateralExit()
+         {
+            return 0.07;
+         }
+
+         @Override public double getAdjustmentDeadband()
          {
             return 0.02;
+         }
+
+         @Override public double getRemainingTimeToStopAdjusting()
+         {
+            return 0.05;
          }
       };
    }

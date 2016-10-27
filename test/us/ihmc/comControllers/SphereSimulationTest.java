@@ -77,8 +77,8 @@ public class SphereSimulationTest
       DoubleYoVariable controllerSingleSupportTime = (DoubleYoVariable) rootRegistry.getVariable("controllerSingleSupportDuration");
       DoubleYoVariable controllerDoubleSupportTime = (DoubleYoVariable) rootRegistry.getVariable("controllerDoubleSupportDuration");
 
-      double stepTime = 3.0;
-      double dsRatio = 0.2;
+      double stepTime = 1.0;
+      double dsRatio = 0.15;
       double singleSupport = (1.0 - dsRatio) * stepTime;
       double doubleSupport = dsRatio * stepTime;
       singleSupportTime.set(singleSupport);
@@ -105,8 +105,8 @@ public class SphereSimulationTest
       double totalRobotMass = TotalMassCalculator.computeSubTreeMass(sphereRobotModel.getElevator());
       double totalRobotWeight = 9.81 * totalRobotMass;
 
-      Vector3d forceToApply = new Vector3d(0.0, -0.13 * totalRobotWeight, 0.0);
-      //Vector3d forceToApply = new Vector3d();
+      //Vector3d forceToApply = new Vector3d(0.0, -0.13 * totalRobotWeight, 0.0);
+      Vector3d forceToApply = new Vector3d();
       Vector3d zero = new Vector3d(0.0, 0.0, 0.0);
       double pushDuration = 0.2;
 

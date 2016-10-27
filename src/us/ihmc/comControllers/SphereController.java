@@ -1,7 +1,7 @@
 package us.ihmc.comControllers;
 
-import us.ihmc.SdfLoader.models.FullRobotModel;
 import us.ihmc.comControllers.controllers.*;
+import us.ihmc.robotModels.FullRobotModel;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.simulationconstructionset.ExternalForcePoint;
 import us.ihmc.simulationconstructionset.RobotTools;
