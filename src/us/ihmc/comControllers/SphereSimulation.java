@@ -3,15 +3,12 @@ package us.ihmc.comControllers;
 import us.ihmc.comControllers.controllers.SphereControlToolbox;
 import us.ihmc.comControllers.model.SphereRobot;
 import us.ihmc.comControllers.model.SphereRobotModel;
-import us.ihmc.graphics3DAdapter.GroundProfile3D;
+import us.ihmc.euclid.tuple3D.Vector3D;
+import us.ihmc.graphicsDescription.yoGraphics.YoGraphicsListRegistry;
+import us.ihmc.jMonkeyEngineToolkit.GroundProfile3D;
 import us.ihmc.simulationconstructionset.*;
-import us.ihmc.simulationconstructionset.gui.tools.VisualizerUtils;
 import us.ihmc.simulationconstructionset.util.LinearGroundContactModel;
 import us.ihmc.simulationconstructionset.util.ground.FlatGroundProfile;
-import us.ihmc.simulationconstructionset.util.ground.RollingGroundProfile;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicsListRegistry;
-
-import javax.vecmath.Vector3d;
 
 public class SphereSimulation
 {
@@ -23,7 +20,7 @@ public class SphereSimulation
 
    public SphereSimulation()
    {
-      Vector3d initialPosition = new Vector3d(0.0, 0.0, 1.0);
+      Vector3D initialPosition = new Vector3D(0.0, 0.0, 1.0);
       SphereRobotModel sphereRobotModel = new SphereRobotModel();
       YoGraphicsListRegistry yoGraphicsListRegistry = new YoGraphicsListRegistry();
       RobotTools.SCSRobotFromInverseDynamicsRobotModel sphereRobot = SphereRobot.createSphereRobot("SphereRobot", initialPosition,
@@ -50,7 +47,6 @@ public class SphereSimulation
       scs.setCameraTracking(false, true, true, false);
       scs.setCameraDolly(false, true, true, false);
 
-      VisualizerUtils.createOverheadPlotter(scs, true, yoGraphicsListRegistry);
 
       // Set up some graphs:
 

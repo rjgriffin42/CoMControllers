@@ -8,15 +8,25 @@ import us.ihmc.commonWalkingControlModules.controllers.Updatable;
 import us.ihmc.commonWalkingControlModules.desiredFootStep.footstepGenerator.FootstepTestHelper;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ICPPlanner;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.smoothICPGenerator.CapturePointTools;
-import us.ihmc.graphics3DAdapter.graphics.Graphics3DObject;
-import us.ihmc.graphics3DAdapter.graphics.appearances.AppearanceDefinition;
-import us.ihmc.graphics3DAdapter.graphics.appearances.YoAppearance;
+import us.ihmc.euclid.tuple2D.Point2D;
+import us.ihmc.euclid.tuple3D.Point3D;
+import us.ihmc.euclid.tuple4D.Quaternion;
+import us.ihmc.graphicsDescription.Graphics3DObject;
+import us.ihmc.graphicsDescription.appearance.AppearanceDefinition;
+import us.ihmc.graphicsDescription.appearance.YoAppearance;
+import us.ihmc.graphicsDescription.yoGraphics.BagOfBalls;
+import us.ihmc.graphicsDescription.yoGraphics.YoGraphicPosition;
+import us.ihmc.graphicsDescription.yoGraphics.YoGraphicPosition.GraphicType;
+import us.ihmc.graphicsDescription.yoGraphics.YoGraphicShape;
+import us.ihmc.graphicsDescription.yoGraphics.YoGraphicsListRegistry;
+import us.ihmc.graphicsDescription.yoGraphics.plotting.YoArtifactPolygon;
 import us.ihmc.humanoidBehaviors.behaviors.scripts.engine.ScriptFileLoader;
 import us.ihmc.humanoidBehaviors.behaviors.scripts.engine.ScriptObject;
 import us.ihmc.humanoidRobotics.communication.packets.walking.FootstepDataListMessage;
 import us.ihmc.humanoidRobotics.communication.packets.walking.FootstepDataMessage;
 import us.ihmc.humanoidRobotics.footstep.FootSpoof;
 import us.ihmc.humanoidRobotics.footstep.Footstep;
+import us.ihmc.humanoidRobotics.footstep.FootstepTiming;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.robotics.geometry.*;
@@ -31,25 +41,14 @@ import us.ihmc.robotics.screwTheory.RigidBody;
 import us.ihmc.simulationconstructionset.Robot;
 import us.ihmc.simulationconstructionset.SimulationConstructionSet;
 import us.ihmc.simulationconstructionset.SimulationConstructionSetParameters;
-import us.ihmc.simulationconstructionset.gui.tools.VisualizerUtils;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.BagOfBalls;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicPosition;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicPosition.GraphicType;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicShape;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicsListRegistry;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.plotting.YoArtifactPolygon;
+import us.ihmc.simulationconstructionset.gui.tools.SimulationOverheadPlotterFactory;
 import us.ihmc.tools.thread.ThreadTools;
 
-import javax.vecmath.Point2d;
-import javax.vecmath.Point3d;
-import javax.vecmath.Quat4d;
 import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-
-import static us.ihmc.atlas.parameters.AtlasPhysicalProperties.*;
 
 public class SphereICPPlannerVisualizer
 {
@@ -67,6 +66,10 @@ public class SphereICPPlannerVisualizer
    private static final double doubleSupportSplitFraction = 0.5;
 
    private static final int maxNumberOfFootstepToPoll = 30;
+
+   private static final double footLengthForControl = 0.2;
+   private static final double toeWidthForControl = 0.15;
+   private static final double footWidthForControl = 0.15;
 
    private static final boolean USE_FLAT_GROUND_WALKING_TRACK_FOOTSTEP_PROVIDER = false;
    private static final boolean USE_SCRIPT = true;
@@ -139,7 +142,7 @@ public class SphereICPPlannerVisualizer
    public SphereICPPlannerVisualizer()
    {
 
-      yoGraphicsListRegistry.registerArtifact("Capture Point", new YoGraphicPosition("eCMP", eCMP, 0.012, YoAppearance.Purple(), GraphicType.CROSS).createArtifact());
+      yoGraphicsListRegistry.registerArtifact("Capture Point", new YoGraphicPosition("eCMP", eCMP, 0.012, YoAppearance.Purple(), YoGraphicPosition.GraphicType.CROSS).createArtifact());
       yoGraphicsListRegistry.registerArtifact("Capture Point", new YoGraphicPosition("Desired Capture Point", desiredICP, 0.01, YoAppearance.Yellow(), GraphicType.ROTATED_CROSS).createArtifact());
       yoGraphicsListRegistry.registerArtifact("Center of Mass", new YoGraphicPosition("Center Of Mass", centerOfMass, 0.01, YoAppearance.Grey(), GraphicType.ROTATED_CROSS).createArtifact());
 
@@ -153,7 +156,7 @@ public class SphereICPPlannerVisualizer
       yoGraphicsListRegistry.registerArtifact("upcomingFootsteps", new YoArtifactPolygon("nextNextNextFootstep", yoNextNextNextFootstepPolygon, Color.blue, false));
 
       Graphics3DObject footstepGraphics = new Graphics3DObject();
-      List<Point2d> contactPoints = new ArrayList<Point2d>();
+      List<Point2D> contactPoints = new ArrayList<Point2D>();
       for (FramePoint2d point : contactableFeet.get(RobotSide.LEFT).getContactPoints2d())
          contactPoints.add(point.getPointCopy());
       footstepGraphics.addExtrudedPolygon(contactPoints, 0.02, YoAppearance.Color(Color.blue));
@@ -165,14 +168,20 @@ public class SphereICPPlannerVisualizer
       icpTrack = new BagOfBalls(numberOfBalls, 0.003, "ICP", YoAppearance.Yellow(), registry, yoGraphicsListRegistry);
 
       List<Footstep> footsteps;
+      List<FootstepTiming> timings;
       if (USE_SCRIPT)
-//         footstepProvider = createScriptBasedFootstepProvider("UpAndDownSlantedCB.xml", "SlantedCB.xml", "LongSidesteps.xml", "TestSteppingSameSideSeveralTimes.xml");
+      {
+         //         footstepProvider = createScriptBasedFootstepProvider("UpAndDownSlantedCB.xml", "SlantedCB.xml", "LongSidesteps.xml", "TestSteppingSameSideSeveralTimes.xml");
          footsteps = createScriptBasedFootstepProvider("LongStepsForward.xml");
-//         footstepProvider = createScriptBasedFootstepProvider("LongSidesteps.xml");
-//      else if (USE_FLAT_GROUND_WALKING_TRACK_FOOTSTEP_PROVIDER)
-//         footstepProvider = footstepProviderTestHelper.createFlatGroundWalkingTrackFootstepProvider(registry, updatables);
-//      else
+
+         //         footstepProvider = createScriptBasedFootstepProvider("LongSidesteps.xml");
+         //      else if (USE_FLAT_GROUND_WALKING_TRACK_FOOTSTEP_PROVIDER)
+         //         footstepProvider = footstepProviderTestHelper.createFlatGroundWalkingTrackFootstepProvider(registry, updatables);
+         //      else
          footsteps = footstepTestHelper.createFootsteps(0.25, 0.20, 20);
+         timings = new ArrayList<>();
+         setFootstepTimings(timings, footsteps.size());
+      }
 
       updatables.add(new Updatable()
       {
@@ -201,22 +210,89 @@ public class SphereICPPlannerVisualizer
       scs.setCameraFix(0.0, 0.0, 0.5);
       scs.setCameraPosition(-0.5, 0.0, 1.0);
 
-      VisualizerUtils.createOverheadPlotter(scs, true, yoGraphicsListRegistry);
+      SimulationOverheadPlotterFactory simulationOverheadPlotterFactory = scs.createSimulationOverheadPlotterFactory();
+      simulationOverheadPlotterFactory.addYoGraphicsListRegistries(yoGraphicsListRegistry);
+      simulationOverheadPlotterFactory.createOverheadPlotter();
+
       scs.startOnAThread();
-      simulate(footsteps);
+      simulate(footsteps, timings);
       ThreadTools.sleepForever();
+   }
+
+   private void setFootstepTimings(List<FootstepTiming> timings, int numberOfSteps)
+   {
+      for (int stepIndex = 0; stepIndex < numberOfSteps; stepIndex++)
+      {
+         double swingTime = singleSupportDuration, transferTime = doubleSupportDuration;
+
+         switch (stepIndex)
+         {
+         case 0:
+            // start with very slow swings and transfers
+            transferTime = 1.0; // initial transfer
+            swingTime = 3.0;
+            break;
+         case 1:
+            // do a default step
+            break;
+         case 2:
+            // do a slow swing
+            transferTime = 1.0;
+            swingTime = 3.0;
+            break;
+         case 3:
+            // do a default step
+            break;
+         case 4:
+            // do a default step
+            break;
+         case 5:
+            // do a fast swing and transfer
+            transferTime = 0.2;
+            swingTime = 0.6;
+            break;
+         case 6:
+            // do a slow swing
+            transferTime = 1.0;
+            swingTime = 3.0;
+            break;
+         case 7:
+            // do a fast swing and transfer
+            transferTime = 0.2;
+            swingTime = 0.6;
+            break;
+         case 8:
+            // do a slow swing
+            transferTime = 1.0;
+            swingTime = 3.0;
+            break;
+         case 9:
+            // do a slow transfer and a fast swing
+            transferTime = 3.0;
+            swingTime = 0.6;
+            break;
+         default:
+            break;
+         }
+
+         FootstepTiming timing = new FootstepTiming();
+         timing.setTimings(swingTime, transferTime);
+         timings.add(timing);
+      }
    }
 
    private final FrameConvexPolygon2d footstepPolygon = new FrameConvexPolygon2d();
    private final FrameConvexPolygon2d tempFootstepPolygonForShrinking = new FrameConvexPolygon2d();
    private final ConvexPolygonShrinker convexPolygonShrinker = new ConvexPolygonShrinker();
 
-   private void simulate(List<Footstep> footsteps)
+   private void simulate(List<Footstep> footsteps, List<FootstepTiming> timings)
    {
       boolean isInDoubleSupport = true;
 
       Footstep nextFootstep = null;
       int currentFostepPolled = 0;
+
+      FootstepTiming nextFootstepTiming = null;
 
       while (currentFostepPolled <= maxNumberOfFootstepToPoll)
       {
@@ -232,12 +308,14 @@ public class SphereICPPlannerVisualizer
          }
          Footstep nextNextFootstep = footsteps.get(0);
          Footstep nextNextNextFootstep = footsteps.get(1);
+         FootstepTiming nextNextFootstepTiming = timings.size() > 0 ? timings.get(0) : null;
+         FootstepTiming nextNextNextFootstepTiming = timings.size() > 1 ? timings.get(1) : null;
 
          updateUpcomingFootstepsViz(nextFootstep, nextNextFootstep, nextNextNextFootstep);
 
-         icpPlanner.addFootstepToPlan(nextFootstep);
-         icpPlanner.addFootstepToPlan(nextNextFootstep);
-         icpPlanner.addFootstepToPlan(nextNextNextFootstep);
+         icpPlanner.addFootstepToPlan(nextFootstep, nextFootstepTiming);
+         icpPlanner.addFootstepToPlan(nextNextFootstep, nextNextFootstepTiming);
+         icpPlanner.addFootstepToPlan(nextNextNextFootstep, nextNextNextFootstepTiming);
 
          if (isInDoubleSupport)
          {
@@ -526,8 +604,8 @@ public class SphereICPPlannerVisualizer
             for (FootstepDataMessage footstepData : footstepDataList.getDataList())
             {
                RobotSide robotSide = footstepData.getRobotSide();
-               Point3d position = footstepData.getLocation();
-               Quat4d orientation = footstepData.getOrientation();
+               Point3D position = footstepData.getLocation();
+               Quaternion orientation = footstepData.getOrientation();
                footsteps.add(footstepTestHelper.createFootstep(robotSide, position, orientation));
             }
          }
@@ -562,11 +640,11 @@ public class SphereICPPlannerVisualizer
          double xToAnkle = 0.0;
          double yToAnkle = 0.0;
          double zToAnkle = 0.084;
-         List<Point2d> contactPointsInSoleFrame = new ArrayList<Point2d>();
-         contactPointsInSoleFrame.add(new Point2d(footLengthForControl / 2.0, toeWidthForControl / 2.0));
-         contactPointsInSoleFrame.add(new Point2d(footLengthForControl / 2.0, -toeWidthForControl / 2.0));
-         contactPointsInSoleFrame.add(new Point2d(-footLengthForControl / 2.0, -footWidthForControl / 2.0));
-         contactPointsInSoleFrame.add(new Point2d(-footLengthForControl / 2.0, footWidthForControl / 2.0));
+         List<Point2D> contactPointsInSoleFrame = new ArrayList<Point2D>();
+         contactPointsInSoleFrame.add(new Point2D(footLengthForControl / 2.0, toeWidthForControl / 2.0));
+         contactPointsInSoleFrame.add(new Point2D(footLengthForControl / 2.0, -toeWidthForControl / 2.0));
+         contactPointsInSoleFrame.add(new Point2D(-footLengthForControl / 2.0, -footWidthForControl / 2.0));
+         contactPointsInSoleFrame.add(new Point2D(-footLengthForControl / 2.0, footWidthForControl / 2.0));
          FootSpoof contactableFoot = new FootSpoof(sidePrefix + "Foot", xToAnkle, yToAnkle, zToAnkle, contactPointsInSoleFrame, 0.0);
          FramePose startingPose = footPosesAtTouchdown.get(robotSide);
          startingPose.setToZero(worldFrame);
@@ -616,8 +694,6 @@ public class SphereICPPlannerVisualizer
 
       ICPPlanner icpPlanner = new ICPPlanner(bipedSupportPolygons, contactableFeet, capturePointPlannerParameters, registry, yoGraphicsListRegistry);
 //      CapturePointPlannerAdapter icpPlanner = new CapturePointPlannerAdapter(capturePointPlannerParameters, registry, yoGraphicsListRegistry, dt, soleFrames, bipedSupportPolygons);
-      icpPlanner.setDoubleSupportTime(doubleSupportDuration);
-      icpPlanner.setSingleSupportTime(singleSupportDuration);
       icpPlanner.setOmega0(omega0);
       icpPlanner.setDesiredCapturePointState(new FramePoint2d(worldFrame), new FrameVector2d(worldFrame));
       return icpPlanner;
@@ -627,13 +703,6 @@ public class SphereICPPlannerVisualizer
    {
       return new CapturePointPlannerParameters()
       {
-
-         @Override
-         public double getDoubleSupportInitialTransferDuration()
-         {
-            return initialTransferDuration;
-         }
-
          @Override
          public double getDoubleSupportSplitFraction()
          {

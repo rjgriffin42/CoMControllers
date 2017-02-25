@@ -7,9 +7,15 @@ import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerPar
 import us.ihmc.commonWalkingControlModules.controllers.Updatable;
 import us.ihmc.commonWalkingControlModules.desiredFootStep.footstepGenerator.FootstepTestHelper;
 import us.ihmc.commonWalkingControlModules.momentumBasedController.CapturePointCalculator;
-import us.ihmc.graphics3DAdapter.graphics.Graphics3DObject;
-import us.ihmc.graphics3DAdapter.graphics.appearances.AppearanceDefinition;
-import us.ihmc.graphics3DAdapter.graphics.appearances.YoAppearance;
+import us.ihmc.euclid.tuple2D.Point2D;
+import us.ihmc.graphicsDescription.Graphics3DObject;
+import us.ihmc.graphicsDescription.appearance.AppearanceDefinition;
+import us.ihmc.graphicsDescription.appearance.YoAppearance;
+import us.ihmc.graphicsDescription.yoGraphics.YoGraphicPosition;
+import us.ihmc.graphicsDescription.yoGraphics.YoGraphicPosition.GraphicType;
+import us.ihmc.graphicsDescription.yoGraphics.YoGraphicShape;
+import us.ihmc.graphicsDescription.yoGraphics.YoGraphicsListRegistry;
+import us.ihmc.graphicsDescription.yoGraphics.plotting.YoArtifactPolygon;
 import us.ihmc.humanoidRobotics.footstep.FootSpoof;
 import us.ihmc.humanoidRobotics.footstep.Footstep;
 import us.ihmc.robotModels.FullRobotModel;
@@ -28,13 +34,7 @@ import us.ihmc.robotics.robotSide.SideDependentList;
 import us.ihmc.robotics.screwTheory.CenterOfMassJacobian;
 import us.ihmc.robotics.screwTheory.RigidBody;
 import us.ihmc.robotics.screwTheory.TwistCalculator;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicPosition;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicPosition.GraphicType;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicShape;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicsListRegistry;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.plotting.YoArtifactPolygon;
 
-import javax.vecmath.Point2d;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -140,7 +140,7 @@ public class SphereControlToolbox
       YoGraphicPosition desiredCMPViz = new YoGraphicPosition("Desired CMP", desiredCMP, 0.012, YoAppearance.Purple(), GraphicType.CROSS);
       YoGraphicPosition desiredICPViz = new YoGraphicPosition("Desired Capture Point", desiredICP, 0.01, YoAppearance.Yellow(), GraphicType.ROTATED_CROSS);
       YoGraphicPosition icpViz = new YoGraphicPosition("Capture Point", icp, 0.01, YoAppearance.Blue(), GraphicType.ROTATED_CROSS);
-      YoGraphicPosition comViz = new YoGraphicPosition("Center of Mass", yoCenterOfMass, 0.01, YoAppearance.Grey(), GraphicType.ROTATED_CROSS);
+      YoGraphicPosition comViz = new YoGraphicPosition("Center of Mass", yoCenterOfMass, 0.01, YoAppearance.Grey(), YoGraphicPosition.GraphicType.ROTATED_CROSS);
 
       YoArtifactPolygon nextFootstepArtifact =  new YoArtifactPolygon("nextFootstep", yoNextFootstepPolygon, Color.blue, false);
       YoArtifactPolygon nextNextFootstepArtifact =  new YoArtifactPolygon("nextNextFootstep", yoNextNextFootstepPolygon, Color.blue, false);
@@ -156,7 +156,7 @@ public class SphereControlToolbox
       yoGraphicsListRegistry.registerArtifact(graphicListName, nextNextNextFootstepArtifact);
 
       Graphics3DObject footstepGraphics = new Graphics3DObject();
-      List<Point2d> contactPoints = new ArrayList<>();
+      List<Point2D> contactPoints = new ArrayList<>();
       for (FramePoint2d point : contactableFeet.get(RobotSide.LEFT).getContactPoints2d())
          contactPoints.add(point.getPointCopy());
       footstepGraphics.addExtrudedPolygon(contactPoints, 0.02, YoAppearance.Color(Color.blue));
@@ -202,11 +202,11 @@ public class SphereControlToolbox
          double xToAnkle = 0.0;
          double yToAnkle = 0.0;
          double zToAnkle = 0.0;
-         List<Point2d> contactPointsInSoleFrame = new ArrayList<>();
-         contactPointsInSoleFrame.add(new Point2d(footLengthForControl / 2.0, toeWidthForControl / 2.0));
-         contactPointsInSoleFrame.add(new Point2d(footLengthForControl / 2.0, -toeWidthForControl / 2.0));
-         contactPointsInSoleFrame.add(new Point2d(-footLengthForControl / 2.0, -footWidthForControl / 2.0));
-         contactPointsInSoleFrame.add(new Point2d(-footLengthForControl / 2.0, footWidthForControl / 2.0));
+         List<Point2D> contactPointsInSoleFrame = new ArrayList<>();
+         contactPointsInSoleFrame.add(new Point2D(footLengthForControl / 2.0, toeWidthForControl / 2.0));
+         contactPointsInSoleFrame.add(new Point2D(footLengthForControl / 2.0, -toeWidthForControl / 2.0));
+         contactPointsInSoleFrame.add(new Point2D(-footLengthForControl / 2.0, -footWidthForControl / 2.0));
+         contactPointsInSoleFrame.add(new Point2D(-footLengthForControl / 2.0, footWidthForControl / 2.0));
          FootSpoof contactableFoot = new FootSpoof(sidePrefix + "Foot", xToAnkle, yToAnkle, zToAnkle, contactPointsInSoleFrame, 0.0);
          FramePose startingPose = footPosesAtTouchdown.get(robotSide);
          startingPose.setToZero(worldFrame);
@@ -552,13 +552,6 @@ public class SphereControlToolbox
    {
       return new CapturePointPlannerParameters()
       {
-
-         @Override
-         public double getDoubleSupportInitialTransferDuration()
-         {
-            return initialTransferDuration;
-         }
-
          @Override
          public double getDoubleSupportSplitFraction()
          {
@@ -661,24 +654,46 @@ public class SphereControlToolbox
             return 1;
          }
 
-         @Override public double getFootstepWeight()
-         {
-            return 2.0;
-         }
-
          @Override public double getFootstepRegularizationWeight()
          {
             return 0.01;
          }
 
-         @Override public double getFeedbackWeight()
-         {
-            return 5.0;
-         }
-
          @Override public double getFeedbackRegularizationWeight()
          {
             return 0.0001;
+         }
+
+         @Override public double getForwardFootstepWeight()
+         {
+            return 100.0;
+         }
+
+         @Override public double getLateralFootstepWeight()
+         {
+            return 100.0;
+         }
+
+         @Override public double getFeedbackForwardWeight()
+         {
+            return 0.1;
+         }
+
+         @Override public double getFeedbackLateralWeight()
+         {
+            return 0.1;
+         }
+
+         @Override
+         public boolean useDifferentSplitRatioForBigAdjustment()
+         {
+            return true;
+         }
+
+         @Override
+         public double getMagnitudeForBigAdjustment()
+         {
+            return 0.2;
          }
 
          @Override public double getFeedbackParallelGain()
@@ -701,11 +716,6 @@ public class SphereControlToolbox
             return 5.0;
          }
 
-         @Override public boolean useFeedback()
-         {
-            return true;
-         }
-
          @Override public boolean useFeedbackRegularization()
          {
             return true;
@@ -717,16 +727,6 @@ public class SphereControlToolbox
          }
 
          @Override public boolean useFootstepRegularization()
-         {
-            return true;
-         }
-
-         @Override public boolean useFeedbackWeightHardening()
-         {
-            return false;
-         }
-
-         @Override public boolean useICPFromBeginningOfState()
          {
             return true;
          }
@@ -761,29 +761,33 @@ public class SphereControlToolbox
             return 0.001;
          }
 
-         @Override public double getFeedbackWeightHardeningMultiplier()
+         @Override
+         public double getDoubleSupportMaxCMPForwardExit()
          {
-            return 20.0;
+            return 0;
          }
 
-         @Override public double getMaxCMPForwardExit()
+         @Override
+         public double getDoubleSupportMaxCMPLateralExit()
          {
-            return 0.05;
+            return 0;
          }
 
-         @Override public double getMaxCMPLateralExit()
+         @Override
+         public double getSingleSupportMaxCMPForwardExit()
          {
-            return 0.07;
+            return 0;
+         }
+
+         @Override
+         public double getSingleSupportMaxCMPLateralExit()
+         {
+            return 0;
          }
 
          @Override public double getAdjustmentDeadband()
          {
             return 0.02;
-         }
-
-         @Override public double getRemainingTimeToStopAdjusting()
-         {
-            return 0.05;
          }
       };
    }

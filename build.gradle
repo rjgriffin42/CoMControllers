@@ -42,7 +42,7 @@ dependencies {
         compile ihmc.getProjectDependency(":IHMCHumanoidRobotics")
 
         compile ihmc.getProjectDependency(":Atlas")
-        compile ihmc.getProjectDependency(":SDFLoader")
+        compile ihmc.getProjectDependency(":ModelFileLoader")
         compile ihmc.getProjectDependency(":SensorProcessing")
         compile ihmc.getProjectDependency(":SimulationConstructionSet")
         compile ihmc.getProjectDependency(":IHMCJavaToolkit")

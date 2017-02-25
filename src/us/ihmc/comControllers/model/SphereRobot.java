@@ -1,21 +1,20 @@
 package us.ihmc.comControllers.model;
 
-import us.ihmc.graphics3DAdapter.graphics.Graphics3DObject;
-import us.ihmc.graphics3DAdapter.graphics.appearances.YoAppearance;
+import us.ihmc.euclid.tuple3D.Vector3D;
+import us.ihmc.graphicsDescription.Graphics3DObject;
+import us.ihmc.graphicsDescription.appearance.YoAppearance;
+import us.ihmc.graphicsDescription.yoGraphics.YoGraphicPosition;
+import us.ihmc.graphicsDescription.yoGraphics.YoGraphicVector;
+import us.ihmc.graphicsDescription.yoGraphics.YoGraphicsListRegistry;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.robotics.screwTheory.RigidBody;
 import us.ihmc.simulationconstructionset.*;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicPosition;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicVector;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicsListRegistry;
-
-import javax.vecmath.Vector3d;
 
 public class SphereRobot
 {
    private static final double radius = 0.1;
 
-   public static RobotTools.SCSRobotFromInverseDynamicsRobotModel createSphereRobot(String name, Vector3d initialPosition, RigidBody elevator,
+   public static RobotTools.SCSRobotFromInverseDynamicsRobotModel createSphereRobot(String name, Vector3D initialPosition, RigidBody elevator,
          YoGraphicsListRegistry yoGraphicsListRegistry, double gravity)
    {
       RobotTools.SCSRobotFromInverseDynamicsRobotModel scsRobot = new RobotTools.SCSRobotFromInverseDynamicsRobotModel(name, elevator.getChildrenJoints().get(0));
@@ -29,10 +28,10 @@ public class SphereRobot
       floatingJoint.getLink().setLinkGraphics(linkGraphics);
 
       String gcName = "gc";
-      GroundContactPoint gc = new GroundContactPoint(gcName, new Vector3d(0.0, 0.0, 0.0), scsRobot);
+      GroundContactPoint gc = new GroundContactPoint(gcName, new Vector3D(0.0, 0.0, 0.0), scsRobot);
       floatingJoint.addGroundContactPoint(gc);
 
-      ExternalForcePoint externalForcePoint = new ExternalForcePoint("forcePoint", new Vector3d(), scsRobot);
+      ExternalForcePoint externalForcePoint = new ExternalForcePoint("forcePoint", new Vector3D(), scsRobot);
       floatingJoint.addExternalForcePoint(externalForcePoint);
 
 
@@ -50,7 +49,7 @@ public class SphereRobot
       return scsRobot;
    }
 
-   public static void initRobot(Robot scsRobot, Vector3d initialPosition)
+   public static void initRobot(Robot scsRobot, Vector3D initialPosition)
    {
       scsRobot.getYoTime().set(0.0);
 

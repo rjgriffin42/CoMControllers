@@ -15,46 +15,46 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="CommonWalkingControlModules" />
-    <orderEntry type="module" module-name="SDFLoader" />
-    <orderEntry type="module" module-name="SimulationConstructionSet" />
-    <orderEntry type="module" module-name="ConvexOptimizationAdapter" />
+    <orderEntry type="module" module-name="IHMCRobotModels" />
     <orderEntry type="module" module-name="IHMCJavaToolkit" />
+    <orderEntry type="module" module-name="IHMCJavaExtensions" />
     <orderEntry type="module" module-name="IHMCRoboticsToolkit" />
-    <orderEntry type="module" module-name="Plotting" />
-    <orderEntry type="module" module-name="Graphics3DAdapter" />
-    <orderEntry type="module" module-name="IHMCGraphics3DDescription" />
     <orderEntry type="module" module-name="IHMCRobotDescription" />
-    <orderEntry type="module" module-name="ParameterOptimization" />
-    <orderEntry type="module" module-name="IHMCCommunication" />
     <orderEntry type="module" module-name="IHMCGeometry" />
+    <orderEntry type="module" module-name="IHMCGraphicsDescription" />
     <orderEntry type="module" module-name="SensorProcessing" />
+    <orderEntry type="module" module-name="IHMCCommunication" />
     <orderEntry type="module" module-name="KalmanProject" />
+    <orderEntry type="module" module-name="ConvexOptimizationAdapter" />
     <orderEntry type="module" module-name="IHMCHumanoidRobotics" />
+    <orderEntry type="module" module-name="IHMCFootstepPlanning" />
     <orderEntry type="module" module-name="Atlas" />
     <orderEntry type="module" module-name="IHMCHumanoidBehaviors" />
-    <orderEntry type="module" module-name="RobotDataCommunication" />
+    <orderEntry type="module" module-name="SimulationConstructionSet" />
+    <orderEntry type="module" module-name="IHMCJMonkeyEngineToolkit" />
+    <orderEntry type="module" module-name="ParameterOptimization" />
+    <orderEntry type="module" module-name="IHMCSwingPlotting" />
+    <orderEntry type="module" module-name="IHMCRobotDataLogger" />
+    <orderEntry type="module" module-name="ModelFileLoader" />
     <orderEntry type="module" module-name="IHMCWholeBodyController" />
     <orderEntry type="module" module-name="IHMCPerception" />
     <orderEntry type="module" module-name="IHMCROSTools" />
     <orderEntry type="module" module-name="Vicon" />
-    <orderEntry type="module" module-name="DarpaRoboticsChallenge" />
-    <orderEntry type="module" module-name="IHMCSystemIdentification" />
-    <orderEntry type="module" module-name="ImageProcessing" />
+    <orderEntry type="module" module-name="IHMCAvatarInterfaces" />
     <orderEntry type="module" module-name="IHMCStateEstimation" />
     <orderEntry type="module" module-name="IHMCRobotBehaviors" />
+    <orderEntry type="module" module-name="IHMCSimulationToolkit" />
+    <orderEntry type="module" module-name="IHMCQuadrupedRobotics" />
+    <orderEntry type="module" module-name="IHMCRobotDataVisualizer" />
+    <orderEntry type="module" module-name="IHMCJavaFXToolkit" />
     <orderEntry type="module" module-name="RobotiqHandDrivers" />
     <orderEntry type="module" module-name="IHMCUnitTesting" scope="TEST" />
     <orderEntry type="library" name="Gradle: javax.vecmath:vecmath:1.5.2" level="project" />
     <orderEntry type="library" name="Gradle: commons-net:commons-net:3.3" level="project" />
     <orderEntry type="library" name="Gradle: org.ejml:all:0.28" level="project" />
     <orderEntry type="library" name="Gradle: us.ihmc:IHMCRealtime:1.1.2" level="project" />
-    <orderEntry type="library" name="Gradle: junit:junit:4.11" level="project" />
-    <orderEntry type="library" name="Gradle: org.ejml:core:0.28" level="project" />
-    <orderEntry type="library" name="Gradle: org.ejml:simple:0.28" level="project" />
-    <orderEntry type="library" name="Gradle: org.ejml:denseC64:0.28" level="project" />
-    <orderEntry type="library" name="Gradle: org.ejml:equation:0.28" level="project" />
-    <orderEntry type="library" name="Gradle: org.ejml:dense64:0.28" level="project" />
     <orderEntry type="library" name="Gradle: us.ihmc:IHMCNativeLibraryLoader:1.0" level="project" />
+    <orderEntry type="library" name="Gradle: us.ihmc:euclid-core:0.4.1" level="project" />
     <orderEntry type="library" name="Gradle: gov.nist.math:jama:1.0.3" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:commons-lang3:3.4" level="project" />
     <orderEntry type="library" name="Gradle: com.google.guava:guava:18.0" level="project" />
@@ -63,23 +63,24 @@
     <orderEntry type="library" name="Gradle: kryonet:kryonet:2.21" level="project" />
     <orderEntry type="library" name="Gradle: com.esotericsoftware.kryo:kryo:2.20" level="project" />
     <orderEntry type="library" name="Gradle: us.ihmc:IHMCVideoCodecs:2.0.12" level="project" />
-    <orderEntry type="library" name="Gradle: org.boofcv:geo:0.19" level="project" />
-    <orderEntry type="library" name="Gradle: org.georegression:georegression:0.8" level="project" />
-    <orderEntry type="library" name="Gradle: org.ddogleg:ddogleg:0.7" level="project" />
+    <orderEntry type="library" name="Gradle: org.boofcv:geo:0.24.1" level="project" />
+    <orderEntry type="library" name="Gradle: org.georegression:georegression:0.11" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.xmlgraphics:batik-dom:1.7" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.ant:ant:1.9.0" level="project" />
     <orderEntry type="library" name="Gradle: com.martiansoftware:jsap:2.1" level="project" />
     <orderEntry type="library" name="Gradle: org.ros.rosjava_core:rosjava:0.2.1" level="project" />
-    <orderEntry type="library" name="Gradle: org.boofcv:io:0.19" level="project" />
-    <orderEntry type="library" name="Gradle: org.boofcv:ip:0.19" level="project" />
-    <orderEntry type="library" name="Gradle: org.boofcv:calibration:0.19" level="project" />
-    <orderEntry type="library" name="Gradle: org.boofcv:visualize:0.19" level="project" />
+    <orderEntry type="library" name="Gradle: org.boofcv:io:0.24.1" level="project" />
+    <orderEntry type="library" name="Gradle: org.boofcv:ip:0.24.1" level="project" />
+    <orderEntry type="library" name="Gradle: org.boofcv:calibration:0.24.1" level="project" />
+    <orderEntry type="library" name="Gradle: org.boofcv:visualize:0.24.1" level="project" />
     <orderEntry type="library" name="Gradle: org.ros.rosjava_bootstrap:message_generation:0.2.1" level="project" />
     <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.jme:jme3-core:3.1.0-internal4" level="project" />
     <orderEntry type="library" name="Gradle: com.github.wendykierp:JTransforms:3.1" level="project" />
     <orderEntry type="library" name="Gradle: org.ros.rosjava_messages:sensor_msgs:1.11.7" level="project" />
     <orderEntry type="library" name="Gradle: org.ros.rosjava_messages:multisense_ros:3.4.2" level="project" />
     <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.org.opencv:opencv:3.1.0-160510" level="project" />
+    <orderEntry type="library" name="Gradle: org.ros.rosjava_messages:geometry_msgs:1.11.9" level="project" />
+    <orderEntry type="library" name="Gradle: org.boofcv:recognition:0.24.1" level="project" />
     <orderEntry type="library" name="Gradle: commons-collections:commons-collections:3.2.1" level="project" />
     <orderEntry type="library" name="Gradle: com.thoughtworks.xstream:xstream:1.4.7" level="project" />
     <orderEntry type="library" name="Gradle: org.jgrapht:jgrapht-core:0.9.0" level="project" />
@@ -92,6 +93,7 @@
     <orderEntry type="library" name="Gradle: net.sourceforge.jexcelapi:jxl:2.6.12" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.pdfbox:pdfbox:1.8.4" level="project" />
     <orderEntry type="library" name="Gradle: net.sourceforge.jmatio:jmatio:1.0" level="project" />
+    <orderEntry type="library" name="Gradle: junit:junit:4.11" level="project" />
     <orderEntry type="library" name="Gradle: xml-apis:xml-apis:2.0.2" level="project" />
     <orderEntry type="library" name="Gradle: com.badlogicgames.gdx:gdx-bullet:1.9.4" level="project" />
     <orderEntry type="library" name="Gradle: com.badlogicgames.gdx:gdx:1.9.4" level="project" />
@@ -103,7 +105,6 @@
     <orderEntry type="library" name="Gradle: org.apache.lucene:lucene-queryparser:4.3.0" level="project" />
     <orderEntry type="library" name="Gradle: org.xerial.snappy:snappy-java:1.1.1-M1" level="project" />
     <orderEntry type="library" name="Gradle: com.github.quickhull3d:quickhull3d:1.0.0" level="project" />
-    <orderEntry type="library" name="Gradle: org.hamcrest:hamcrest-core:1.3" level="project" />
     <orderEntry type="library" name="Gradle: us.ihmc:IHMCOptimizerWrappers:0.0.26" level="project" />
     <orderEntry type="library" name="Gradle: com.github.vincentfk:joptimizer:3.3.0" level="project" />
     <orderEntry type="library" name="Gradle: org.ojalgo:ojalgo:40.0.0" level="project" />
@@ -111,15 +112,6 @@
     <orderEntry type="library" name="Gradle: com.esotericsoftware.minlog:minlog:1.2" level="project" />
     <orderEntry type="library" name="Gradle: org.objenesis:objenesis:2.1" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:commons-compress:1.8.1" level="project" />
-    <orderEntry type="library" name="Gradle: org.boofcv:feature:0.19" level="project" />
-    <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.jme:jme3-desktop:3.1.0-internal2" level="project" />
-    <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.jme:jme3-lwjgl:3.1.0-internal2" level="project" />
-    <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.jme:jme3-terrain:3.1.0-internal2" level="project" />
-    <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.jme:jme3-plugins:3.1.0-internal2" level="project" />
-    <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.jme:jme3-dae:1.0.0-internal1" level="project" />
-    <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.jme:jme3-ogre:1.0.0-internal2" level="project" />
-    <orderEntry type="library" name="Gradle: org.lwjgl.lwjgl:lwjgl:2.9.3" level="project" />
-    <orderEntry type="library" name="Gradle: com.vividsolutions:jts:1.13" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.xmlgraphics:batik-css:1.7" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.xmlgraphics:batik-ext:1.7" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.xmlgraphics:batik-util:1.7" level="project" />
@@ -132,14 +124,13 @@
     <orderEntry type="library" name="Gradle: org.ros.rosjava_core:apache_xmlrpc_client:0.2.1" level="project" />
     <orderEntry type="library" name="Gradle: org.ros.rosjava_messages:rosjava_test_msgs:0.2.1" level="project" />
     <orderEntry type="library" name="Gradle: org.ros.rosjava_messages:rosgraph_msgs:1.11.2" level="project" />
-    <orderEntry type="library" name="Gradle: org.ros.rosjava_messages:geometry_msgs:1.11.9" level="project" />
     <orderEntry type="library" name="Gradle: org.ros.rosjava_messages:nav_msgs:1.11.9" level="project" />
     <orderEntry type="library" name="Gradle: org.ros.rosjava_messages:tf2_msgs:0.5.13" level="project" />
     <orderEntry type="library" name="Gradle: dnsjava:dnsjava:2.1.1" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:com.springsource.org.apache.commons.logging:1.1.1" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:com.springsource.org.apache.commons.net:2.0.0" level="project" />
-    <orderEntry type="library" name="Gradle: org.boofcv:recognition:0.19" level="project" />
-    <orderEntry type="library" name="Gradle: org.boofcv:sfm:0.19" level="project" />
+    <orderEntry type="library" name="Gradle: org.boofcv:feature:0.24.1" level="project" />
+    <orderEntry type="library" name="Gradle: org.boofcv:sfm:0.24.1" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:com.springsource.org.apache.commons.codec:1.3.0" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:com.springsource.org.apache.commons.io:1.4.0" level="project" />
     <orderEntry type="library" name="Gradle: commons-pool:commons-pool:1.6" level="project" />
@@ -151,13 +142,24 @@
     <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.org.opencv:opencv-java-natives-win64:3.1.0-160510" level="project" />
     <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.org.opencv:opencv-java-natives-linux64:3.1.0-160510" level="project" />
     <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.org.opencv:opencv-java-natives-osx:3.1.0-160510" level="project" />
-    <orderEntry type="library" name="Gradle: com.jcraft:jsch:0.1.51" level="project" />
     <orderEntry type="library" name="Gradle: org.ros.rosjava_messages:trajectory_msgs:1.11.7" level="project" />
-    <orderEntry type="library" name="Gradle: org.easytesting:fest-util:1.1.3" level="project" />
-    <orderEntry type="library" name="Gradle: org.apache.poi:poi:3.9" level="project" />
     <orderEntry type="library" name="Gradle: org.reflections:reflections:0.9.10" level="project" />
+    <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.jme:jme3-desktop:3.1.0-internal2" level="project" />
+    <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.jme:jme3-lwjgl:3.1.0-internal2" level="project" />
+    <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.jme:jme3-terrain:3.1.0-internal2" level="project" />
+    <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.jme:jme3-plugins:3.1.0-internal2" level="project" />
+    <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.jme:jme3-dae:1.0.0-internal1" level="project" />
+    <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.jme:jme3-ogre:1.0.0-internal2" level="project" />
+    <orderEntry type="library" name="Gradle: org.lwjgl.lwjgl:lwjgl:2.9.3" level="project" />
+    <orderEntry type="library" name="Gradle: com.vividsolutions:jts:1.13" level="project" />
     <orderEntry type="library" name="Gradle: org.ros.rosjava_messages:std_srvs:1.11.1" level="project" />
     <orderEntry type="library" name="Gradle: org.ros.rosjava_messages:people_msgs:1.0.4" level="project" />
+    <orderEntry type="library" name="Gradle: org.bytedeco.javacpp-presets:caffe:master-1.2" level="project" />
+    <orderEntry type="library" name="Gradle: org.bytedeco.javacpp-presets:caffe:master-1.2:linux-x86_64" level="project" />
+    <orderEntry type="library" name="Gradle: org.bytedeco.javacpp-presets:opencv:3.1.0-1.2" level="project" />
+    <orderEntry type="library" name="Gradle: org.bytedeco.javacpp-presets:opencv:3.1.0-1.2:linux-x86_64" level="project" />
+    <orderEntry type="library" name="Gradle: us.ihmc.ihmcPerception:valvenet:0.0.4" level="project" />
+    <orderEntry type="library" name="Gradle: us.ihmc.ihmcPerception:cuda:7.5" level="project" />
     <orderEntry type="library" name="Gradle: org.ros.rosjava_messages:test_rosmaster:1.11.10" level="project" />
     <orderEntry type="library" name="Gradle: com.google.protobuf:protobuf-java:2.6.1" level="project" />
     <orderEntry type="library" name="Gradle: us.ihmc:IHMCJavaDecklinkCapture:0.1.7" level="project" />
@@ -176,8 +178,10 @@
     <orderEntry type="library" name="Gradle: org.apache.pdfbox:fontbox:1.8.4" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.pdfbox:jempbox:1.8.4" level="project" />
     <orderEntry type="library" name="Gradle: commons-logging:commons-logging:1.1.1" level="project" />
+    <orderEntry type="library" name="Gradle: org.hamcrest:hamcrest-core:1.3" level="project" />
     <orderEntry type="library" name="Gradle: org.easytesting:fest-assert:1.2" level="project" />
     <orderEntry type="library" name="Gradle: org.easytesting:fest-reflect:1.2" level="project" />
+    <orderEntry type="library" name="Gradle: org.easytesting:fest-util:1.1.3" level="project" />
     <orderEntry type="library" name="Gradle: net.jcip:jcip-annotations:1.0" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.lucene:lucene-queries:4.3.0" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.lucene:lucene-sandbox:4.3.0" level="project" />
@@ -185,32 +189,41 @@
     <orderEntry type="library" name="Gradle: colt:colt:1.2.0" level="project" />
     <orderEntry type="library" name="Gradle: net.sourceforge.csparsej:csparsej:1.1.1" level="project" />
     <orderEntry type="library" name="Gradle: org.ow2.asm:asm:4.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.apache.commons:com.springsource.org.apache.commons.httpclient:3.1.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.apache.ws.commons:ws-commons-util:1.0.1" level="project" />
+    <orderEntry type="library" name="Gradle: com.google.code.findbugs:annotations:2.0.1" level="project" />
+    <orderEntry type="library" name="Gradle: com.ibm.watson.developer_cloud:java-sdk:2.10.0" level="project" />
+    <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.org.kc7bfi:jflac:1.4.0" level="project" />
     <orderEntry type="library" name="Gradle: org.lwjgl.lwjgl:lwjgl-platform:2.9.3:natives-windows" level="project" />
     <orderEntry type="library" name="Gradle: org.lwjgl.lwjgl:lwjgl-platform:2.9.3:natives-linux" level="project" />
     <orderEntry type="library" name="Gradle: org.lwjgl.lwjgl:lwjgl-platform:2.9.3:natives-osx" level="project" />
     <orderEntry type="library" name="Gradle: net.java.jinput:jinput:2.0.5" level="project" />
-    <orderEntry type="library" name="Gradle: org.apache.commons:com.springsource.org.apache.commons.httpclient:3.1.0" level="project" />
-    <orderEntry type="library" name="Gradle: org.apache.ws.commons:ws-commons-util:1.0.1" level="project" />
-    <orderEntry type="library" name="Gradle: commons-codec:commons-codec:1.5" level="project" />
-    <orderEntry type="library" name="Gradle: com.google.code.findbugs:annotations:2.0.1" level="project" />
-    <orderEntry type="library" name="Gradle: com.ibm.watson.developer_cloud:java-sdk:2.10.0" level="project" />
-    <orderEntry type="library" name="Gradle: us.ihmc.thirdparty.org.kc7bfi:jflac:1.4.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.bytedeco:javacpp:1.2" level="project" />
     <orderEntry type="library" name="Gradle: org.rxtx:rxtx:2.1.7" level="project" />
+    <orderEntry type="library" name="Gradle: org.fxyz3d:fxyz3d:0.1.1" level="project" />
     <orderEntry type="library" name="Gradle: jakarta-regexp:jakarta-regexp:1.4" level="project" />
     <orderEntry type="library" name="Gradle: com.squareup.okhttp:okhttp:2.7.2" level="project" />
     <orderEntry type="library" name="Gradle: com.google.code.gson:gson:2.6.2" level="project" />
     <orderEntry type="library" name="Gradle: com.neovisionaries:nv-websocket-client:1.22" level="project" />
+    <orderEntry type="library" name="Gradle: eu.mihosoft.vrl.jcsg:jcsg:0.4.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.orbisgis:poly2tri-core:0.1.2" level="project" />
     <orderEntry type="library" name="Gradle: com.squareup.okio:okio:1.6.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.slf4j:slf4j-simple:1.6.1" level="project" />
+    <orderEntry type="library" name="Gradle: org.ejml:dense64:0.30" level="project" />
+    <orderEntry type="library" name="Gradle: org.ejml:core:0.30" level="project" />
+    <orderEntry type="library" name="Gradle: org.ejml:denseC64:0.30" level="project" />
+    <orderEntry type="library" name="Gradle: org.ddogleg:ddogleg:0.9" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:commons-math3:3.5" level="project" />
     <orderEntry type="library" name="Gradle: org.ros.rosjava_messages:std_msgs:0.5.10" level="project" />
     <orderEntry type="library" name="Gradle: org.ros.rosjava_messages:dynamic_reconfigure:1.5.38" level="project" />
     <orderEntry type="library" name="Gradle: io.netty:netty:3.5.8.Final" level="project" />
     <orderEntry type="library" name="Gradle: org.ros.rosjava_messages:actionlib_msgs:1.11.9" level="project" />
     <orderEntry type="library" name="Gradle: org.yaml:snakeyaml:1.17" level="project" />
+    <orderEntry type="library" name="Gradle: org.ejml:simple:0.30" level="project" />
     <orderEntry type="library" name="Gradle: org.javassist:javassist:3.18.2-GA" level="project" />
+    <orderEntry type="library" name="Gradle: org.ejml:equation:0.29" level="project" />
     <orderEntry type="library" name="Gradle: org.ros.rosjava_messages:roscpp:1.11.10" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: org.pitest:pitest-command-line:1.1.9" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: org.pitest:pitest:1.1.9" level="project" />
-    <orderEntry type="module" module-name="IHMCRobotModels" />
   </component>
 </module>

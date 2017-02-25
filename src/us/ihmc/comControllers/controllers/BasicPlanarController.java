@@ -1,5 +1,6 @@
 package us.ihmc.comControllers.controllers;
 
+import us.ihmc.euclid.tuple2D.Point2D;
 import us.ihmc.robotModels.FullRobotModel;
 import us.ihmc.robotics.controllers.PIDController;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
@@ -9,8 +10,6 @@ import us.ihmc.robotics.geometry.FrameVector;
 import us.ihmc.robotics.math.frames.YoFramePoint2d;
 import us.ihmc.robotics.referenceFrames.ReferenceFrame;
 import us.ihmc.robotics.screwTheory.CenterOfMassJacobian;
-
-import javax.vecmath.Point2d;
 
 public class BasicPlanarController
 {
@@ -90,7 +89,7 @@ public class BasicPlanarController
       planarForces.set(xForce, yForce);
    }
 
-   public void getPlanarForces(Point2d forces)
+   public void getPlanarForces(Point2D forces)
    {
       forces.set(planarForces.getPoint2dCopy());
    }

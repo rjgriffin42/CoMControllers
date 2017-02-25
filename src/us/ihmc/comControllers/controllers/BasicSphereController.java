@@ -1,9 +1,8 @@
 package us.ihmc.comControllers.controllers;
 
+import us.ihmc.euclid.tuple2D.Point2D;
+import us.ihmc.euclid.tuple3D.Vector3D;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
-
-import javax.vecmath.Point2d;
-import javax.vecmath.Vector3d;
 
 public class BasicSphereController implements GenericSphereController
 {
@@ -16,8 +15,8 @@ public class BasicSphereController implements GenericSphereController
       planarController = new BasicPlanarController(controlToolbox, registry);
    }
 
-   private final Point2d planarForces = new Point2d();
-   private final Vector3d forces = new Vector3d();
+   private final Point2D planarForces = new Point2D();
+   private final Vector3D forces = new Vector3D();
    public void doControl()
    {
       heightController.doControl();
@@ -27,7 +26,7 @@ public class BasicSphereController implements GenericSphereController
       forces.set(planarForces.getX(), planarForces.getY(), heightController.getVerticalForce());
    }
 
-   public Vector3d getForces()
+   public Vector3D getForces()
    {
       return forces;
    }

@@ -5,9 +5,14 @@ import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.YoPlaneContactSt
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ICPControlGains;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ICPPlanner;
 import us.ihmc.commonWalkingControlModules.wrenchDistribution.WrenchDistributorTools;
-import us.ihmc.graphics3DAdapter.graphics.appearances.YoAppearance;
+import us.ihmc.euclid.tuple3D.Vector3D;
+import us.ihmc.graphicsDescription.appearance.YoAppearance;
+import us.ihmc.graphicsDescription.yoGraphics.BagOfBalls;
+import us.ihmc.graphicsDescription.yoGraphics.YoGraphicVector;
+import us.ihmc.graphicsDescription.yoGraphics.YoGraphicsListRegistry;
 import us.ihmc.humanoidRobotics.footstep.FootSpoof;
 import us.ihmc.humanoidRobotics.footstep.Footstep;
+import us.ihmc.humanoidRobotics.footstep.FootstepTiming;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.BooleanYoVariable;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
@@ -19,15 +24,11 @@ import us.ihmc.robotics.referenceFrames.ReferenceFrame;
 import us.ihmc.robotics.robotSide.RobotSide;
 import us.ihmc.robotics.robotSide.SideDependentList;
 import us.ihmc.robotics.screwTheory.TotalMassCalculator;
-import us.ihmc.robotics.stateMachines.State;
-import us.ihmc.robotics.stateMachines.StateMachine;
-import us.ihmc.robotics.stateMachines.StateTransition;
-import us.ihmc.robotics.stateMachines.StateTransitionCondition;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.BagOfBalls;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicVector;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicsListRegistry;
+import us.ihmc.robotics.stateMachines.conditionBasedStateMachine.State;
+import us.ihmc.robotics.stateMachines.conditionBasedStateMachine.StateMachine;
+import us.ihmc.robotics.stateMachines.conditionBasedStateMachine.StateTransition;
+import us.ihmc.robotics.stateMachines.conditionBasedStateMachine.StateTransitionCondition;
 
-import javax.vecmath.Vector3d;
 import java.util.ArrayList;
 
 public class SphereICPOptimizationController implements GenericSphereController
@@ -102,8 +103,6 @@ public class SphereICPOptimizationController implements GenericSphereController
       heightController = new BasicHeightController(controlToolbox, registry);
       icpPlanner = new ICPPlanner(controlToolbox.getBipedSupportPolygons(), controlToolbox.getContactableFeet(),
             controlToolbox.getCapturePointPlannerParameters(), registry, yoGraphicsListRegistry);
-      icpPlanner.setDoubleSupportTime(controlToolbox.getDoubleSupportDuration());
-      icpPlanner.setSingleSupportTime(controlToolbox.getSingleSupportDuration());
       icpPlanner.setOmega0(omega0.getDoubleValue());
       icpPlanner.setDesiredCapturePointState(new FramePoint2d(ReferenceFrame.getWorldFrame()), new FrameVector2d(ReferenceFrame.getWorldFrame()));
 
@@ -186,7 +185,7 @@ public class SphereICPOptimizationController implements GenericSphereController
       }
    }
 
-   public Vector3d getForces()
+   public Vector3D getForces()
    {
       desiredForces.setX(planarForces.getX());
       desiredForces.setY(planarForces.getY());
@@ -272,6 +271,7 @@ public class SphereICPOptimizationController implements GenericSphereController
       }
    }
 
+   private final FootstepTiming timing = new FootstepTiming();
    private class SingleSupportState extends State<SupportState>
    {
       private final FramePose footstepPose = new FramePose();
@@ -323,9 +323,10 @@ public class SphereICPOptimizationController implements GenericSphereController
          for (int i = 3; i < icpOptimizationController.getNumberOfFootstepsToConsider(); i++)
             nextFootsteps.add(controlToolbox.peekAtFootstep(i - 1));
 
-         icpPlanner.addFootstepToPlan(nextFootstep);
-         icpPlanner.addFootstepToPlan(nextNextFootstep);
-         icpPlanner.addFootstepToPlan(nextNextNextFootstep);
+         timing.setTimings(controlToolbox.getDoubleSupportDuration(), controlToolbox.getSingleSupportDuration());
+         icpPlanner.addFootstepToPlan(nextFootstep, timing);
+         icpPlanner.addFootstepToPlan(nextNextFootstep, timing);
+         icpPlanner.addFootstepToPlan(nextNextNextFootstep, timing);
 
          icpOptimizationController.addFootstepToPlan(nextFootstep);
          icpOptimizationController.addFootstepToPlan(nextNextFootstep);
@@ -421,9 +422,10 @@ public class SphereICPOptimizationController implements GenericSphereController
 
          controlToolbox.updateUpcomingFootstepsViz(nextFootstep, nextNextFootstep, nextNextNextFootstep);
 
-         icpPlanner.addFootstepToPlan(nextFootstep);
-         icpPlanner.addFootstepToPlan(nextNextFootstep);
-         icpPlanner.addFootstepToPlan(nextNextNextFootstep);
+         timing.setTimings(controlToolbox.getDoubleSupportDuration(), controlToolbox.getSingleSupportDuration());
+         icpPlanner.addFootstepToPlan(nextFootstep, timing);
+         icpPlanner.addFootstepToPlan(nextNextFootstep, timing);
+         icpPlanner.addFootstepToPlan(nextNextNextFootstep, timing);
 
          icpOptimizationController.addFootstepToPlan(nextFootstep);
          icpOptimizationController.addFootstepToPlan(nextNextFootstep);

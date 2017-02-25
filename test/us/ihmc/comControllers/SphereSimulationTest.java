@@ -1,25 +1,21 @@
 package us.ihmc.comControllers;
 
-import org.junit.Test;
 import us.ihmc.comControllers.controllers.SphereControlToolbox;
 import us.ihmc.comControllers.model.SphereRobot;
 import us.ihmc.comControllers.model.SphereRobotModel;
-import us.ihmc.graphics3DAdapter.GroundProfile3D;
+import us.ihmc.euclid.tuple3D.Vector3D;
+import us.ihmc.graphicsDescription.yoGraphics.YoGraphicVector;
+import us.ihmc.graphicsDescription.yoGraphics.YoGraphicsListRegistry;
+import us.ihmc.jMonkeyEngineToolkit.GroundProfile3D;
+import us.ihmc.robotics.controllers.ControllerFailureException;
 import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.dataStructures.variable.BooleanYoVariable;
 import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
-import us.ihmc.robotics.screwTheory.ScrewTools;
 import us.ihmc.robotics.screwTheory.TotalMassCalculator;
 import us.ihmc.simulationconstructionset.*;
-import us.ihmc.simulationconstructionset.gui.tools.VisualizerUtils;
 import us.ihmc.simulationconstructionset.util.LinearGroundContactModel;
 import us.ihmc.simulationconstructionset.util.ground.FlatGroundProfile;
 import us.ihmc.simulationconstructionset.util.simulationRunner.BlockingSimulationRunner;
-import us.ihmc.simulationconstructionset.util.simulationRunner.ControllerFailureException;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicVector;
-import us.ihmc.simulationconstructionset.yoUtilities.graphics.YoGraphicsListRegistry;
-
-import javax.vecmath.Vector3d;
 
 public class SphereSimulationTest
 {
@@ -29,7 +25,7 @@ public class SphereSimulationTest
 
    public static void testPushRecovery() throws BlockingSimulationRunner.SimulationExceededMaximumTimeException, ControllerFailureException
    {
-      Vector3d initialPosition = new Vector3d(0.0, 0.0, 1.0);
+      Vector3D initialPosition = new Vector3D(0.0, 0.0, 1.0);
       SphereRobotModel sphereRobotModel = new SphereRobotModel();
       YoGraphicsListRegistry yoGraphicsListRegistry = new YoGraphicsListRegistry();
       RobotTools.SCSRobotFromInverseDynamicsRobotModel sphereRobot = SphereRobot.createSphereRobot("SphereRobot", initialPosition,
@@ -62,7 +58,8 @@ public class SphereSimulationTest
       scs.setCameraTracking(false, true, true, false);
       scs.setCameraDolly(false, true, true, false);
 
-      VisualizerUtils.createOverheadPlotter(scs, true, yoGraphicsListRegistry);
+
+      //scs.createOverheadPlotter(scs, true, yoGraphicsListRegistry);
 
       scs.startOnAThread();
 
@@ -105,9 +102,9 @@ public class SphereSimulationTest
       double totalRobotMass = TotalMassCalculator.computeSubTreeMass(sphereRobotModel.getElevator());
       double totalRobotWeight = 9.81 * totalRobotMass;
 
-      //Vector3d forceToApply = new Vector3d(0.0, -0.13 * totalRobotWeight, 0.0);
-      Vector3d forceToApply = new Vector3d();
-      Vector3d zero = new Vector3d(0.0, 0.0, 0.0);
+      //Vector3D forceToApply = new Vector3D(0.0, -0.13 * totalRobotWeight, 0.0);
+      Vector3D forceToApply = new Vector3D();
+      Vector3D zero = new Vector3D(0.0, 0.0, 0.0);
       double pushDuration = 0.2;
 
       while (scs.getTime() - initializationTime < simulationDuration)
