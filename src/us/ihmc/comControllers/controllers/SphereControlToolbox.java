@@ -1,6 +1,7 @@
 package us.ihmc.comControllers.controllers;
 
 import us.ihmc.commonWalkingControlModules.configurations.ContinuousCMPICPPlannerParameters;
+import us.ihmc.commonWalkingControlModules.configurations.SmoothCMPPlannerParameters;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.icpOptimization.ICPOptimizationParameters;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.BipedSupportPolygons;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.YoPlaneContactState;
@@ -116,6 +117,7 @@ public class SphereControlToolbox
    private final YoGraphicsListRegistry yoGraphicsListRegistry;
 
    private ContinuousCMPICPPlannerParameters capturePointPlannerParameters;
+   private SmoothCMPPlannerParameters smoothICPPlannerParameters;
    private ICPOptimizationParameters icpOptimizationParameters;
 
    private YoDouble yoTime;
@@ -190,6 +192,7 @@ public class SphereControlToolbox
       centerOfMassJacobian = new CenterOfMassJacobian(elevator);
 
       capturePointPlannerParameters = createICPPlannerParameters();
+      smoothICPPlannerParameters = createNewICPPlannerParameters();
       icpOptimizationParameters = createICPOptimizationParameters();
 
       parentRegistry.addChild(registry);
@@ -326,6 +329,11 @@ public class SphereControlToolbox
    public ContinuousCMPICPPlannerParameters getCapturePointPlannerParameters()
    {
       return capturePointPlannerParameters;
+   }
+
+   public SmoothCMPPlannerParameters getNewCapturePointPlannerParameters()
+   {
+      return smoothICPPlannerParameters;
    }
 
    public ICPOptimizationParameters getICPOptimizationParameters()
@@ -589,6 +597,11 @@ public class SphereControlToolbox
             return copOffsets;
          }
       };
+   }
+
+   private SmoothCMPPlannerParameters createNewICPPlannerParameters()
+   {
+      return new SmoothCMPPlannerParameters();
    }
 
    public ICPOptimizationParameters createICPOptimizationParameters()

@@ -9,7 +9,7 @@ import us.ihmc.yoVariables.registry.YoVariableRegistry;
 
 public class SphereController implements RobotController
 {
-   private enum SphereControllerEnum {BASIC, ICP, ICP_OPTIMIZATION}
+   private enum SphereControllerEnum {BASIC, ICP, NEW_ICP, ICP_OPTIMIZATION}
 
    private static final SphereControllerEnum controllerType = SphereControllerEnum.ICP;
 
@@ -36,6 +36,9 @@ public class SphereController implements RobotController
          break;
       case ICP:
          sphereController = new SphereICPController(controlToolbox, registry);
+         break;
+      case NEW_ICP:
+         sphereController = new SphereNewICPController(controlToolbox, registry);
          break;
       case ICP_OPTIMIZATION:
          sphereController = new SphereICPOptimizationController(controlToolbox, registry);
