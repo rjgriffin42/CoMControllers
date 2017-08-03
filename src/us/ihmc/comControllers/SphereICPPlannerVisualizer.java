@@ -3,12 +3,13 @@ package us.ihmc.comControllers;
 import com.thoughtworks.xstream.io.StreamException;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.BipedSupportPolygons;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.YoPlaneContactState;
-import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerParameters;
+import us.ihmc.commonWalkingControlModules.configurations.ContinuousCMPICPPlannerParameters;
 import us.ihmc.commonWalkingControlModules.controllers.Updatable;
 import us.ihmc.commonWalkingControlModules.desiredFootStep.footstepGenerator.FootstepTestHelper;
-import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ICPPlanner;
+import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ContinuousCMPBasedICPPlanner;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.smoothICPGenerator.CapturePointTools;
 import us.ihmc.euclid.tuple2D.Point2D;
+import us.ihmc.euclid.tuple2D.Vector2D;
 import us.ihmc.euclid.tuple3D.Point3D;
 import us.ihmc.euclid.tuple4D.Quaternion;
 import us.ihmc.graphicsDescription.Graphics3DObject;
@@ -27,11 +28,8 @@ import us.ihmc.humanoidRobotics.communication.packets.walking.FootstepDataMessag
 import us.ihmc.humanoidRobotics.footstep.FootSpoof;
 import us.ihmc.humanoidRobotics.footstep.Footstep;
 import us.ihmc.humanoidRobotics.footstep.FootstepTiming;
-import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
-import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.robotics.geometry.*;
 import us.ihmc.robotics.math.frames.*;
-import us.ihmc.robotics.random.RandomTools;
 import us.ihmc.robotics.referenceFrames.MidFrameZUpFrame;
 import us.ihmc.robotics.referenceFrames.ReferenceFrame;
 import us.ihmc.robotics.referenceFrames.ZUpFrame;
@@ -43,6 +41,8 @@ import us.ihmc.simulationconstructionset.SimulationConstructionSet;
 import us.ihmc.simulationconstructionset.SimulationConstructionSetParameters;
 import us.ihmc.simulationconstructionset.gui.tools.SimulationOverheadPlotterFactory;
 import us.ihmc.tools.thread.ThreadTools;
+import us.ihmc.yoVariables.registry.YoVariableRegistry;
+import us.ihmc.yoVariables.variable.YoDouble;
 
 import java.awt.*;
 import java.io.IOException;
@@ -72,7 +72,7 @@ public class SphereICPPlannerVisualizer
    private static final double footWidthForControl = 0.15;
 
    private static final boolean USE_FLAT_GROUND_WALKING_TRACK_FOOTSTEP_PROVIDER = false;
-   private static final boolean USE_SCRIPT = true;
+   private static final boolean USE_SCRIPT = false;
    private static final boolean USE_FEET_OSCILLATOR = false;
    private static final boolean USE_PITCH_ROLL_OSCILLATIONS_WITH_HIGH_Z = false;
    private static final boolean USE_RANDOM_CONTACT_POINTS = false;
@@ -91,9 +91,9 @@ public class SphereICPPlannerVisualizer
    private BipedSupportPolygons bipedSupportPolygons;
 
    private final SimulationConstructionSet scs;
-   private final ICPPlanner icpPlanner;
+   private final ContinuousCMPBasedICPPlanner icpPlanner;
 
-   private final DoubleYoVariable yoTime;
+   private final YoDouble yoTime;
    private final double dt = 0.006;
 
    private final YoVariableRegistry registry = new YoVariableRegistry("ICPViz");
@@ -170,7 +170,6 @@ public class SphereICPPlannerVisualizer
       List<Footstep> footsteps;
       List<FootstepTiming> timings;
       if (USE_SCRIPT)
-      {
          //         footstepProvider = createScriptBasedFootstepProvider("UpAndDownSlantedCB.xml", "SlantedCB.xml", "LongSidesteps.xml", "TestSteppingSameSideSeveralTimes.xml");
          footsteps = createScriptBasedFootstepProvider("LongStepsForward.xml");
 
@@ -181,7 +180,6 @@ public class SphereICPPlannerVisualizer
          footsteps = footstepTestHelper.createFootsteps(0.25, 0.20, 20);
          timings = new ArrayList<>();
          setFootstepTimings(timings, footsteps.size());
-      }
 
       updatables.add(new Updatable()
       {
@@ -283,7 +281,7 @@ public class SphereICPPlannerVisualizer
 
    private final FrameConvexPolygon2d footstepPolygon = new FrameConvexPolygon2d();
    private final FrameConvexPolygon2d tempFootstepPolygonForShrinking = new FrameConvexPolygon2d();
-   private final ConvexPolygonShrinker convexPolygonShrinker = new ConvexPolygonShrinker();
+   private final ConvexPolygonScaler convexPolygonShrinker = new ConvexPolygonScaler();
 
    private void simulate(List<Footstep> footsteps, List<FootstepTiming> timings)
    {
@@ -305,9 +303,11 @@ public class SphereICPPlannerVisualizer
                break;
 
             nextFootstep = footsteps.remove(0);
+            nextFootstepTiming = timings.remove(0);
          }
-         Footstep nextNextFootstep = footsteps.get(0);
-         Footstep nextNextNextFootstep = footsteps.get(1);
+
+         Footstep nextNextFootstep = footsteps.size() > 0 ? footsteps.get(0) : null;
+         Footstep nextNextNextFootstep = footsteps.size() > 1 ? footsteps.get(1) : null;
          FootstepTiming nextNextFootstepTiming = timings.size() > 0 ? timings.get(0) : null;
          FootstepTiming nextNextNextFootstepTiming = timings.size() > 1 ? timings.get(1) : null;
 
@@ -332,7 +332,6 @@ public class SphereICPPlannerVisualizer
          callUpdatables();
          if (isInDoubleSupport)
          {
-            icpPlanner.setDesiredCapturePointState(desiredICP, desiredICPVelocity);
             if (footsteps.isEmpty())
             {
                icpPlanner.initializeForStanding(yoTime.getDoubleValue());
@@ -356,7 +355,6 @@ public class SphereICPPlannerVisualizer
             FramePose nextSupportPose = footPosesAtTouchdown.get(supportSide.getOppositeSide());
             nextSupportPose.setToZero(nextFootstep.getSoleReferenceFrame());
             nextSupportPose.changeFrame(worldFrame);
-            nextSupportPose.translate(RandomTools.generateRandomVector(random, steppingError));
             footSpoof.setSoleFrame(nextSupportPose);
             if (nextFootstep.getPredictedContactPoints() == null)
                contactStates.get(supportSide.getOppositeSide()).setContactFramePoints(footSpoof.getContactPoints2d());
@@ -368,7 +366,7 @@ public class SphereICPPlannerVisualizer
          while (true)
          {
             simulateOneTick();
-            if (icpPlanner.isDone(yoTime.getDoubleValue()))
+            if (icpPlanner.isDone())
                break;
          }
       }
@@ -388,7 +386,9 @@ public class SphereICPPlannerVisualizer
       updateFootViz();
       bipedSupportPolygons.updateUsingContactStates(contactStates);
 
-      icpPlanner.getDesiredCapturePointPositionAndVelocity(desiredICP, desiredICPVelocity, yoTime.getDoubleValue());
+      icpPlanner.compute(yoTime.getDoubleValue());
+      icpPlanner.getDesiredCapturePointPosition(desiredICP);
+      icpPlanner.getDesiredCapturePointVelocity(desiredICPVelocity);
       CapturePointTools.computeDesiredCentroidalMomentumPivot(desiredICP, desiredICPVelocity, omega0, eCMP);
 
       centerOfMassVelocity.setByProjectionOntoXYPlane(desiredICP);
@@ -428,43 +428,10 @@ public class SphereICPPlannerVisualizer
 
    private void xYAndYawFeetOscillations(double time)
    {
-      if (USE_FEET_OSCILLATOR)
-      {
-         RobotSide robotSide = RobotSide.LEFT;
-//         for (RobotSide robotSide : RobotSide.values)
-         {
-            if (!contactStates.get(robotSide).inContact()) return; //continue;
-
-            double phase = robotSide.negateIfRightSide(Math.PI / 3.5);
-            double xOffset = footLinearOscillationAmplitude * Math.sin(2.0 * Math.PI * footXYYawOscillationFrequency * time + phase);
-            double yOffset = footLinearOscillationAmplitude * Math.cos(2.0 * Math.PI * footXYYawOscillationFrequency * time + phase);
-            double yawOffset = footYawOscillationAmplitude * Math.cos(2.0 * Math.PI * footXYYawOscillationFrequency * time + 2.0 * phase);
-            FootSpoof footSpoof = contactableFeet.get(robotSide);
-            FramePose modifiedFootPose = new FramePose(footPosesAtTouchdown.get(robotSide));
-            modifiedFootPose.setYawPitchRoll(footPosesAtTouchdown.get(robotSide).getYaw() + yawOffset, footPosesAtTouchdown.get(robotSide).getPitch(), footPosesAtTouchdown.get(robotSide).getRoll());
-            modifiedFootPose.translate(xOffset, yOffset, 0.0);
-            footSpoof.setSoleFrame(modifiedFootPose);
-         }
-      }
    }
 
    private void pitchRollFeetOscillations(double time)
    {
-      if (USE_PITCH_ROLL_OSCILLATIONS_WITH_HIGH_Z)
-      {
-         for (RobotSide robotSide : RobotSide.values)
-         {
-            if (!contactStates.get(robotSide).inContact()) continue;
-
-            double phase = robotSide.negateIfRightSide(Math.PI / 3.5);
-            double pitchOffset = footPitchRollOscillationAmplitude * Math.cos(2.0 * Math.PI * footPitchRollOscillationFrequency * time + phase);
-            double rollOffset = footPitchRollOscillationAmplitude * Math.sin(2.0 * Math.PI * footPitchRollOscillationFrequency * time + 1.5 * phase);
-            FootSpoof footSpoof = contactableFeet.get(robotSide);
-            FramePose modifiedFootPose = new FramePose(footPosesAtTouchdown.get(robotSide));
-            modifiedFootPose.setYawPitchRoll(footPosesAtTouchdown.get(robotSide).getYaw(), footPosesAtTouchdown.get(robotSide).getPitch() + pitchOffset, footPosesAtTouchdown.get(robotSide).getRoll() + rollOffset);
-            footSpoof.setSoleFrame(modifiedFootPose);
-         }
-      }
    }
 
    private void generateRandomPredictedContactPoints(Footstep footstep)
@@ -519,7 +486,7 @@ public class SphereICPPlannerVisualizer
       double polygonShrinkAmount = 0.005;
 
       tempFootstepPolygonForShrinking.setIncludingFrameAndUpdate(nextFootstep.getSoleReferenceFrame(), nextFootstep.getPredictedContactPoints());
-      convexPolygonShrinker.shrinkConstantDistanceInto(tempFootstepPolygonForShrinking, polygonShrinkAmount, footstepPolygon);
+      convexPolygonShrinker.scaleConvexPolygon(tempFootstepPolygonForShrinking, polygonShrinkAmount, footstepPolygon);
 
       footstepPolygon.changeFrameAndProjectToXYPlane(worldFrame);
       yoNextFootstepPolygon.setFrameConvexPolygon2d(footstepPolygon);
@@ -540,7 +507,7 @@ public class SphereICPPlannerVisualizer
          nextNextFootstep.setPredictedContactPointsFromFramePoint2ds(contactableFeet.get(nextNextFootstep.getRobotSide()).getContactPoints2d());
 
       tempFootstepPolygonForShrinking.setIncludingFrameAndUpdate(nextNextFootstep.getSoleReferenceFrame(), nextNextFootstep.getPredictedContactPoints());
-      convexPolygonShrinker.shrinkConstantDistanceInto(tempFootstepPolygonForShrinking, polygonShrinkAmount, footstepPolygon);
+      convexPolygonShrinker.scaleConvexPolygon(tempFootstepPolygonForShrinking, polygonShrinkAmount, footstepPolygon);
 
       footstepPolygon.changeFrameAndProjectToXYPlane(worldFrame);
       yoNextNextFootstepPolygon.setFrameConvexPolygon2d(footstepPolygon);
@@ -559,7 +526,7 @@ public class SphereICPPlannerVisualizer
          nextNextNextFootstep.setPredictedContactPointsFromFramePoint2ds(contactableFeet.get(nextNextNextFootstep.getRobotSide()).getContactPoints2d());
 
       tempFootstepPolygonForShrinking.setIncludingFrameAndUpdate(nextNextNextFootstep.getSoleReferenceFrame(), nextNextNextFootstep.getPredictedContactPoints());
-      convexPolygonShrinker.shrinkConstantDistanceInto(tempFootstepPolygonForShrinking, polygonShrinkAmount, footstepPolygon);
+      convexPolygonShrinker.scaleConvexPolygon(tempFootstepPolygonForShrinking, polygonShrinkAmount, footstepPolygon);
 
       footstepPolygon.changeFrameAndProjectToXYPlane(worldFrame);
       yoNextNextNextFootstepPolygon.setFrameConvexPolygon2d(footstepPolygon);
@@ -611,6 +578,7 @@ public class SphereICPPlannerVisualizer
          }
       }
 
+
       return corruptFootsteps(footsteps);
    }
 
@@ -632,7 +600,7 @@ public class SphereICPPlannerVisualizer
       return footsteps;
    }
 
-   private ICPPlanner setupPlanner(YoGraphicsListRegistry yoGraphicsListRegistry, YoVariableRegistry registry)
+   private ContinuousCMPBasedICPPlanner setupPlanner(YoGraphicsListRegistry yoGraphicsListRegistry, YoVariableRegistry registry)
    {
       for (RobotSide robotSide : RobotSide.values)
       {
@@ -688,104 +656,55 @@ public class SphereICPPlannerVisualizer
       midFeetZUpFrame.update();
       bipedSupportPolygons = new BipedSupportPolygons(ankleZUpFrames, midFeetZUpFrame, ankleZUpFrames, registry, yoGraphicsListRegistry);
 
-      footstepTestHelper = new FootstepTestHelper(contactableFeet, ankleFrames);
+      footstepTestHelper = new FootstepTestHelper(contactableFeet);
 
-      CapturePointPlannerParameters capturePointPlannerParameters = createICPPlannerParameters();
+      ContinuousCMPICPPlannerParameters capturePointPlannerParameters = createICPPlannerParameters();
 
-      ICPPlanner icpPlanner = new ICPPlanner(bipedSupportPolygons, contactableFeet, capturePointPlannerParameters, registry, yoGraphicsListRegistry);
+      ContinuousCMPBasedICPPlanner icpPlanner = new ContinuousCMPBasedICPPlanner(bipedSupportPolygons, contactableFeet, capturePointPlannerParameters.getNumberOfFootstepsToConsider(), registry, yoGraphicsListRegistry);
 //      CapturePointPlannerAdapter icpPlanner = new CapturePointPlannerAdapter(capturePointPlannerParameters, registry, yoGraphicsListRegistry, dt, soleFrames, bipedSupportPolygons);
       icpPlanner.setOmega0(omega0);
-      icpPlanner.setDesiredCapturePointState(new FramePoint2d(worldFrame), new FrameVector2d(worldFrame));
+      icpPlanner.initializeParameters(capturePointPlannerParameters);
       return icpPlanner;
    }
 
-   private CapturePointPlannerParameters createICPPlannerParameters()
+   private ContinuousCMPICPPlannerParameters createICPPlannerParameters()
    {
-      return new CapturePointPlannerParameters()
+      return new ContinuousCMPICPPlannerParameters()
       {
          @Override
-         public double getDoubleSupportSplitFraction()
+         public int getNumberOfCoPWayPointsPerFoot()
          {
-            return doubleSupportSplitFraction;
+            return 2;
          }
 
          @Override
-         public double getEntryCMPInsideOffset()
+         public List<Vector2D> getCoPForwardOffsetBounds()
          {
-            return -0.005; // 0.006;
+            ArrayList<Vector2D> copForwardOffsetBounds = new ArrayList<>();
+
+            Vector2D entryBounds = new Vector2D(0.0, 0.03);
+            Vector2D exitBounds = new Vector2D(-0.04, 0.08);
+
+            copForwardOffsetBounds = new ArrayList<>();
+            copForwardOffsetBounds.add(entryBounds);
+            copForwardOffsetBounds.add(exitBounds);
+
+            return copForwardOffsetBounds;
          }
 
          @Override
-         public double getExitCMPInsideOffset()
+         public List<Vector2D> getCoPOffsets()
          {
-            return 0.025;
-         }
+            ArrayList<Vector2D> copOffsets = new ArrayList<>();
 
-         @Override
-         public double getEntryCMPForwardOffset()
-         {
-            return 0.0;
-         }
+            Vector2D entryOffset = new Vector2D(0.0, -0.005);
+            Vector2D exitOffset = new Vector2D(0.0, 0.015); //FIXME 0.025);
 
-         @Override
-         public double getExitCMPForwardOffset()
-         {
-            return 0.0;
-         }
+            copOffsets = new ArrayList<>();
+            copOffsets.add(entryOffset);
+            copOffsets.add(exitOffset);
 
-         @Override
-         public boolean useTwoCMPsPerSupport()
-         {
-            return useTwoCMPs;
-         }
-
-         @Override
-         public double getTimeSpentOnExitCMPInPercentOfStepTime()
-         {
-            return timeSpentOnExitCMPInPercentOfStepTime;
-         }
-
-         @Override
-         public double getMaxEntryCMPForwardOffset()
-         {
-            return 0.03;
-         }
-
-         @Override
-         public double getMinEntryCMPForwardOffset()
-         {
-            return -0.05;
-         }
-
-         @Override
-         public double getMaxExitCMPForwardOffset()
-         {
-            return 0.15;
-         }
-
-         @Override
-         public double getMinExitCMPForwardOffset()
-         {
-            return -0.04;
-         }
-
-         @Override
-         public double getCMPSafeDistanceAwayFromSupportEdges()
-         {
-            return 0.001;
-         }
-
-         @Override
-         public double getMaxDurationForSmoothingEntryToExitCMPSwitch()
-         {
-            return maxDurationForSmoothingEntryToExitCMPSwitch;
-         }
-
-         /** {@inheritDoc} */
-         @Override
-         public boolean useExitCMPOnToesForSteppingDown()
-         {
-            return true;
+            return copOffsets;
          }
       };
    }

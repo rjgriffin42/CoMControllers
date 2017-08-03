@@ -8,14 +8,14 @@ import us.ihmc.graphicsDescription.yoGraphics.YoGraphicVector;
 import us.ihmc.graphicsDescription.yoGraphics.YoGraphicsListRegistry;
 import us.ihmc.jMonkeyEngineToolkit.GroundProfile3D;
 import us.ihmc.robotics.controllers.ControllerFailureException;
-import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
-import us.ihmc.robotics.dataStructures.variable.BooleanYoVariable;
-import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.robotics.screwTheory.TotalMassCalculator;
 import us.ihmc.simulationconstructionset.*;
 import us.ihmc.simulationconstructionset.util.LinearGroundContactModel;
 import us.ihmc.simulationconstructionset.util.ground.FlatGroundProfile;
 import us.ihmc.simulationconstructionset.util.simulationRunner.BlockingSimulationRunner;
+import us.ihmc.yoVariables.registry.YoVariableRegistry;
+import us.ihmc.yoVariables.variable.YoBoolean;
+import us.ihmc.yoVariables.variable.YoDouble;
 
 public class SphereSimulationTest
 {
@@ -67,12 +67,12 @@ public class SphereSimulationTest
 
       YoVariableRegistry rootRegistry = scs.getRootRegistry();
 
-      BooleanYoVariable sendFootsteps = (BooleanYoVariable) rootRegistry.getVariable("sendFootsteps");
-      DoubleYoVariable initialTransferDuration = (DoubleYoVariable) rootRegistry.getVariable("icpPlannerInitialTransferDuration");
-      DoubleYoVariable singleSupportTime = (DoubleYoVariable) rootRegistry.getVariable("icpPlannerSingleSupportTime");
-      DoubleYoVariable doubleSupportTime = (DoubleYoVariable) rootRegistry.getVariable("icpPlannerDoubleSupportTime");
-      DoubleYoVariable controllerSingleSupportTime = (DoubleYoVariable) rootRegistry.getVariable("controllerSingleSupportDuration");
-      DoubleYoVariable controllerDoubleSupportTime = (DoubleYoVariable) rootRegistry.getVariable("controllerDoubleSupportDuration");
+      YoBoolean sendFootsteps = (YoBoolean) rootRegistry.getVariable("sendFootsteps");
+      YoDouble initialTransferDuration = (YoDouble) rootRegistry.getVariable("icpPlannerInitialTransferDuration");
+      YoDouble singleSupportTime = (YoDouble) rootRegistry.getVariable("icpPlannerSingleSupportTime");
+      YoDouble doubleSupportTime = (YoDouble) rootRegistry.getVariable("icpPlannerDoubleSupportTime");
+      YoDouble controllerSingleSupportTime = (YoDouble) rootRegistry.getVariable("controllerSingleSupportDuration");
+      YoDouble controllerDoubleSupportTime = (YoDouble) rootRegistry.getVariable("controllerDoubleSupportDuration");
 
       double stepTime = 1.0;
       double dsRatio = 0.15;

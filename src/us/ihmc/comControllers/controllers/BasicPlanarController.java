@@ -3,13 +3,13 @@ package us.ihmc.comControllers.controllers;
 import us.ihmc.euclid.tuple2D.Point2D;
 import us.ihmc.robotModels.FullRobotModel;
 import us.ihmc.robotics.controllers.PIDController;
-import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
-import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.robotics.geometry.FramePoint;
 import us.ihmc.robotics.geometry.FrameVector;
 import us.ihmc.robotics.math.frames.YoFramePoint2d;
 import us.ihmc.robotics.referenceFrames.ReferenceFrame;
 import us.ihmc.robotics.screwTheory.CenterOfMassJacobian;
+import us.ihmc.yoVariables.registry.YoVariableRegistry;
+import us.ihmc.yoVariables.variable.YoDouble;
 
 public class BasicPlanarController
 {
@@ -31,17 +31,17 @@ public class BasicPlanarController
    private final FramePoint centerOfMass = new FramePoint();
    private final FrameVector centerOfMassVelocity = new FrameVector();
 
-   private final DoubleYoVariable yoDesiredX = new DoubleYoVariable("desiredX", registry);
-   private final DoubleYoVariable yoDesiredY = new DoubleYoVariable("desiredY", registry);
+   private final YoDouble yoDesiredX = new YoDouble("desiredX", registry);
+   private final YoDouble yoDesiredY = new YoDouble("desiredY", registry);
 
-   private final DoubleYoVariable xKp = new DoubleYoVariable("planarXKp", registry);
-   private final DoubleYoVariable xKi = new DoubleYoVariable("planarXKi", registry);
-   private final DoubleYoVariable xKd = new DoubleYoVariable("planarXKd", registry);
-   private final DoubleYoVariable xMaxIntegralError = new DoubleYoVariable("xMaxIntegralError", registry);
-   private final DoubleYoVariable yKp = new DoubleYoVariable("planarYKp", registry);
-   private final DoubleYoVariable yKi = new DoubleYoVariable("planarYKi", registry);
-   private final DoubleYoVariable yKd = new DoubleYoVariable("planarYKd", registry);
-   private final DoubleYoVariable yMaxIntegralError = new DoubleYoVariable("yMaxIntegralError", registry);
+   private final YoDouble xKp = new YoDouble("planarXKp", registry);
+   private final YoDouble xKi = new YoDouble("planarXKi", registry);
+   private final YoDouble xKd = new YoDouble("planarXKd", registry);
+   private final YoDouble xMaxIntegralError = new YoDouble("xMaxIntegralError", registry);
+   private final YoDouble yKp = new YoDouble("planarYKp", registry);
+   private final YoDouble yKi = new YoDouble("planarYKi", registry);
+   private final YoDouble yKd = new YoDouble("planarYKd", registry);
+   private final YoDouble yMaxIntegralError = new YoDouble("yMaxIntegralError", registry);
 
    private final PIDController xController;
    private final PIDController yController;

@@ -1,9 +1,10 @@
 package us.ihmc.comControllers.controllers;
 
+import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ContinuousCMPBasedICPPlanner;
+import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.icpOptimization.ICPAdjustmentOptimizationController;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.icpOptimization.ICPOptimizationController;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.YoPlaneContactState;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ICPControlGains;
-import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.ICPPlanner;
 import us.ihmc.commonWalkingControlModules.wrenchDistribution.WrenchDistributorTools;
 import us.ihmc.euclid.tuple3D.Vector3D;
 import us.ihmc.graphicsDescription.appearance.YoAppearance;
@@ -13,9 +14,6 @@ import us.ihmc.graphicsDescription.yoGraphics.YoGraphicsListRegistry;
 import us.ihmc.humanoidRobotics.footstep.FootSpoof;
 import us.ihmc.humanoidRobotics.footstep.Footstep;
 import us.ihmc.humanoidRobotics.footstep.FootstepTiming;
-import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
-import us.ihmc.robotics.dataStructures.variable.BooleanYoVariable;
-import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.robotics.geometry.*;
 import us.ihmc.robotics.math.frames.YoFramePoint;
 import us.ihmc.robotics.math.frames.YoFramePoint2d;
@@ -28,6 +26,9 @@ import us.ihmc.robotics.stateMachines.conditionBasedStateMachine.State;
 import us.ihmc.robotics.stateMachines.conditionBasedStateMachine.StateMachine;
 import us.ihmc.robotics.stateMachines.conditionBasedStateMachine.StateTransition;
 import us.ihmc.robotics.stateMachines.conditionBasedStateMachine.StateTransitionCondition;
+import us.ihmc.yoVariables.registry.YoVariableRegistry;
+import us.ihmc.yoVariables.variable.YoBoolean;
+import us.ihmc.yoVariables.variable.YoDouble;
 
 import java.util.ArrayList;
 
@@ -41,7 +42,7 @@ public class SphereICPOptimizationController implements GenericSphereController
 
    private final YoFramePoint2d planarForces = new YoFramePoint2d("planarICPForces", worldFrame, registry);
    private final YoFrameVector desiredForces = new YoFrameVector("desiredForces", worldFrame, registry);
-   private final BooleanYoVariable isInDoubleSupport = new BooleanYoVariable("isInDoubleSupport", registry);
+   private final YoBoolean isInDoubleSupport = new YoBoolean("isInDoubleSupport", registry);
    private final ArrayList<Footstep> nextFootsteps = new ArrayList<>();
 
    private final BagOfBalls cmpTrack;
@@ -54,7 +55,7 @@ public class SphereICPOptimizationController implements GenericSphereController
 
    private final StateMachine<SupportState> stateMachine;
 
-   private final ICPPlanner icpPlanner;
+   private final ContinuousCMPBasedICPPlanner icpPlanner;
 
    private final ReferenceFrame centerOfMassFrame;
 
@@ -70,14 +71,14 @@ public class SphereICPOptimizationController implements GenericSphereController
 
    private final ICPOptimizationController icpOptimizationController;
    private final ICPControlGains icpGains;
-   private final DoubleYoVariable omega0 = new DoubleYoVariable("omega0", registry);
+   private final YoDouble omega0 = new YoDouble("omega0", registry);
    private final double totalMass;
 
    private final int numberOfBalls = 100;
    private final int simulatedTicksPerGraphicUpdate = 16;
 
 
-   private final DoubleYoVariable yoTime;
+   private final YoDouble yoTime;
 
    public SphereICPOptimizationController(SphereControlToolbox controlToolbox, YoVariableRegistry parentRegistry)
    {
@@ -101,18 +102,17 @@ public class SphereICPOptimizationController implements GenericSphereController
 
       omega0.set(controlToolbox.getOmega0());
       heightController = new BasicHeightController(controlToolbox, registry);
-      icpPlanner = new ICPPlanner(controlToolbox.getBipedSupportPolygons(), controlToolbox.getContactableFeet(),
-            controlToolbox.getCapturePointPlannerParameters(), registry, yoGraphicsListRegistry);
+      icpPlanner = new ContinuousCMPBasedICPPlanner(controlToolbox.getBipedSupportPolygons(), controlToolbox.getContactableFeet(),
+            controlToolbox.getCapturePointPlannerParameters().getNumberOfFootstepsToConsider(), registry, yoGraphicsListRegistry);
       icpPlanner.setOmega0(omega0.getDoubleValue());
-      icpPlanner.setDesiredCapturePointState(new FramePoint2d(ReferenceFrame.getWorldFrame()), new FrameVector2d(ReferenceFrame.getWorldFrame()));
+      icpPlanner.initializeParameters(controlToolbox.getCapturePointPlannerParameters());
 
       icpGains = new ICPControlGains("CoMController", registry);
       icpGains.setKpOrthogonalToMotion(3.0);
       icpGains.setKpParallelToMotion(2.0);
 
-      icpOptimizationController = new ICPOptimizationController(controlToolbox.getCapturePointPlannerParameters(), controlToolbox.getICPOptimizationParameters(),
-            null, controlToolbox.getBipedSupportPolygons(), controlToolbox.getContactableFeet(), controlToolbox.getControlDT(), registry, yoGraphicsListRegistry);
-      icpOptimizationController.setStepDurations(controlToolbox.getDoubleSupportDuration(), controlToolbox.getSingleSupportDuration());
+      icpOptimizationController = new ICPAdjustmentOptimizationController(controlToolbox.getCapturePointPlannerParameters(), controlToolbox.getICPOptimizationParameters(),
+                                                                          null, controlToolbox.getBipedSupportPolygons(), controlToolbox.getContactableFeet(), controlToolbox.getControlDT(), registry, yoGraphicsListRegistry);
 
       stateMachine = new StateMachine<>("supportStateMachine", "supportStateTime", SupportState.class, controlToolbox.getYoTime(), registry);
       StandingState standingState = new StandingState();
@@ -160,7 +160,9 @@ public class SphereICPOptimizationController implements GenericSphereController
       controlToolbox.update();
 
       icp.getFrameTuple2d(capturePoint2d);
-      icpPlanner.getDesiredCapturePointPositionAndVelocity(desiredCapturePoint, desiredCapturePointVelocity, yoTime.getDoubleValue());
+      icpPlanner.compute(yoTime.getDoubleValue());
+      icpPlanner.getDesiredCapturePointPosition(desiredCapturePoint);
+      icpPlanner.getDesiredCapturePointVelocity(desiredCapturePointVelocity);
       icpPlanner.getFinalDesiredCapturePointPosition(finalDesiredCapturePoint);
       desiredICP.set(desiredCapturePoint);
       desiredCapturePointVelocity.set(desiredCapturePointVelocity);
@@ -254,9 +256,8 @@ public class SphereICPOptimizationController implements GenericSphereController
          desiredICP.getFrameTuple(desiredCapturePoint);
 
          icpPlanner.clearPlan();
-         icpPlanner.holdCurrentICP(yoTime.getDoubleValue(), desiredCapturePoint);
+         icpPlanner.holdCurrentICP(desiredCapturePoint);
          icpPlanner.initializeForStanding(yoTime.getDoubleValue());
-         icpPlanner.setDesiredCapturePointState(desiredICP, desiredICPVelocity);
 
          icpPlanner.clearPlan();
          icpOptimizationController.initializeForStanding(yoTime.getDoubleValue());
@@ -328,9 +329,9 @@ public class SphereICPOptimizationController implements GenericSphereController
          icpPlanner.addFootstepToPlan(nextNextFootstep, timing);
          icpPlanner.addFootstepToPlan(nextNextNextFootstep, timing);
 
-         icpOptimizationController.addFootstepToPlan(nextFootstep);
-         icpOptimizationController.addFootstepToPlan(nextNextFootstep);
-         icpOptimizationController.addFootstepToPlan(nextNextNextFootstep);
+         icpOptimizationController.addFootstepToPlan(nextFootstep, timing);
+         icpOptimizationController.addFootstepToPlan(nextNextFootstep, timing);
+         icpOptimizationController.addFootstepToPlan(nextNextNextFootstep, timing);
 
          RobotSide supportSide = nextFootstep.getRobotSide().getOppositeSide();
 
@@ -372,7 +373,7 @@ public class SphereICPOptimizationController implements GenericSphereController
 
       @Override public void doAction()
       {
-         if (icpPlanner.isDone(yoTime.getDoubleValue()))
+         if (icpPlanner.isDone())
             transitionToDefaultNextState();
 
          icpOptimizationController.compute(yoTime.getDoubleValue(), desiredCapturePoint2d, desiredCapturePointVelocity2d, capturePoint2d, omega0.getDoubleValue());
@@ -427,9 +428,9 @@ public class SphereICPOptimizationController implements GenericSphereController
          icpPlanner.addFootstepToPlan(nextNextFootstep, timing);
          icpPlanner.addFootstepToPlan(nextNextNextFootstep, timing);
 
-         icpOptimizationController.addFootstepToPlan(nextFootstep);
-         icpOptimizationController.addFootstepToPlan(nextNextFootstep);
-         icpOptimizationController.addFootstepToPlan(nextNextNextFootstep);
+         icpOptimizationController.addFootstepToPlan(nextFootstep, timing);
+         icpOptimizationController.addFootstepToPlan(nextNextFootstep, timing);
+         icpOptimizationController.addFootstepToPlan(nextNextNextFootstep, timing);
 
          RobotSide transferToSide = nextFootstep.getRobotSide().getOppositeSide();
 
@@ -451,7 +452,7 @@ public class SphereICPOptimizationController implements GenericSphereController
    {
       public boolean checkCondition()
       {
-         if (icpPlanner.isDone(yoTime.getDoubleValue()))
+         if (icpPlanner.isDone())
             return !controlToolbox.hasFootsteps();
 
          return false;
@@ -462,7 +463,7 @@ public class SphereICPOptimizationController implements GenericSphereController
    {
       public boolean checkCondition()
       {
-         if (icpPlanner.isDone(yoTime.getDoubleValue()))
+         if (icpPlanner.isDone())
             return controlToolbox.hasFootsteps();
 
          return false;

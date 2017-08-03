@@ -1,13 +1,14 @@
 package us.ihmc.comControllers.controllers;
 
+import us.ihmc.commonWalkingControlModules.configurations.ContinuousCMPICPPlannerParameters;
 import us.ihmc.commonWalkingControlModules.instantaneousCapturePoint.icpOptimization.ICPOptimizationParameters;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.BipedSupportPolygons;
 import us.ihmc.commonWalkingControlModules.bipedSupportPolygons.YoPlaneContactState;
-import us.ihmc.commonWalkingControlModules.configurations.CapturePointPlannerParameters;
 import us.ihmc.commonWalkingControlModules.controllers.Updatable;
 import us.ihmc.commonWalkingControlModules.desiredFootStep.footstepGenerator.FootstepTestHelper;
 import us.ihmc.commonWalkingControlModules.momentumBasedController.CapturePointCalculator;
 import us.ihmc.euclid.tuple2D.Point2D;
+import us.ihmc.euclid.tuple2D.Vector2D;
 import us.ihmc.graphicsDescription.Graphics3DObject;
 import us.ihmc.graphicsDescription.appearance.AppearanceDefinition;
 import us.ihmc.graphicsDescription.appearance.YoAppearance;
@@ -19,10 +20,6 @@ import us.ihmc.graphicsDescription.yoGraphics.plotting.YoArtifactPolygon;
 import us.ihmc.humanoidRobotics.footstep.FootSpoof;
 import us.ihmc.humanoidRobotics.footstep.Footstep;
 import us.ihmc.robotModels.FullRobotModel;
-import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
-import us.ihmc.robotics.dataStructures.variable.BooleanYoVariable;
-import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
-import us.ihmc.robotics.dataStructures.variable.IntegerYoVariable;
 import us.ihmc.robotics.geometry.*;
 import us.ihmc.robotics.math.frames.*;
 import us.ihmc.robotics.referenceFrames.CenterOfMassReferenceFrame;
@@ -34,6 +31,10 @@ import us.ihmc.robotics.robotSide.SideDependentList;
 import us.ihmc.robotics.screwTheory.CenterOfMassJacobian;
 import us.ihmc.robotics.screwTheory.RigidBody;
 import us.ihmc.robotics.screwTheory.TwistCalculator;
+import us.ihmc.yoVariables.registry.YoVariableRegistry;
+import us.ihmc.yoVariables.variable.YoBoolean;
+import us.ihmc.yoVariables.variable.YoDouble;
+import us.ihmc.yoVariables.variable.YoInteger;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -69,11 +70,11 @@ public class SphereControlToolbox
    private final YoFramePoint2d yoCenterOfMass2d = new YoFramePoint2d("centerOfMass2d", worldFrame, registry);
    private final YoFrameVector2d yoCenterOfMassVelocity2d = new YoFrameVector2d("centerOfMassVelocity2d", worldFrame, registry);
 
-   private final BooleanYoVariable sendFootsteps = new BooleanYoVariable("sendFootsteps", registry);
-   private final BooleanYoVariable hasFootsteps = new BooleanYoVariable("hasFootsteps", registry);
-   private final IntegerYoVariable numberOfFootsteps = new IntegerYoVariable("numberOfFootsteps", registry);
+   private final YoBoolean sendFootsteps = new YoBoolean("sendFootsteps", registry);
+   private final YoBoolean hasFootsteps = new YoBoolean("hasFootsteps", registry);
+   private final YoInteger numberOfFootsteps = new YoInteger("numberOfFootsteps", registry);
 
-   private final DoubleYoVariable omega0 = new DoubleYoVariable("omega0", registry);
+   private final YoDouble omega0 = new YoDouble("omega0", registry);
 
    private final ReferenceFrame centerOfMassFrame;
 
@@ -114,12 +115,12 @@ public class SphereControlToolbox
    private FootstepTestHelper footstepTestHelper;
    private final YoGraphicsListRegistry yoGraphicsListRegistry;
 
-   private CapturePointPlannerParameters capturePointPlannerParameters;
+   private ContinuousCMPICPPlannerParameters capturePointPlannerParameters;
    private ICPOptimizationParameters icpOptimizationParameters;
 
-   private DoubleYoVariable yoTime;
+   private YoDouble yoTime;
 
-   public SphereControlToolbox(FullRobotModel sphereRobotModel, double controlDT, double desiredHeight, double gravity, DoubleYoVariable yoTime,
+   public SphereControlToolbox(FullRobotModel sphereRobotModel, double controlDT, double desiredHeight, double gravity, YoDouble yoTime,
          YoVariableRegistry parentRegistry, YoGraphicsListRegistry yoGraphicsListRegistry)
    {
       this.fullRobotModel = sphereRobotModel;
@@ -137,10 +138,10 @@ public class SphereControlToolbox
 
       String graphicListName = getClass().getSimpleName();
 
-      YoGraphicPosition desiredCMPViz = new YoGraphicPosition("Desired CMP", desiredCMP, 0.012, YoAppearance.Purple(), GraphicType.CROSS);
-      YoGraphicPosition desiredICPViz = new YoGraphicPosition("Desired Capture Point", desiredICP, 0.01, YoAppearance.Yellow(), GraphicType.ROTATED_CROSS);
-      YoGraphicPosition icpViz = new YoGraphicPosition("Capture Point", icp, 0.01, YoAppearance.Blue(), GraphicType.ROTATED_CROSS);
-      YoGraphicPosition comViz = new YoGraphicPosition("Center of Mass", yoCenterOfMass, 0.01, YoAppearance.Grey(), YoGraphicPosition.GraphicType.ROTATED_CROSS);
+      YoGraphicPosition desiredCMPViz = new YoGraphicPosition("Desired CMP", desiredCMP, 0.012, YoAppearance.Purple(), GraphicType.BALL_WITH_CROSS);
+      YoGraphicPosition desiredICPViz = new YoGraphicPosition("Desired Capture Point", desiredICP, 0.01, YoAppearance.Yellow(), GraphicType.BALL_WITH_ROTATED_CROSS);
+      YoGraphicPosition icpViz = new YoGraphicPosition("Capture Point", icp, 0.01, YoAppearance.Blue(), GraphicType.BALL_WITH_ROTATED_CROSS);
+      YoGraphicPosition comViz = new YoGraphicPosition("Center of Mass", yoCenterOfMass, 0.01, YoAppearance.Grey(), YoGraphicPosition.GraphicType.BALL_WITH_ROTATED_CROSS);
 
       YoArtifactPolygon nextFootstepArtifact =  new YoArtifactPolygon("nextFootstep", yoNextFootstepPolygon, Color.blue, false);
       YoArtifactPolygon nextNextFootstepArtifact =  new YoArtifactPolygon("nextNextFootstep", yoNextNextFootstepPolygon, Color.blue, false);
@@ -248,7 +249,7 @@ public class SphereControlToolbox
       midFeetZUpFrame.update();
       bipedSupportPolygons = new BipedSupportPolygons(ankleZUpFrames, midFeetZUpFrame, ankleZUpFrames, registry, yoGraphicsListRegistry);
 
-      footstepTestHelper = new FootstepTestHelper(contactableFeet, ankleFrames);
+      footstepTestHelper = new FootstepTestHelper(contactableFeet);
 
    }
 
@@ -322,7 +323,7 @@ public class SphereControlToolbox
       return footPosesAtTouchdown;
    }
 
-   public CapturePointPlannerParameters getCapturePointPlannerParameters()
+   public ContinuousCMPICPPlannerParameters getCapturePointPlannerParameters()
    {
       return capturePointPlannerParameters;
    }
@@ -342,7 +343,7 @@ public class SphereControlToolbox
       return singleSupportDuration;
    }
 
-   public DoubleYoVariable getYoTime()
+   public YoDouble getYoTime()
    {
       return yoTime;
    }
@@ -439,7 +440,7 @@ public class SphereControlToolbox
 
    private final FrameConvexPolygon2d footstepPolygon = new FrameConvexPolygon2d();
    private final FrameConvexPolygon2d tempFootstepPolygonForShrinking = new FrameConvexPolygon2d();
-   private final ConvexPolygonShrinker convexPolygonShrinker = new ConvexPolygonShrinker();
+   private final ConvexPolygonScaler convexPolygonShrinker = new ConvexPolygonScaler();
 
    public void updateUpcomingFootstepsViz(Footstep nextFootstep, Footstep nextNextFootstep, Footstep nextNextNextFootstep)
    {
@@ -460,7 +461,7 @@ public class SphereControlToolbox
       double polygonShrinkAmount = 0.005;
 
       tempFootstepPolygonForShrinking.setIncludingFrameAndUpdate(nextFootstep.getSoleReferenceFrame(), nextFootstep.getPredictedContactPoints());
-      convexPolygonShrinker.shrinkConstantDistanceInto(tempFootstepPolygonForShrinking, polygonShrinkAmount, footstepPolygon);
+      convexPolygonShrinker.scaleConvexPolygon(tempFootstepPolygonForShrinking, polygonShrinkAmount, footstepPolygon);
 
       footstepPolygon.changeFrameAndProjectToXYPlane(worldFrame);
       yoNextFootstepPolygon.setFrameConvexPolygon2d(footstepPolygon);
@@ -481,7 +482,7 @@ public class SphereControlToolbox
          nextNextFootstep.setPredictedContactPointsFromFramePoint2ds(contactableFeet.get(nextNextFootstep.getRobotSide()).getContactPoints2d());
 
       tempFootstepPolygonForShrinking.setIncludingFrameAndUpdate(nextNextFootstep.getSoleReferenceFrame(), nextNextFootstep.getPredictedContactPoints());
-      convexPolygonShrinker.shrinkConstantDistanceInto(tempFootstepPolygonForShrinking, polygonShrinkAmount, footstepPolygon);
+      convexPolygonShrinker.scaleConvexPolygon(tempFootstepPolygonForShrinking, polygonShrinkAmount, footstepPolygon);
 
       footstepPolygon.changeFrameAndProjectToXYPlane(worldFrame);
       yoNextNextFootstepPolygon.setFrameConvexPolygon2d(footstepPolygon);
@@ -500,7 +501,7 @@ public class SphereControlToolbox
          nextNextNextFootstep.setPredictedContactPointsFromFramePoint2ds(contactableFeet.get(nextNextNextFootstep.getRobotSide()).getContactPoints2d());
 
       tempFootstepPolygonForShrinking.setIncludingFrameAndUpdate(nextNextNextFootstep.getSoleReferenceFrame(), nextNextNextFootstep.getPredictedContactPoints());
-      convexPolygonShrinker.shrinkConstantDistanceInto(tempFootstepPolygonForShrinking, polygonShrinkAmount, footstepPolygon);
+      convexPolygonShrinker.scaleConvexPolygon(tempFootstepPolygonForShrinking, polygonShrinkAmount, footstepPolygon);
 
       footstepPolygon.changeFrameAndProjectToXYPlane(worldFrame);
       yoNextNextNextFootstepPolygon.setFrameConvexPolygon2d(footstepPolygon);
@@ -548,93 +549,44 @@ public class SphereControlToolbox
       icp.setXY(capturePoint2d);
    }
 
-   private CapturePointPlannerParameters createICPPlannerParameters()
+   private ContinuousCMPICPPlannerParameters createICPPlannerParameters()
    {
-      return new CapturePointPlannerParameters()
+      return new ContinuousCMPICPPlannerParameters()
       {
          @Override
-         public double getDoubleSupportSplitFraction()
+         public int getNumberOfCoPWayPointsPerFoot()
          {
-            return doubleSupportSplitFraction;
+            return 2;
          }
 
          @Override
-         public double getEntryCMPInsideOffset()
+         public List<Vector2D> getCoPForwardOffsetBounds()
          {
-            return -0.005; // 0.006;
+            ArrayList<Vector2D> copForwardOffsetBounds = new ArrayList<>();
+
+            Vector2D entryBounds = new Vector2D(0.0, 0.03);
+            Vector2D exitBounds = new Vector2D(-0.04, 0.08);
+
+            copForwardOffsetBounds = new ArrayList<>();
+            copForwardOffsetBounds.add(entryBounds);
+            copForwardOffsetBounds.add(exitBounds);
+
+            return copForwardOffsetBounds;
          }
 
          @Override
-         public double getExitCMPInsideOffset()
+         public List<Vector2D> getCoPOffsets()
          {
-            return 0.025;
-         }
+            ArrayList<Vector2D> copOffsets = new ArrayList<>();
 
-         @Override
-         public double getEntryCMPForwardOffset()
-         {
-            return 0.0;
-         }
+            Vector2D entryOffset = new Vector2D(0.0, -0.005);
+            Vector2D exitOffset = new Vector2D(0.0, 0.015); //FIXME 0.025);
 
-         @Override
-         public double getExitCMPForwardOffset()
-         {
-            return 0.0;
-         }
+            copOffsets = new ArrayList<>();
+            copOffsets.add(entryOffset);
+            copOffsets.add(exitOffset);
 
-         @Override
-         public boolean useTwoCMPsPerSupport()
-         {
-            return useTwoCMPs;
-         }
-
-         @Override
-         public double getTimeSpentOnExitCMPInPercentOfStepTime()
-         {
-            return timeSpentOnExitCMPInPercentOfStepTime;
-         }
-
-         @Override
-         public double getMaxEntryCMPForwardOffset()
-         {
-            return 0.03;
-         }
-
-         @Override
-         public double getMinEntryCMPForwardOffset()
-         {
-            return -0.05;
-         }
-
-         @Override
-         public double getMaxExitCMPForwardOffset()
-         {
-            return 0.15;
-         }
-
-         @Override
-         public double getMinExitCMPForwardOffset()
-         {
-            return -0.04;
-         }
-
-         @Override
-         public double getCMPSafeDistanceAwayFromSupportEdges()
-         {
-            return 0.001;
-         }
-
-         @Override
-         public double getMaxDurationForSmoothingEntryToExitCMPSwitch()
-         {
-            return maxDurationForSmoothingEntryToExitCMPSwitch;
-         }
-
-         /** {@inheritDoc} */
-         @Override
-         public boolean useExitCMPOnToesForSteppingDown()
-         {
-            return true;
+            return copOffsets;
          }
       };
    }
@@ -643,151 +595,172 @@ public class SphereControlToolbox
    {
       return new ICPOptimizationParameters()
       {
-         @Override public int getMaximumNumberOfFootstepsToConsider()
-         {
-            return 5;
-         }
-
          @Override
          public int numberOfFootstepsToConsider()
          {
-            return 1;
-         }
-
-         @Override public double getFootstepRegularizationWeight()
-         {
-            return 0.01;
-         }
-
-         @Override public double getFeedbackRegularizationWeight()
-         {
-            return 0.0001;
-         }
-
-         @Override public double getForwardFootstepWeight()
-         {
-            return 100.0;
-         }
-
-         @Override public double getLateralFootstepWeight()
-         {
-            return 100.0;
-         }
-
-         @Override public double getFeedbackForwardWeight()
-         {
-            return 0.1;
-         }
-
-         @Override public double getFeedbackLateralWeight()
-         {
-            return 0.1;
+            return 4;
          }
 
          @Override
-         public boolean useDifferentSplitRatioForBigAdjustment()
+         public double getForwardFootstepWeight()
          {
-            return true;
+            return 20.0;
          }
 
          @Override
-         public double getMagnitudeForBigAdjustment()
+         public double getLateralFootstepWeight()
          {
-            return 0.2;
+            return 20.0;
          }
 
-         @Override public double getFeedbackParallelGain()
-         {
-            return 6.0;
-         }
-
-         @Override public double getFeedbackOrthogonalGain()
-         {
-            return 6.0;
-         }
-
-         @Override public double getDynamicRelaxationWeight()
-         {
-            return 1000.0;
-         }
-
-         @Override public double getDynamicRelaxationDoubleSupportWeightModifier()
-         {
-            return 5.0;
-         }
-
-         @Override public boolean useFeedbackRegularization()
-         {
-            return true;
-         }
-
-         @Override public boolean useStepAdjustment()
-         {
-            return true;
-         }
-
-         @Override public boolean useFootstepRegularization()
-         {
-            return true;
-         }
-
-         @Override public boolean scaleStepRegularizationWeightWithTime()
-         {
-            return true;
-         }
-
-         @Override public boolean scaleUpcomingStepWeights()
-         {
-            return true;
-         }
-
-         @Override public boolean scaleFeedbackWeightWithGain()
-         {
-            return true;
-         }
-
-         @Override public double getMinimumFootstepWeight()
-         {
-            return 0.0001;
-         }
-
-         @Override public double getMinimumFeedbackWeight()
-         {
-            return 0.0001;
-         }
-
-         @Override public double getMinimumTimeRemaining()
+         @Override
+         public double getFootstepRegularizationWeight()
          {
             return 0.001;
          }
 
          @Override
-         public double getDoubleSupportMaxCMPForwardExit()
+         public double getFeedbackForwardWeight()
+         {
+            return 0.5;
+         }
+
+         @Override
+         public double getFeedbackLateralWeight()
+         {
+            return 0.5;
+         }
+
+         @Override
+         public double getFeedbackRegularizationWeight()
+         {
+            return 0.0001;
+         }
+
+         @Override
+         public double getFeedbackParallelGain()
+         {
+            return 3.0;
+         }
+
+         @Override
+         public double getFeedbackOrthogonalGain()
+         {
+            return 2.5;
+         }
+
+         @Override
+         public double getDynamicRelaxationWeight()
+         {
+            return 500.0;
+         }
+
+         @Override
+         public double getDynamicRelaxationDoubleSupportWeightModifier()
+         {
+            return 1.0;
+         }
+
+         @Override
+         public double getAngularMomentumMinimizationWeight()
+         {
+            return 50.0;
+         }
+
+         @Override
+         public boolean scaleStepRegularizationWeightWithTime()
+         {
+            return false;
+         }
+
+         @Override
+         public boolean scaleFeedbackWeightWithGain()
+         {
+            return true;
+         }
+
+         @Override
+         public boolean scaleUpcomingStepWeights()
+         {
+            return true;
+         }
+
+         @Override
+         public boolean useFeedbackRegularization()
+         {
+            return true;
+         }
+
+         @Override
+         public boolean useStepAdjustment()
+         {
+            return true;
+         }
+
+         @Override
+         public boolean useAngularMomentum()
+         {
+            return true;
+         }
+
+         @Override
+         public boolean useTimingOptimization()
+         {
+            return false;
+         }
+
+         @Override
+         public boolean useFootstepRegularization()
+         {
+            return true;
+         }
+
+         @Override
+         public double getMinimumFootstepWeight()
+         {
+            return 0.0001;
+         }
+
+         @Override
+         public double getMinimumFeedbackWeight()
+         {
+            return 0.0001;
+         }
+
+         @Override
+         public double getMinimumTimeRemaining()
+         {
+            return 0.0001;
+         }
+
+         @Override
+         public double getDoubleSupportMaxCoPForwardExit()
          {
             return 0;
          }
 
          @Override
-         public double getDoubleSupportMaxCMPLateralExit()
+         public double getDoubleSupportMaxCoPLateralExit()
          {
             return 0;
          }
 
          @Override
-         public double getSingleSupportMaxCMPForwardExit()
+         public double getSingleSupportMaxCoPForwardExit()
          {
             return 0;
          }
 
          @Override
-         public double getSingleSupportMaxCMPLateralExit()
+         public double getSingleSupportMaxCoPLateralExit()
          {
             return 0;
          }
 
-         @Override public double getAdjustmentDeadband()
+         @Override
+         public double getAdjustmentDeadband()
          {
-            return 0.02;
+            return 0.03;
          }
       };
    }

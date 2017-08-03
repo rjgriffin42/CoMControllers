@@ -2,16 +2,16 @@ package us.ihmc.comControllers;
 
 import us.ihmc.comControllers.controllers.*;
 import us.ihmc.robotModels.FullRobotModel;
-import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
 import us.ihmc.robotics.robotController.RobotController;
 import us.ihmc.simulationconstructionset.ExternalForcePoint;
 import us.ihmc.simulationconstructionset.RobotTools;
+import us.ihmc.yoVariables.registry.YoVariableRegistry;
 
 public class SphereController implements RobotController
 {
    private enum SphereControllerEnum {BASIC, ICP, ICP_OPTIMIZATION}
 
-   private static final SphereControllerEnum controllerType = SphereControllerEnum.ICP_OPTIMIZATION;
+   private static final SphereControllerEnum controllerType = SphereControllerEnum.ICP;
 
    private final YoVariableRegistry registry = new YoVariableRegistry("SphereController");
 

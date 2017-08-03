@@ -2,13 +2,13 @@ package us.ihmc.comControllers.controllers;
 
 import us.ihmc.robotModels.FullRobotModel;
 import us.ihmc.robotics.controllers.PIDController;
-import us.ihmc.robotics.dataStructures.registry.YoVariableRegistry;
-import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.robotics.geometry.FramePoint;
 import us.ihmc.robotics.geometry.FrameVector;
 import us.ihmc.robotics.math.frames.YoFramePoint;
 import us.ihmc.robotics.referenceFrames.ReferenceFrame;
 import us.ihmc.robotics.screwTheory.CenterOfMassJacobian;
+import us.ihmc.yoVariables.registry.YoVariableRegistry;
+import us.ihmc.yoVariables.variable.YoDouble;
 
 public class BasicHeightController
 {
@@ -28,16 +28,16 @@ public class BasicHeightController
    private final FrameVector centerOfMassVelocity = new FrameVector();
 
    private final YoFramePoint yoCenterOfMass = new YoFramePoint("centerOfMass", worldFrame, registry);
-   private final DoubleYoVariable yoDesiredHeight = new DoubleYoVariable("desiredHeight", registry);
+   private final YoDouble yoDesiredHeight = new YoDouble("desiredHeight", registry);
 
-   private final DoubleYoVariable heightKp = new DoubleYoVariable("heightKp", registry);
-   private final DoubleYoVariable heightKi = new DoubleYoVariable("heightKi", registry);
-   private final DoubleYoVariable heightKd = new DoubleYoVariable("heightKd", registry);
-   private final DoubleYoVariable maxIntegralError = new DoubleYoVariable("heightMaxIntegralError", registry);
+   private final YoDouble heightKp = new YoDouble("heightKp", registry);
+   private final YoDouble heightKi = new YoDouble("heightKi", registry);
+   private final YoDouble heightKd = new YoDouble("heightKd", registry);
+   private final YoDouble maxIntegralError = new YoDouble("heightMaxIntegralError", registry);
 
    private final PIDController heightController;
 
-   private final DoubleYoVariable verticalForce = new DoubleYoVariable("verticalForce", registry);
+   private final YoDouble verticalForce = new YoDouble("verticalForce", registry);
    private final double controlDT;
    private final CenterOfMassJacobian centerOfMassJacobian;
 

@@ -7,6 +7,7 @@ import us.ihmc.euclid.tuple3D.Vector3D;
 import us.ihmc.graphicsDescription.yoGraphics.YoGraphicsListRegistry;
 import us.ihmc.jMonkeyEngineToolkit.GroundProfile3D;
 import us.ihmc.simulationconstructionset.*;
+import us.ihmc.simulationconstructionset.gui.tools.SimulationOverheadPlotterFactory;
 import us.ihmc.simulationconstructionset.util.LinearGroundContactModel;
 import us.ihmc.simulationconstructionset.util.ground.FlatGroundProfile;
 
@@ -38,6 +39,11 @@ public class SphereSimulation
       SimulationConstructionSetParameters parameters = new SimulationConstructionSetParameters();
       parameters.setDataBufferSize(16000);
       scs = new SimulationConstructionSet(sphereRobot, parameters);
+      SimulationOverheadPlotterFactory plotterFactory = scs.createSimulationOverheadPlotterFactory();
+      plotterFactory.setShowOnStart(true);
+      plotterFactory.setVariableNameToTrack("centerOfMass");
+      plotterFactory.addYoGraphicsListRegistries(yoGraphicsListRegistry);
+      plotterFactory.createOverheadPlotter();
 
       scs.setDT(controlDT, 1);
 
@@ -47,26 +53,6 @@ public class SphereSimulation
       scs.setCameraTracking(false, true, true, false);
       scs.setCameraDolly(false, true, true, false);
 
-
-      // Set up some graphs:
-
-      /*
-      scs.setupGraph("qd_x");
-      scs.setupGraph("qd_y");
-      scs.setupGraph("qd_z");
-
-      scs.setupGraph("qd_wx");
-      scs.setupGraph("qd_wy");
-      scs.setupGraph("qd_wz");
-
-      scs.setupEntryBox("qd_x");
-      scs.setupEntryBox("qd_y");
-      scs.setupEntryBox("qd_z");
-
-      scs.setupEntryBox("qd_wx");
-      scs.setupEntryBox("qd_wy");
-      scs.setupEntryBox("qd_wz");
-      */
 
       scs.startOnAThread();
 

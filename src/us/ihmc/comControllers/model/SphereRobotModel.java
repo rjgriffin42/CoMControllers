@@ -33,7 +33,6 @@ public class SphereRobotModel implements FullRobotModel
    private final SixDoFJoint floatingJoint;
    private final OneDoFJoint[] oneDoFJoints;
 
-   private final ReferenceFrame elevatorFrame;
    private final ReferenceFrame centerOfMassFrame;
 
    private final CenterOfMassJacobian centerOfMassJacobian;
@@ -42,10 +41,9 @@ public class SphereRobotModel implements FullRobotModel
 
    public SphereRobotModel()
    {
-      elevatorFrame = ReferenceFrame.constructBodyFrameWithUnchangingTransformToParent("elevator", worldFrame, new RigidBodyTransform());
-      elevator = new RigidBody("elevator", elevatorFrame);
+      elevator = new RigidBody("elevator", worldFrame);
 
-      floatingJoint = new SixDoFJoint("floatingJoint", elevator, elevatorFrame);
+      floatingJoint = new SixDoFJoint("floatingJoint", elevator);
 
       Matrix3D inertia = new Matrix3D(Ixx1, 0.0, 0.0, 0.0, Iyy1, 0.0, 0.0, 0.0, Izz1);
       body = ScrewTools.addRigidBody("body", floatingJoint, inertia, mass, new Vector3D());
@@ -68,11 +66,6 @@ public class SphereRobotModel implements FullRobotModel
       return worldFrame;
    }
 
-   public ReferenceFrame getElevatorFrame()
-   {
-      return elevatorFrame;
-   }
-
    public RigidBody getElevator()
    {
       return elevator;
@@ -87,6 +80,12 @@ public class SphereRobotModel implements FullRobotModel
    {
       elevator.updateFramesRecursively();
       centerOfMassFrame.update();
+   }
+
+   @Override
+   public MovingReferenceFrame getElevatorFrame()
+   {
+      return null;
    }
 
    public OneDoFJoint[] getOneDoFJoints()

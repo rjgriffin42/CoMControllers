@@ -6,9 +6,9 @@ import us.ihmc.graphicsDescription.appearance.YoAppearance;
 import us.ihmc.graphicsDescription.yoGraphics.YoGraphicPosition;
 import us.ihmc.graphicsDescription.yoGraphics.YoGraphicVector;
 import us.ihmc.graphicsDescription.yoGraphics.YoGraphicsListRegistry;
-import us.ihmc.robotics.dataStructures.variable.DoubleYoVariable;
 import us.ihmc.robotics.screwTheory.RigidBody;
 import us.ihmc.simulationconstructionset.*;
+import us.ihmc.yoVariables.variable.YoDouble;
 
 public class SphereRobot
 {
@@ -43,7 +43,7 @@ public class SphereRobot
 
       initRobot(scsRobot, initialPosition);
       
-      scsRobot.addDynamicGraphicObjectsListRegistry(yoGraphicsListRegistry);
+      scsRobot.addYoGraphicsListRegistry(yoGraphicsListRegistry);
       scsRobot.update();
 
       return scsRobot;
@@ -53,20 +53,20 @@ public class SphereRobot
    {
       scsRobot.getYoTime().set(0.0);
 
-      DoubleYoVariable q_x = (DoubleYoVariable) scsRobot.getVariable("q_x");
-      DoubleYoVariable q_y = (DoubleYoVariable) scsRobot.getVariable("q_y");
-      DoubleYoVariable q_z = (DoubleYoVariable) scsRobot.getVariable("q_z");
-      DoubleYoVariable qd_x = (DoubleYoVariable) scsRobot.getVariable("qd_x");
-      DoubleYoVariable qd_y = (DoubleYoVariable) scsRobot.getVariable("qd_y");
-      DoubleYoVariable qd_z = (DoubleYoVariable) scsRobot.getVariable("qd_z");
+      YoDouble q_x = (YoDouble) scsRobot.getVariable("q_x");
+      YoDouble q_y = (YoDouble) scsRobot.getVariable("q_y");
+      YoDouble q_z = (YoDouble) scsRobot.getVariable("q_z");
+      YoDouble qd_x = (YoDouble) scsRobot.getVariable("qd_x");
+      YoDouble qd_y = (YoDouble) scsRobot.getVariable("qd_y");
+      YoDouble qd_z = (YoDouble) scsRobot.getVariable("qd_z");
 
-      DoubleYoVariable q_qs = (DoubleYoVariable) scsRobot.getVariable("q_qs");
-      DoubleYoVariable q_qx = (DoubleYoVariable) scsRobot.getVariable("q_qx");
-      DoubleYoVariable q_qy = (DoubleYoVariable) scsRobot.getVariable("q_qy");
-      DoubleYoVariable q_qz = (DoubleYoVariable) scsRobot.getVariable("q_qz");
-      DoubleYoVariable qd_wx = (DoubleYoVariable) scsRobot.getVariable("qd_wx");
-      DoubleYoVariable qd_wy = (DoubleYoVariable) scsRobot.getVariable("qd_wy");
-      DoubleYoVariable qd_wz = (DoubleYoVariable) scsRobot.getVariable("qd_wz");
+      YoDouble q_qs = (YoDouble) scsRobot.getVariable("q_qs");
+      YoDouble q_qx = (YoDouble) scsRobot.getVariable("q_qx");
+      YoDouble q_qy = (YoDouble) scsRobot.getVariable("q_qy");
+      YoDouble q_qz = (YoDouble) scsRobot.getVariable("q_qz");
+      YoDouble qd_wx = (YoDouble) scsRobot.getVariable("qd_wx");
+      YoDouble qd_wy = (YoDouble) scsRobot.getVariable("qd_wy");
+      YoDouble qd_wz = (YoDouble) scsRobot.getVariable("qd_wz");
 
       q_x.set(initialPosition.getX());
       q_y.set(initialPosition.getY());
